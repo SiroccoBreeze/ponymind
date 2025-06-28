@@ -24,3 +24,400 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Markdown编辑器样式优化 */
+.w-md-editor {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.w-md-editor-text-textarea,
+.w-md-editor-text {
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: #374151 !important;
+}
+
+.w-md-editor-preview {
+  background-color: #f9fafb !important;
+  padding: 16px !important;
+}
+
+/* 修复全屏模式样式 */
+.w-md-editor-fullscreen {
+  z-index: 9999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: white !important;
+}
+
+.w-md-editor-fullscreen .w-md-editor-text-container,
+.w-md-editor-fullscreen .w-md-editor-text,
+.w-md-editor-fullscreen .w-md-editor-text-textarea {
+  height: calc(100vh - 120px) !important;
+}
+
+/* 工具栏样式 */
+.w-md-editor-toolbar {
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 8px 12px !important;
+}
+
+.w-md-editor-toolbar-child {
+  color: #4a5568 !important;
+}
+
+.w-md-editor-toolbar-child:hover {
+  color: #2d3748 !important;
+  background-color: #e2e8f0 !important;
+}
+
+/* 编辑器容器高度修复 */
+.w-md-editor-text-container {
+  height: 100% !important;
+}
+
+.w-md-editor-text,
+.w-md-editor-text-textarea {
+  height: 100% !important;
+  min-height: 400px !important;
+}
+
+/* Markdown预览样式 */
+.wmde-markdown {
+  background-color: transparent !important;
+  color: #374151 !important;
+  font-family: inherit !important;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  color: #111827 !important;
+  font-weight: 600 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.wmde-markdown h1 {
+  font-size: 2em !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding-bottom: 0.3em !important;
+}
+
+.wmde-markdown h2 {
+  font-size: 1.5em !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding-bottom: 0.3em !important;
+}
+
+.wmde-markdown h3 {
+  font-size: 1.25em !important;
+}
+
+.wmde-markdown p {
+  margin-bottom: 1em !important;
+  line-height: 1.6 !important;
+}
+
+.wmde-markdown pre {
+  background-color: #f3f4f6 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  padding: 1rem !important;
+  overflow-x: auto !important;
+  margin: 1em 0 !important;
+}
+
+.wmde-markdown code {
+  background-color: #f3f4f6 !important;
+  color: #dc2626 !important;
+  padding: 0.2em 0.4em !important;
+  border-radius: 0.25rem !important;
+  font-size: 0.875em !important;
+}
+
+.wmde-markdown pre code {
+  background-color: transparent !important;
+  color: #374151 !important;
+  padding: 0 !important;
+}
+
+.wmde-markdown blockquote {
+  border-left: 4px solid #3b82f6 !important;
+  padding-left: 1rem !important;
+  margin: 1em 0 !important;
+  color: #6b7280 !important;
+  background-color: #f8fafc !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem !important;
+}
+
+.wmde-markdown ul,
+.wmde-markdown ol {
+  padding-left: 1.5rem !important;
+  margin: 1em 0 !important;
+}
+
+.wmde-markdown li {
+  margin-bottom: 0.5em !important;
+}
+
+.wmde-markdown table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1em 0 !important;
+}
+
+.wmde-markdown th,
+.wmde-markdown td {
+  border: 1px solid #e5e7eb !important;
+  padding: 0.5rem !important;
+  text-align: left !important;
+}
+
+.wmde-markdown th {
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+}
+
+.wmde-markdown a {
+  color: #3b82f6 !important;
+  text-decoration: underline !important;
+}
+
+.wmde-markdown a:hover {
+  color: #1d4ed8 !important;
+}
+
+.wmde-markdown img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 0.5rem !important;
+  margin: 1em 0 !important;
+}
+
+/* 目录相关样式 */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6,
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  scroll-margin-top: 100px !important;
+  scroll-behavior: smooth;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 目录高亮动画 */
+.toc-item-active {
+  position: relative;
+  transform: translateX(4px);
+  transition: all 0.3s ease-in-out;
+  animation: tocItemSlideIn 0.3s ease-out;
+}
+
+/* 目录项悬停效果 */
+.toc-sidebar button:hover {
+  transform: translateX(2px);
+  transition: all 0.2s ease-in-out;
+}
+
+/* 活跃目录项的左侧指示器 */
+.toc-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+  border-radius: 0 2px 2px 0;
+}
+
+/* 移动端目录样式优化 */
+@media (max-width: 1024px) {
+  .toc-sidebar {
+    position: static;
+    width: 100%;
+    margin-top: 1rem;
+  }
+  
+  .toc-sidebar .sticky {
+    position: static !important;
+  }
+}
+
+/* 桌面端固定目录 */
+@media (min-width: 1024px) {
+  .toc-sidebar {
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+  
+  .toc-sidebar::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .toc-sidebar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+  }
+  
+  .toc-sidebar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+  }
+  
+  .toc-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* 目录导航容器滚动样式 */
+.toc-nav-container {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.toc-nav-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.toc-nav-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 3px;
+}
+
+.toc-nav-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.toc-nav-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 目录项滚动到视图时的动画 */
+@keyframes tocItemSlideIn {
+  from {
+    opacity: 0.7;
+    transform: translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 标题临时高亮效果 */
+.heading-highlight {
+  background-color: #fef3c7 !important;
+  transition: background-color 0.3s ease-in-out;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+/* 自定义样式 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 标题锚点滚动偏移 */
+h1, h2, h3, h4, h5, h6 {
+  scroll-margin-top: 150px;
+}
+
+/* 目录高亮动画 */
+.toc-item-active {
+  background-color: #dbeafe;
+  border-left: 3px solid #3b82f6;
+  color: #1d4ed8;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-5px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 目录容器滚动条样式 */
+.toc-nav-container {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.toc-nav-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.toc-nav-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.toc-nav-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.toc-nav-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 移动端响应式调整 */
+@media (max-width: 1024px) {
+  h1, h2, h3, h4, h5, h6 {
+    scroll-margin-top: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  h1, h2, h3, h4, h5, h6 {
+    scroll-margin-top: 100px;
+  }
+}
