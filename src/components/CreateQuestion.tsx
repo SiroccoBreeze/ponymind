@@ -10,10 +10,10 @@ const MarkdownEditor = dynamic(
   { ssr: false }
 );
 
-interface CreatePostProps {
-  onPostCreated?: () => void;
-  editPostId?: string; // 编辑模式时的文章ID
-  onClose?: () => void; // 关闭时的回调
+interface CreateQuestionProps {
+  onQuestionCreated?: () => void;
+  editQuestionId?: string;
+  onClose?: () => void;
 }
 
 interface Tag {
@@ -24,18 +24,18 @@ interface Tag {
   usageCount: number;
 }
 
-export default function CreatePost({ onPostCreated, editPostId, onClose }: CreatePostProps) {
+export default function CreateQuestion({ onQuestionCreated, editQuestionId, onClose }: CreateQuestionProps) {
   const router = useRouter();
-  // 如果有editPostId或onClose回调，说明是从外部调用，应该直接显示全屏
-  const [isOpen, setIsOpen] = useState<boolean>(Boolean(editPostId || onClose));
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 基本信息
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [originalPost, setOriginalPost] = useState<any>(null); // 存储原始文章数据
-  const [useSimpleEditor, setUseSimpleEditor] = useState(false); // 编辑器模式切换
+  const [originalQuestion, setOriginalQuestion] = useState<any>(null);
+  const [useSimpleEditor, setUseSimpleEditor] = useState(false);
   
   // 标签相关状态
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -55,80 +55,60 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
         console.error('获取标签失败:', error);
       }
     };
-    
-    if (isOpen) {
-      fetchTags();
-    }
-  }, [isOpen]);
+    fetchTags();
+  }, []);
 
-  // 编辑模式：获取文章数据
+  // 编辑模式：获取问题数据
   useEffect(() => {
-    const fetchPostData = async () => {
-      if (!editPostId) return;
+    const fetchQuestionData = async () => {
+      if (!editQuestionId) return;
       
       try {
-        const response = await fetch(`/api/posts/${editPostId}`);
+        const response = await fetch(`/api/posts/${editQuestionId}`);
         if (response.ok) {
-          const post = await response.json();
-          setOriginalPost(post);
-          setTitle(post.title);
-          setContent(post.content);
-          setSelectedTags(post.tags || []);
-          setIsOpen(true); // 编辑模式直接打开
+          const question = await response.json();
+          setOriginalQuestion(question);
+          setTitle(question.title);
+          setContent(question.content);
+          setSelectedTags(question.tags || []);
           
-          console.log('编辑模式已加载文章内容:', {
-            title: post.title,
-            contentLength: post.content?.length || 0,
-            tags: post.tags,
-            type: post.type
+          console.log('编辑模式已加载问题内容:', {
+            title: question.title,
+            contentLength: question.content?.length || 0,
+            tags: question.tags,
+            type: question.type
           });
         }
       } catch (error) {
-        console.error('获取文章数据失败:', error);
-        setError('获取文章数据失败');
+        console.error('获取问题数据失败:', error);
+        setError('获取问题数据失败');
       }
     };
     
-    if (editPostId) {
-      fetchPostData();
+    if (editQuestionId) {
+      fetchQuestionData();
     }
-  }, [editPostId]);
-
-  // 自动检测大文档并建议切换编辑器
-  useEffect(() => {
-    if (content.length > 5000 && !useSimpleEditor) {
-      // 可以在这里添加提示用户切换到简单编辑器的逻辑
-    }
-  }, [content.length, useSimpleEditor]);
+  }, [editQuestionId]);
 
   // 阻止页面滚动
   useEffect(() => {
-    const shouldShowFullScreen = Boolean(editPostId || onClose || isOpen);
+    // 保存当前滚动位置
+    const scrollY = window.scrollY;
+    // 阻止页面滚动
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
     
-    if (shouldShowFullScreen) {
-      // 保存当前滚动位置
-      const scrollY = window.scrollY;
-      // 阻止页面滚动
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
-      return () => {
-        // 恢复页面滚动
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [isOpen, editPostId, onClose]);
+    return () => {
+      // 恢复页面滚动
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await handlePublish();
-  };
-
-  const handlePublish = async () => {
+  const handleSubmit = async () => {
     setError(null);
     setLoading(true);
 
@@ -139,25 +119,26 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
     }
 
     try {
-      const url = editPostId ? `/api/posts/${editPostId}` : '/api/posts';
-      const method = editPostId ? 'PUT' : 'POST';
+      const url = editQuestionId ? `/api/posts/${editQuestionId}` : '/api/posts';
+      const method = editQuestionId ? 'PUT' : 'POST';
       
-      const body: any = {
+      const body = {
         title: title.trim(),
         content: content.trim(),
         summary: content.trim().substring(0, 200) + '...',
         tags: selectedTags,
-        type: 'article',
+        type: 'question',
+        questionDetails: {
+          solution: '',
+          expectation: '',
+          actual: '',
+          system: '',
+          menu: '',
+          version: '',
+          operation: ''
+        },
+        reviewStatus: editQuestionId && originalQuestion?.reviewStatus === 'published' ? 'published' : 'pending'
       };
-
-      // 编辑模式的状态处理
-      if (editPostId) {
-        // 如果原来是已发布状态，保持已发布；否则提交审核
-        body.reviewStatus = originalPost?.reviewStatus === 'published' ? 'published' : 'pending';
-      } else {
-        // 新建模式提交审核
-        body.status = 'pending';
-      }
 
       const res = await fetch(url, {
         method,
@@ -169,22 +150,20 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || (editPostId ? '更新失败' : '发布失败'));
+        throw new Error(data.error || (editQuestionId ? '更新失败' : '发布失败'));
       }
 
-      // 重置表单
+      // 重置表单并关闭
       resetForm();
-      setIsOpen(false);
       
-      if (onPostCreated) {
-        onPostCreated();
+      if (onQuestionCreated) {
+        onQuestionCreated();
       }
       router.refresh();
       
-      // 显示成功提示
-      alert(editPostId ? '更新成功！' : '内容已发布成功！');
+      alert(editQuestionId ? '问题更新成功！' : '问题已发布成功！');
     } catch (err) {
-      setError(err instanceof Error ? err.message : (editPostId ? '更新失败，请稍后重试' : '发布失败，请稍后重试'));
+      setError(err instanceof Error ? err.message : (editQuestionId ? '更新失败，请稍后重试' : '发布失败，请稍后重试'));
     } finally {
       setLoading(false);
     }
@@ -200,23 +179,26 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
     setSavingDraft(true);
 
     try {
-      const url = editPostId ? `/api/posts/${editPostId}` : '/api/posts';
-      const method = editPostId ? 'PUT' : 'POST';
+      const url = editQuestionId ? `/api/posts/${editQuestionId}` : '/api/posts';
+      const method = editQuestionId ? 'PUT' : 'POST';
       
-      const body: any = {
+      const body = {
         title: title.trim(),
         content: content.trim(),
         summary: content.trim().substring(0, 200) + '...',
         tags: selectedTags,
-        type: 'article',
+        type: 'question',
+        questionDetails: {
+          solution: '',
+          expectation: '',
+          actual: '',
+          system: '',
+          menu: '',
+          version: '',
+          operation: ''
+        },
+        reviewStatus: 'draft'
       };
-
-      // 编辑模式和新建模式都保存为草稿
-      if (editPostId) {
-        body.reviewStatus = 'draft';
-      } else {
-        body.status = 'draft';
-      }
 
       const res = await fetch(url, {
         method,
@@ -231,16 +213,13 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
         throw new Error(data.error || '保存失败');
       }
 
-      // 重置表单
       resetForm();
-      setIsOpen(false);
       
-      if (onPostCreated) {
-        onPostCreated();
+      if (onQuestionCreated) {
+        onQuestionCreated();
       }
       
-      // 显示保存成功提示
-      alert('保存成功！可在用户中心查看和继续编辑');
+      alert('草稿保存成功！可在用户中心查看和继续编辑');
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败，请稍后重试');
     } finally {
@@ -252,19 +231,17 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
     setTitle('');
     setContent('');
     setSelectedTags([]);
-    setOriginalPost(null);
+    setOriginalQuestion(null);
     setUseSimpleEditor(false);
     setError(null);
   };
 
   const handleClose = () => {
-    // 重置所有状态
     resetForm();
-    setIsOpen(false);
-    
-    // 调用外部的关闭回调
     if (onClose) {
       onClose();
+    } else {
+      router.push('/');
     }
   };
 
@@ -278,23 +255,6 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
     setSelectedTags(selectedTags.filter(tag => tag !== tagName));
   };
 
-  // 如果是从外部调用（有editPostId或onClose），强制显示全屏界面
-  const shouldShowFullScreen = Boolean(editPostId || onClose || isOpen);
-
-  // 如果不应该显示全屏界面，显示浮动按钮
-  if (!shouldShowFullScreen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-8 right-8 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 z-50 group"
-      >
-        <svg className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* 顶部导航栏 */}
@@ -303,23 +263,21 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
           <button
             onClick={handleClose}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title="关闭编辑器"
+            title="关闭"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
           <h1 className="text-xl font-semibold text-gray-900">
-            {editPostId ? '编辑内容' : '创建新内容'}
+            {editQuestionId ? '编辑问题' : '提出问题'}
           </h1>
           <div className="flex items-center space-x-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              'bg-blue-100 text-blue-700'
-            }`}>
-              📝 文章
+            <span className="px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700">
+              ❓ 问题
             </span>
             {content.length > 0 && (
-              <span className="text-sm text-gray-500">
+              <span className="text-xs text-gray-500">
                 {content.length} 字符
               </span>
             )}
@@ -340,7 +298,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
             {useSimpleEditor ? '📝 简单模式' : '🎨 富文本模式'}
           </button>
 
-          {/* 保存按钮 */}
+          {/* 保存草稿 */}
           <button
             type="button"
             onClick={handleSaveDraft}
@@ -359,9 +317,9 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
           {/* 发布按钮 */}
           <button
             type="button"
-            onClick={handlePublish}
+            onClick={handleSubmit}
             disabled={loading || savingDraft || !title.trim() || !content.trim()}
-            className={`flex items-center space-x-2 font-medium py-2 px-6 rounded-lg shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white`}
+            className="flex items-center space-x-2 font-medium py-2 px-6 rounded-lg shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
           >
             {loading ? (
               <>
@@ -376,7 +334,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                <span>发布</span>
+                <span>发布问题</span>
               </>
             )}
           </button>
@@ -403,14 +361,14 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
             {/* 标题输入 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                标题 <span className="text-red-500">*</span>
+                问题标题 <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="输入文章标题..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="简要描述你遇到的问题..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                 required
               />
             </div>
@@ -418,7 +376,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
             {/* 标签选择 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                标签 (最多5个)
+                相关标签 (最多5个)
               </label>
               
               {/* 已选择的标签 */}
@@ -427,13 +385,13 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                   {selectedTags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700 border border-blue-200"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700 border border-orange-200"
                     >
                       #{tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="ml-2 text-blue-500 hover:text-blue-700"
+                        className="ml-2 text-orange-500 hover:text-orange-700"
                       >
                         ×
                       </button>
@@ -450,7 +408,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                     value={tagSearchTerm}
                     onChange={(e) => setTagSearchTerm(e.target.value)}
                     placeholder="搜索标签..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
                   />
                 </div>
               )}
@@ -463,7 +421,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                     <button
                       type="button"
                       onClick={() => setShowAllTags(!showAllTags)}
-                      className="text-xs text-blue-600 hover:text-blue-800"
+                      className="text-xs text-orange-600 hover:text-orange-800"
                     >
                       {showAllTags ? '收起' : '显示全部'}
                     </button>
@@ -478,7 +436,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                           key={tag._id}
                           type="button"
                           onClick={() => addTag(tag.name)}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors border border-gray-200 hover:border-blue-200"
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transition-colors border border-gray-200 hover:border-orange-200"
                         >
                           #{tag.name}
                           <span className="ml-1 text-gray-400 text-xs">({tag.usageCount})</span>
@@ -519,7 +477,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
                                     setTagSearchTerm('');
                                   }
                                 }}
-                                className="text-blue-600 hover:text-blue-800 underline"
+                                className="text-orange-600 hover:text-orange-800 underline"
                               >
                                 创建新标签 "#{tagSearchTerm.trim()}"
                               </button>
@@ -566,49 +524,52 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
 
         {/* 右侧编辑器区域 */}
         <div className="flex-1 flex flex-col min-h-0">
-                    
-          <div className="flex-1 min-h-0 bg-white">
-            {useSimpleEditor ? (
-              // 简单文本编辑器
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="开始编写你的文章...\n\n💡 快速入门：\n# 这是一级标题\n## 这是二级标题\n\n**粗体文字** 和 *斜体文字*\n\n- 无序列表\n1. 有序列表\n\n```javascript\n// 代码块\nconsole.log('Hello World');\n```\n\n> 这是引用文字\n\n[这是链接](https://example.com)\n\n---\n现在开始创作你的内容吧！"
-                className="w-full h-full resize-none p-6 border-none outline-none bg-white text-gray-900 font-mono text-sm leading-relaxed cursor-text"
-                style={{
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap'
-                }}
-                autoFocus={!editPostId}
-                onClick={(e) => {
-                  // 确保点击后能正确获取焦点和光标位置
-                  const textarea = e.currentTarget;
-                  setTimeout(() => {
-                    textarea.focus();
-                  }, 0);
-                }}
-                onFocus={(e) => {
-                  // 焦点时将光标移到内容末尾（如果是新建）
-                  if (!editPostId && content.length === 0) {
-                    e.currentTarget.setSelectionRange(0, 0);
-                  }
-                }}
-              />
-            ) : (
-              // Vditor编辑器
-              <div className="w-full h-full">
-                {typeof window !== 'undefined' && (
-                  <MarkdownEditor
-                    value={content}
-                    onChange={(value) => setContent(value || '')}
-                    height={window.innerHeight - 200}
-                  />
-                )}
+          {/* 问题详情编辑器 */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">
+                  问题详情 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center space-x-3 text-xs text-gray-500">
+                  <span>支持Markdown语法</span>
+                  {!useSimpleEditor && (
+                    <span>• 右侧可查看目录大纲</span>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
+            
+            <div className="flex-1 min-h-0 bg-white">
+              {useSimpleEditor ? (
+                // 简单文本编辑器
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="详细描述你遇到的问题...\n\n建议包含：\n• 问题的具体表现\n• 重现步骤\n• 相关代码片段\n• 错误信息\n• 你尝试过的解决方法\n\n例如：\n## 问题描述\n当我点击提交按钮时，页面没有响应\n\n## 重现步骤\n1. 打开登录页面\n2. 输入用户名和密码\n3. 点击提交按钮\n\n## 相关代码\n```javascript\nconst handleSubmit = () => {\n  // 代码片段\n};\n```"
+                  className="w-full h-full resize-none p-6 border-none outline-none bg-white text-gray-900 font-mono text-sm leading-relaxed cursor-text"
+                  style={{
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'pre-wrap'
+                  }}
+                  autoFocus={!editQuestionId}
+                />
+              ) : (
+                // Vditor编辑器
+                <div className="w-full h-full">
+                  {typeof window !== 'undefined' && (
+                    <MarkdownEditor
+                      value={content}
+                      onChange={(value) => setContent(value || '')}
+                      height={window.innerHeight - 200}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

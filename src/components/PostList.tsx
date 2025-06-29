@@ -261,21 +261,9 @@ export default function PostList({
                       </span>
                     )}
 
-                    {/* 难度标识 */}
-                    {post.type === 'question' && (
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        getDifficultyColor(post.difficulty)
-                      }`}>
-                        {post.difficulty === 'beginner' ? '初级' : post.difficulty === 'intermediate' ? '中级' : '高级'}
-                      </span>
-                    )}
 
-                    {/* 悬赏标识 */}
-                    {post.bounty > 0 && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        💰 {post.bounty} 积分
-                      </span>
-                    )}
+
+
                   </div>
                 </div>
 

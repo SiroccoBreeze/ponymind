@@ -10,5 +10,5 @@ export default function SessionProvider({
   children: React.ReactNode;
   session: Session | null;
 }) {
-  return <Provider session={session}>{children}</Provider>;
+  return <Provider session={session as any}>{children}</Provider>;
 } 

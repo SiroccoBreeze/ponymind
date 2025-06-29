@@ -1,9 +1,12 @@
-import NextAuth from 'next-auth';
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import CredentialsProvider from 'next-auth/providers/credentials';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
-const handler = NextAuth({
+const NextAuth = require('next-auth').default;
+
+const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -11,52 +14,60 @@ const handler = NextAuth({
         email: { label: "邮箱", type: "email" },
         password: { label: "密码", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('请输入邮箱和密码');
+          return null;
         }
 
-        await connectDB();
+        try {
+          await connectDB();
 
-        // 查找用户
-        const user = await User.findOne({ email: credentials.email });
-        if (!user) {
-          throw new Error('用户不存在');
+          // 查找用户
+          const user = await User.findOne({ email: credentials.email });
+          if (!user) {
+            return null;
+          }
+
+          // 验证密码
+          const isValid = await user.comparePassword(credentials.password);
+          if (!isValid) {
+            return null;
+          }
+
+          // 返回用户信息（不包含密码）
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.username,
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
+          return null;
         }
-
-        // 验证密码
-        const isValid = await user.comparePassword(credentials.password);
-        if (!isValid) {
-          throw new Error('密码错误');
-        }
-
-        // 返回用户信息（不包含密码）
-        const userObject = user.toObject();
-        delete userObject.password;
-        return userObject;
       }
     })
   ],
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
   },
   pages: {
     signIn: '/auth/signin',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (session?.user) {
         session.user.id = token.id;
       }
       return session;
     },
   },
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

@@ -53,9 +53,27 @@ const postSchema = new mongoose.Schema({
     enum: ['open', 'answered', 'closed'],
     default: 'open',
   },
+  reviewStatus: {
+    type: String,
+    enum: ['draft', 'pending', 'published', 'rejected'],
+    default: 'published',
+  },
+  rejectionReason: {
+    type: String,
+    default: '',
+  },
   bounty: {
     type: Number,
     default: 0,
+  },
+  questionDetails: {
+    system: { type: String, default: '' },
+    menu: { type: String, default: '' },
+    version: { type: String, default: '' },
+    operation: { type: String, default: '' },
+    expectation: { type: String, default: '' },
+    actual: { type: String, default: '' },
+    solution: { type: String, default: '' }
   },
   createdAt: {
     type: Date,

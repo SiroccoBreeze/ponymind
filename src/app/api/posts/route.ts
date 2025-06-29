@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     const author = searchParams.get('author');
 
     // 构建查询条件
-    let query: any = {};
+    let query: any = {
+      reviewStatus: 'published' // 默认只显示已发布的内容
+    };
     
     if (type) {
       query.type = type;
@@ -135,7 +137,9 @@ export async function POST(request: NextRequest) {
       tags, 
       type = 'article',
       difficulty = 'intermediate',
-      bounty = 0
+      bounty = 0,
+      status = 'pending',
+      questionDetails
     } = await request.json();
 
     if (!title || !content) {
@@ -155,7 +159,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建文章/问题
-    const post = new Post({
+    const postData: any = {
       title,
       content,
       summary: summary || content.substring(0, 200) + '...',
@@ -163,9 +167,17 @@ export async function POST(request: NextRequest) {
       type,
       difficulty: type === 'question' ? difficulty : 'intermediate',
       status: type === 'question' ? 'open' : 'answered',
+      reviewStatus: status, // 审核状态：draft, pending, published, rejected
       bounty: type === 'question' ? bounty : 0,
       author: user._id,
-    });
+    };
+
+    // 如果是问题类型，添加问题详情
+    if (type === 'question' && questionDetails) {
+      postData.questionDetails = questionDetails;
+    }
+
+    const post = new Post(postData);
 
     await post.save();
 

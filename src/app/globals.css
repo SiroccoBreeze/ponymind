@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "vditor/dist/index.css";
 
 :root {
   --background: #ffffff;
@@ -420,4 +421,211 @@ h1, h2, h3, h4, h5, h6 {
   h1, h2, h3, h4, h5, h6 {
     scroll-margin-top: 100px;
   }
+}
+
+/* Vditor编辑器列表样式修复 */
+.vditor-reset ol, 
+.vditor-ir ol, 
+.vditor-sv ol,
+.vditor-wysiwyg ol {
+  list-style-type: decimal !important;
+  list-style-position: inside !important;
+  margin-left: 1.5em !important;
+  padding-left: 0 !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.vditor-reset ul, 
+.vditor-ir ul, 
+.vditor-sv ul,
+.vditor-wysiwyg ul {
+  list-style-type: disc !important;
+  list-style-position: inside !important;
+  margin-left: 1.5em !important;
+  padding-left: 0 !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.vditor-reset li, 
+.vditor-ir li, 
+.vditor-sv li,
+.vditor-wysiwyg li {
+  margin: 0.3em 0 !important;
+  padding-left: 0.25em !important;
+  line-height: 1.6 !important;
+}
+
+/* 确保预览模式中的列表正确显示 */
+.vditor-preview ol {
+  list-style-type: decimal !important;
+  margin-left: 1.5em !important;
+  padding-left: 0 !important;
+}
+
+.vditor-preview ul {
+  list-style-type: disc !important;
+  margin-left: 1.5em !important;
+  padding-left: 0 !important;
+}
+
+.vditor-preview li {
+  margin: 0.3em 0 !important;
+  line-height: 1.6 !important;
+}
+
+/* 嵌套列表样式 */
+.vditor-reset ol ol,
+.vditor-ir ol ol,
+.vditor-sv ol ol,
+.vditor-wysiwyg ol ol,
+.vditor-preview ol ol {
+  list-style-type: lower-alpha !important;
+  margin-left: 1em !important;
+}
+
+.vditor-reset ul ul,
+.vditor-ir ul ul,
+.vditor-sv ul ul,
+.vditor-wysiwyg ul ul,
+.vditor-preview ul ul {
+  list-style-type: circle !important;
+  margin-left: 1em !important;
+}
+
+/* 修复Vditor工具栏中的列表按钮样式 */
+.vditor-toolbar button[data-type="list"],
+.vditor-toolbar button[data-type="ordered-list"] {
+  opacity: 1 !important;
+}
+
+/* Vditor 编辑器样式优化 */
+.vditor {
+  border: none !important;
+  background: white;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.vditor-content {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+}
+
+.vditor-ir {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+}
+
+.vditor-ir .vditor-reset {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+  height: auto !important;
+  padding: 20px !important;
+}
+
+.vditor-wysiwyg {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+}
+
+.vditor-preview {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+}
+
+.vditor-toolbar {
+  border-bottom: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  flex-shrink: 0 !important;
+}
+
+/* 确保编辑器容器内的滚动正常 */
+.vditor-content .vditor-reset {
+  padding: 20px !important;
+  line-height: 1.6 !important;
+}
+
+/* 优化resize手柄样式 */
+.vditor-resize {
+  background: #f3f4f6 !important;
+  border-top: 1px solid #e5e7eb !important;
+  flex-shrink: 0 !important;
+}
+
+.vditor-resize svg {
+  color: #9ca3af !important;
+}
+
+/* 目录大纲样式优化 */
+.vditor-outline {
+  background: white !important;
+  border-left: 1px solid #e5e7eb !important;
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
+}
+
+.vditor-outline ul {
+  padding: 16px !important;
+}
+
+.vditor-outline li {
+  padding: 4px 0 !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+.vditor-outline li a {
+  color: #6b7280 !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  display: block !important;
+}
+
+.vditor-outline li a:hover {
+  color: #374151 !important;
+  background-color: #f3f4f6 !important;
+}
+
+.vditor-outline li a.vditor-outline--focus {
+  color: #2563eb !important;
+  background-color: #dbeafe !important;
+  font-weight: 500 !important;
+}
+
+/* 全屏模式下的调整 */
+.vditor--fullscreen {
+  z-index: 9999 !important;
+}
+
+.vditor--fullscreen .vditor-content {
+  max-height: calc(100vh - 100px) !important;
+}
+
+.vditor--fullscreen .vditor-ir,
+.vditor--fullscreen .vditor-wysiwyg,
+.vditor--fullscreen .vditor-preview {
+  max-height: calc(100vh - 100px) !important;
+}
+
+/* Vditor工具栏优化 */
+.vditor-toolbar {
+  position: relative !important;
+}
+
+/* 修复工具栏按钮的悬停效果 */
+.vditor-toolbar .vditor-toolbar__item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.vditor-toolbar .vditor-toolbar__item {
+  transition: background-color 0.15s ease !important;
+}
+
+/* 确保工具栏按钮可以显示title属性 */
+.vditor-toolbar [title] {
+  position: relative !important;
 }

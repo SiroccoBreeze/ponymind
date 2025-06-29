@@ -22,7 +22,8 @@ export default async function RootLayout({
   return (
     <html lang="zh">
       <body className={inter.className}>
-        <SessionProvider session={session}>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <SessionProvider session={session as any}>
           <Navbar />
           <main>{children}</main>
         </SessionProvider>

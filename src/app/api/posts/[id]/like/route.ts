@@ -6,7 +6,7 @@ import User from '@/models/User';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -19,10 +19,11 @@ export async function POST(
 
     await connectDB();
 
+    const { id } = await params;
     // 查找用户和文章
     const [user, post] = await Promise.all([
       User.findOne({ email: session.user.email }),
-      Post.findById(params.id)
+      Post.findById(id)
     ]);
 
     if (!user) {
@@ -41,15 +42,15 @@ export async function POST(
 
     // 检查用户是否已经点赞
     const userLikedPosts = user.likedPosts || [];
-    const hasLiked = userLikedPosts.includes(params.id);
+    const hasLiked = userLikedPosts.includes(id);
 
     if (hasLiked) {
       // 取消点赞
-      user.likedPosts = userLikedPosts.filter((id: string) => id !== params.id);
+      user.likedPosts = userLikedPosts.filter((postId: string) => postId !== id);
       post.likes = Math.max(0, (post.likes || 0) - 1);
     } else {
       // 添加点赞
-      user.likedPosts = [...userLikedPosts, params.id];
+      user.likedPosts = [...userLikedPosts, id];
       post.likes = (post.likes || 0) + 1;
     }
 

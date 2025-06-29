@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
 import PostList from '@/components/PostList';
@@ -11,6 +11,7 @@ import SearchBar from '@/components/SearchBar';
 export default function Home() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -25,9 +26,53 @@ export default function Home() {
     totalUsers: 0,
     totalAnswers: 0
   });
+  const [realTimeStats, setRealTimeStats] = useState<{
+    hotPosts: Array<{
+      title: string;
+      type: string;
+      views: number;
+      answers: number;
+      likes: number;
+      createdAt: string;
+    }>;
+    popularTags: Array<{
+      name: string;
+      count: number;
+    }>;
+    stats: {
+      todayPosts: number;
+      todayComments: number;
+      unansweredQuestions: number;
+    };
+    activeUsers: Array<{
+      name: string;
+      reputation: number;
+      weekActivity: number;
+      badge: string;
+    }>;
+  }>({
+    hotPosts: [],
+    popularTags: [],
+    stats: {
+      todayPosts: 0,
+      todayComments: 0,
+      unansweredQuestions: 0
+    },
+    activeUsers: []
+  });
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
   const handlePostCreated = () => {
     setRefreshTrigger(prev => prev + 1);
+    setShowCreatePost(false);
+  };
+
+  const handleCreateArticle = () => {
+    setShowCreatePost(true);
+  };
+
+  const handleCreateQuestion = () => {
+    router.push('/ask');
   };
 
   // 从URL参数初始化搜索状态
@@ -43,19 +88,20 @@ export default function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // 模拟统计数据
-        setStats({
-          totalPosts: 1240,
-          totalQuestions: 856,
-          totalUsers: 342,
-          totalAnswers: 2150
-        });
+        // 获取真实统计数据
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setRealTimeStats(data);
+        } else {
+          console.error('获取统计数据失败');
+        }
       } catch (error) {
         console.error('获取统计数据失败:', error);
       }
     };
     fetchStats();
-  }, []);
+  }, [refreshTrigger]);
 
   const handleSearch = (filters: { search: string; tag: string; author: string }) => {
     setSearchFilters(filters);
@@ -75,7 +121,7 @@ export default function Home() {
     { id: 'active', label: '最近活跃' },
     { id: 'votes', label: '最多点赞' },
     { id: 'views', label: '最多浏览' },
-    { id: 'bounty', label: '悬赏问题' }
+
   ];
 
   return (
@@ -87,22 +133,45 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* 左侧主内容区 */}
           <div className="lg:col-span-3">
-            {/* 搜索栏 */}
+            {/* SearchBar */}
             <SearchBar onSearch={handleSearch} />
 
-            {/* 发布内容区域 */}
+            {/* 创建内容区域 */}
             {session && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">发布内容</h2>
-                  <Link
-                    href="/ask"
-                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    💡 快速提问
-                  </Link>
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">有什么想分享的？</p>
+                      <p className="text-xs text-gray-500">与社区一起学习和成长</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleCreateArticle}
+                      className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 border border-blue-200"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      写文章
+                    </button>
+                    <button
+                      onClick={handleCreateQuestion}
+                      className="flex items-center px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors duration-200 border border-orange-200"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      提问题
+                    </button>
+                  </div>
                 </div>
-                <CreatePost onPostCreated={handlePostCreated} />
               </div>
             )}
 
@@ -184,13 +253,7 @@ export default function Home() {
                 今日热点
               </h3>
               <div className="space-y-3">
-                {[
-                  { title: 'React 18 新特性详解', type: 'article', views: 1250 },
-                  { title: 'JavaScript 闭包问题求助', type: 'question', answers: 5 },
-                  { title: 'Vue 3 组合式 API 最佳实践', type: 'article', views: 980 },
-                  { title: 'TypeScript 类型推导疑问', type: 'question', answers: 3 },
-                  { title: 'Node.js 性能优化指南', type: 'article', views: 756 }
-                ].map((item, index) => (
+                {realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
                   <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
                       item.type === 'question' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
@@ -203,10 +266,15 @@ export default function Home() {
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         {item.type === 'question' ? `${item.answers} 个回答` : `${item.views} 次浏览`}
+                        {item.likes > 0 && ` • ${item.likes} 点赞`}
                       </p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    暂无热点内容
+                  </div>
+                )}
               </div>
             </div>
 
@@ -214,18 +282,7 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">热门标签</h3>
               <div className="flex flex-wrap gap-2">
-                {[
-                  { name: 'javascript', count: 1250 },
-                  { name: 'react', count: 980 },
-                  { name: 'python', count: 856 },
-                  { name: 'vue', count: 742 },
-                  { name: 'typescript', count: 689 },
-                  { name: 'node.js', count: 567 },
-                  { name: 'css', count: 445 },
-                  { name: 'html', count: 389 },
-                  { name: 'mongodb', count: 334 },
-                  { name: 'express', count: 298 }
-                ].map((tag) => (
+                {realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag) => (
                   <Link
                     key={tag.name}
                     href={`/?tag=${tag.name}`}
@@ -234,7 +291,11 @@ export default function Home() {
                     {tag.name}
                     <span className="ml-1 text-gray-500">{tag.count}</span>
                   </Link>
-                ))}
+                )) : (
+                  <div className="text-center py-2 text-gray-500 text-sm">
+                    暂无标签数据
+                  </div>
+                )}
               </div>
             </div>
 
@@ -243,21 +304,18 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">社区统计</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">今日新问题</span>
-                  <span className="text-sm font-semibold text-blue-600">24</span>
+                  <span className="text-sm text-gray-600">今日新内容</span>
+                  <span className="text-sm font-semibold text-blue-600">{realTimeStats.stats.todayPosts}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">今日新回答</span>
-                  <span className="text-sm font-semibold text-green-600">67</span>
+                  <span className="text-sm font-semibold text-green-600">{realTimeStats.stats.todayComments}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">待解决问题</span>
-                  <span className="text-sm font-semibold text-orange-600">156</span>
+                  <span className="text-sm font-semibold text-orange-600">{realTimeStats.stats.unansweredQuestions}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">悬赏问题</span>
-                  <span className="text-sm font-semibold text-purple-600">12</span>
-                </div>
+
               </div>
             </div>
 
@@ -265,26 +323,35 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">本周活跃用户</h3>
               <div className="space-y-3">
-                {[
-                  { name: 'Alex Chen', reputation: 2840, badge: '🥇' },
-                  { name: 'Sarah Wang', reputation: 2156, badge: '🥈' },
-                  { name: 'Mike Zhang', reputation: 1923, badge: '🥉' },
-                  { name: 'Lisa Liu', reputation: 1687, badge: '⭐' },
-                  { name: 'Tom Wilson', reputation: 1456, badge: '⭐' }
-                ].map((user, index) => (
+                {realTimeStats.activeUsers.length > 0 ? realTimeStats.activeUsers.map((user, index) => (
                   <div key={index} className="flex items-center space-x-3">
                     <span className="text-lg">{user.badge}</span>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.reputation} 声望</p>
+                      <p className="text-xs text-gray-500">
+                        {user.reputation} 声望 • 本周活跃度 {user.weekActivity}
+                      </p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    暂无活跃用户数据
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* 创作模态框 */}
+      {showCreatePost && (
+        <CreatePost
+          onClose={() => setShowCreatePost(false)}
+          onPostCreated={handlePostCreated}
+        />
+      )}
     </div>
   );
 }
+

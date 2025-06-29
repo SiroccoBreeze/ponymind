@@ -2,17 +2,15 @@ import mongoose from 'mongoose';
 
 // 定义全局mongoose类型
 declare global {
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  } | undefined;
+  // eslint-disable-next-line no-var
+  var mongoose: Cached | undefined;
 }
 
 // MongoDB连接URI格式：mongodb://username:password@host:port/database
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI!;
 
 if (!MONGODB_URI) {
-  throw new Error('请在.env.local文件中定义MONGODB_URI环境变量');
+  throw new Error('请在环境变量中定义 MONGODB_URI');
 }
 
 interface Cached {
@@ -20,14 +18,18 @@ interface Cached {
   promise: Promise<typeof mongoose> | null;
 }
 
-let cached: Cached = (global as any).mongoose || { conn: null, promise: null };
+const cached: Cached = global.mongoose || {
+  conn: null,
+  promise: null,
+};
 
-if (!(global as any).mongoose) {
-  (global as any).mongoose = cached;
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 async function connectDB() {
   if (cached.conn) {
+    console.log('使用现有的MongoDB连接');
     return cached.conn;
   }
 
@@ -41,6 +43,7 @@ async function connectDB() {
       return mongoose;
     }).catch((error) => {
       console.error('MongoDB连接失败:', error);
+      cached.promise = null;
       throw error;
     });
   }

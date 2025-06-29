@@ -15,6 +15,10 @@ const commentSchema = new mongoose.Schema({
     ref: 'Post',
     required: true,
   },
+  isAccepted: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

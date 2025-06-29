@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 export default function Navbar() {
@@ -11,24 +11,59 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const adminCheckCacheRef = useRef<{ [key: string]: boolean }>({});
+  const adminCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 检查用户是否为管理员
+  // 优化admin权限检查，添加缓存和防抖
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (session?.user?.email) {
+      if (!session?.user?.email) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const cacheKey = session.user.email;
+      
+      // 检查缓存
+      if (adminCheckCacheRef.current[cacheKey] !== undefined) {
+        setIsAdmin(adminCheckCacheRef.current[cacheKey]);
+        return;
+      }
+
+      // 清除之前的定时器
+      if (adminCheckTimeoutRef.current) {
+        clearTimeout(adminCheckTimeoutRef.current);
+      }
+
+      // 防抖：200ms后执行检查
+      adminCheckTimeoutRef.current = setTimeout(async () => {
         try {
           const response = await fetch('/api/admin/dashboard');
-          setIsAdmin(response.ok);
+          const result = response.ok;
+          
+          // 缓存结果（5分钟有效期）
+          adminCheckCacheRef.current[cacheKey] = result;
+          setTimeout(() => {
+            delete adminCheckCacheRef.current[cacheKey];
+          }, 5 * 60 * 1000);
+          
+          setIsAdmin(result);
         } catch {
+          adminCheckCacheRef.current[cacheKey] = false;
           setIsAdmin(false);
         }
-      } else {
-        setIsAdmin(false);
-      }
+      }, 200);
     };
 
     checkAdminStatus();
-  }, [session]);
+
+    // 清理函数
+    return () => {
+      if (adminCheckTimeoutRef.current) {
+        clearTimeout(adminCheckTimeoutRef.current);
+      }
+    };
+  }, [session?.user?.email]); // 只依赖email变化
 
   // 如果是认证页面或管理页面，不显示导航栏
   if (pathname?.startsWith('/auth/') || pathname?.startsWith('/admin/')) {
@@ -91,18 +126,6 @@ export default function Navbar() {
 
             {/* 右侧用户菜单 */}
             <div className="flex items-center space-x-4">
-              {/* 提问按钮 */}
-              {session?.user && (
-                <Link
-                  href="/ask"
-                  className="hidden md:inline-flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] transition-all duration-200"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                  提问
-                </Link>
-              )}
 
               {/* 移动端菜单按钮 */}
               <button
@@ -146,26 +169,14 @@ export default function Navbar() {
                       </div>
                       
                       <Link
-                        href="/profile"
+                        href="/user-center"
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                       >
                         <svg className="w-4 h-4 mr-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                         </svg>
-                        个人资料
-                      </Link>
-                      
-                      <Link
-                        href="/settings"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                      >
-                        <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        设置
+                        用户中心
                       </Link>
                       
                       {/* 管理员入口 */}
@@ -227,7 +238,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${
                     isActiveLink(link.href)
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -238,33 +249,20 @@ export default function Navbar() {
                 </Link>
               ))}
               
-              {/* 移动端提问按钮 */}
-              {session?.user && (
-                <Link
-                  href="/ask"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white transition-all duration-200"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                  <span>提问</span>
-                </Link>
-              )}
-              
+              {/* 移动端登录注册按钮 */}
               {!session?.user && (
                 <div className="pt-4 border-t border-gray-100 space-y-2">
                   <Link
                     href="/auth/signin"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors duration-200"
                   >
                     登录
                   </Link>
                   <Link
                     href="/auth/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center px-4 py-3 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
                   >
                     注册
                   </Link>
@@ -275,18 +273,7 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* 点击外部关闭菜单 */}
-      {(isMenuOpen || isMobileMenuOpen) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setIsMenuOpen(false);
-            setIsMobileMenuOpen(false);
-          }}
-        ></div>
-      )}
-
-      {/* 占位符，避免内容被固定导航栏遮挡 */}
+      {/* 顶部占位空间 */}
       <div className="h-16"></div>
     </>
   );

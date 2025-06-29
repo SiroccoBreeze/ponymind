@@ -24,6 +24,7 @@ interface PostQuery {
   $or?: Array<{ title?: { $regex: string; $options: string }; content?: { $regex: string; $options: string } }>;
   type?: string;
   status?: string;
+  reviewStatus?: string;
   tags?: { $in: string[] };
 }
 
@@ -41,11 +42,23 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type') || '';
     const status = searchParams.get('status') || '';
+    const reviewStatus = searchParams.get('reviewStatus') || '';
     const tag = searchParams.get('tag') || '';
+    const isAdminMode = searchParams.get('admin') === 'true';
     const skip = (page - 1) * limit;
 
     // 构建查询条件
     const query: PostQuery = {};
+    
+    // 如果不是管理员模式，只显示已发布的内容
+    if (!isAdminMode) {
+      query.reviewStatus = 'published';
+    } else {
+      // 管理员模式：不显示草稿状态
+      if (!reviewStatus) {
+        query.reviewStatus = { $ne: 'draft' } as any;
+      }
+    }
     
     if (search) {
       query.$or = [
@@ -61,6 +74,10 @@ export async function GET(request: NextRequest) {
     if (status) {
       query.status = status;
     }
+    
+    if (reviewStatus) {
+      query.reviewStatus = reviewStatus;
+    }
 
     if (tag) {
       query.tags = { $in: [tag] };
@@ -71,7 +88,7 @@ export async function GET(request: NextRequest) {
       .skip(skip)
       .limit(limit)
       .populate('author', 'name email avatar')
-      .select('title content type status tags views likes answers createdAt updatedAt author');
+      .select('title content type status reviewStatus tags views likes answers createdAt updatedAt author');
 
     const total = await Post.countDocuments(query);
 
@@ -87,8 +104,17 @@ export async function GET(request: NextRequest) {
           questions: {
             $sum: { $cond: [{ $eq: ['$type', 'question'] }, 1, 0] }
           },
-          openQuestions: {
-            $sum: { $cond: [{ $eq: ['$status', 'open'] }, 1, 0] }
+          drafts: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'draft'] }, 1, 0] }
+          },
+          pending: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'pending'] }, 1, 0] }
+          },
+          published: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'published'] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'rejected'] }, 1, 0] }
           },
           totalViews: { $sum: '$views' },
           totalLikes: { $sum: '$likes' }
@@ -108,7 +134,10 @@ export async function GET(request: NextRequest) {
         totalPosts: 0,
         articles: 0,
         questions: 0,
-        openQuestions: 0,
+        drafts: 0,
+        pending: 0,
+        published: 0,
+        rejected: 0,
         totalViews: 0,
         totalLikes: 0
       }
@@ -122,7 +151,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 更新文章状态
+// 审核文章/更新状态
 export async function PUT(request: NextRequest) {
   try {
     const permissionCheck = await checkAdminPermission();
@@ -130,16 +159,35 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: permissionCheck.error }, { status: permissionCheck.status });
     }
 
-    const { postId, status, featured } = await request.json();
+    const { postId, action, reason, status, featured } = await request.json();
 
     if (!postId) {
       return NextResponse.json({ error: '文章ID不能为空' }, { status: 400 });
     }
 
-    const updateData: { status?: string; featured?: boolean; updatedAt: Date } = {
+    const updateData: { 
+      status?: string; 
+      reviewStatus?: string;
+      featured?: boolean; 
+      updatedAt: Date;
+      rejectionReason?: string;
+    } = {
       updatedAt: new Date()
     };
     
+    // 处理审核操作
+    if (action === 'approve') {
+      updateData.reviewStatus = 'published';
+      // 清除拒绝理由
+      updateData.rejectionReason = '';
+    } else if (action === 'reject') {
+      updateData.reviewStatus = 'rejected';
+      if (reason) {
+        updateData.rejectionReason = reason;
+      }
+    }
+    
+    // 处理其他更新
     if (status) updateData.status = status;
     if (typeof featured === 'boolean') updateData.featured = featured;
 
