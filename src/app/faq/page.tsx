@@ -118,19 +118,7 @@ export default function FAQPage() {
     );
   };
 
-  const getDifficultyBadge = (difficulty: string) => {
-    const difficultyConfig = {
-      'beginner': { label: '新手', color: 'bg-blue-100 text-blue-800' },
-      'intermediate': { label: '中级', color: 'bg-orange-100 text-orange-800' },
-      'advanced': { label: '高级', color: 'bg-red-100 text-red-800' }
-    };
-    const config = difficultyConfig[difficulty as keyof typeof difficultyConfig] || difficultyConfig.intermediate;
-    return (
-      <span className={`px-2 py-1 text-xs rounded-full ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
+
 
   if (loading) {
     return (
@@ -355,7 +343,6 @@ export default function FAQPage() {
                                   {item.title}
                                 </h3>
                                 {getStatusBadge(item.status)}
-                                {getDifficultyBadge(item.difficulty)}
                               </div>
                               
                               {/* 标签和统计 */}
@@ -468,9 +455,6 @@ export default function FAQPage() {
                               状态
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              难度
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               作者
                             </th>
                             <th 
@@ -533,9 +517,6 @@ export default function FAQPage() {
                               </td>
                               <td className="px-6 py-4">
                                 {getStatusBadge(item.status)}
-                              </td>
-                              <td className="px-6 py-4">
-                                {getDifficultyBadge(item.difficulty)}
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex items-center">

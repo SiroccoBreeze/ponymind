@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 
-// 动态导入MarkdownEditor以避免SSR问题
-const MarkdownEditor = dynamic(
-  () => import('./MarkdownEditor'),
+// 动态导入支持图片上传的MarkdownEditor
+const MarkdownEditorWithUpload = dynamic(
+  () => import('./MarkdownEditorWithUpload'),
   { ssr: false }
 );
 
@@ -26,6 +27,7 @@ interface Tag {
 
 export default function CreateQuestion({ onQuestionCreated, editQuestionId, onClose }: CreateQuestionProps) {
   const router = useRouter();
+  const editorRef = useRef<{ markAsSaved: () => void }>(null);
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +155,9 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
         throw new Error(data.error || (editQuestionId ? '更新失败' : '发布失败'));
       }
 
+      // 标记图片已保存
+      editorRef.current?.markAsSaved();
+      
       // 重置表单并关闭
       resetForm();
       
@@ -161,7 +166,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
       }
       router.refresh();
       
-      alert(editQuestionId ? '问题更新成功！' : '问题已发布成功！');
+      toast.success(editQuestionId ? '问题更新成功！' : '问题已发布成功！');
     } catch (err) {
       setError(err instanceof Error ? err.message : (editQuestionId ? '更新失败，请稍后重试' : '发布失败，请稍后重试'));
     } finally {
@@ -213,13 +218,16 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
         throw new Error(data.error || '保存失败');
       }
 
+      // 标记图片已保存
+      editorRef.current?.markAsSaved();
+      
       resetForm();
       
       if (onQuestionCreated) {
         onQuestionCreated();
       }
       
-      alert('草稿保存成功！可在用户中心查看和继续编辑');
+      toast.success('草稿保存成功！可在用户中心查看和继续编辑');
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败，请稍后重试');
     } finally {
@@ -357,97 +365,168 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
       <div className="flex-1 flex min-h-0">
         {/* 左侧设置面板 */}
         <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
-          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          <div className="p-6 space-y-8 overflow-y-auto flex-1">
             {/* 标题输入 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                问题标题 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="简要描述你遇到的问题..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                required
-              />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <label className="text-sm font-semibold text-gray-800">
+                  问题标题 <span className="text-red-500">*</span>
+                </label>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="清楚地描述你遇到的问题..."
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-gray-900 placeholder-gray-400 shadow-sm hover:border-gray-300"
+                  required
+                />
+                {title.length > 0 && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      title.length > 50 ? 'bg-red-100 text-red-600' : 
+                      title.length > 30 ? 'bg-yellow-100 text-yellow-600' : 
+                      'bg-green-100 text-green-600'
+                    }`}>
+                      {title.length}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                💡 清楚的问题描述更容易得到准确的答案
+              </p>
             </div>
 
             {/* 标签选择 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                相关标签 (最多5个)
-              </label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <label className="text-sm font-semibold text-gray-800">
+                  相关标签
+                </label>
+                <span className="text-xs text-gray-500">
+                  (最多选择5个)
+                </span>
+              </div>
               
               {/* 已选择的标签 */}
               {selectedTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {selectedTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700 border border-orange-200"
-                    >
-                      #{tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-2 text-orange-500 hover:text-orange-700"
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-gray-600 flex items-center">
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    已选择的标签
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 rounded-lg text-sm font-medium border border-orange-200 hover:border-orange-300 transition-all duration-200 shadow-sm"
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        <svg className="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="ml-2 p-0.5 text-orange-500 hover:text-orange-700 hover:bg-orange-200 rounded-full transition-colors"
+                          title="移除标签"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* 搜索框 */}
+              {/* 标签搜索框 */}
               {selectedTags.length < 5 && (
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    value={tagSearchTerm}
-                    onChange={(e) => setTagSearchTerm(e.target.value)}
-                    placeholder="搜索标签..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
-                  />
+                <div className="space-y-3">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={tagSearchTerm}
+                      onChange={(e) => setTagSearchTerm(e.target.value)}
+                      placeholder="搜索或创建标签..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-gray-900 placeholder-gray-400 shadow-sm hover:border-gray-300"
+                    />
+                    {tagSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setTagSearchTerm('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* 热门标签 */}
               {selectedTags.length < 5 && !tagSearchTerm && (
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-gray-500">热门标签</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-700">热门标签</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setShowAllTags(!showAllTags)}
-                      className="text-xs text-orange-600 hover:text-orange-800"
+                      className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors"
                     >
-                      {showAllTags ? '收起' : '显示全部'}
+                      {showAllTags ? '收起' : '查看更多'}
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {(() => {
                       const filteredTags = availableTags.filter(tag => !selectedTags.includes(tag.name));
-                      const tagsToShow = showAllTags ? filteredTags : filteredTags.slice(0, 12);
+                      const tagsToShow = showAllTags ? filteredTags : filteredTags.slice(0, 15);
                       
                       return tagsToShow.map((tag) => (
                         <button
                           key={tag._id}
                           type="button"
                           onClick={() => addTag(tag.name)}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 transition-colors border border-gray-200 hover:border-orange-200"
+                          className="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 rounded-lg hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 transition-all duration-200 text-sm border border-gray-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                         >
-                          #{tag.name}
-                          <span className="ml-1 text-gray-400 text-xs">({tag.usageCount})</span>
+                          <svg className="w-3 h-3 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          {tag.name}
+                          <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                            {tag.usageCount}
+                          </span>
                         </button>
                       ));
                     })()}
                   </div>
-                  {!showAllTags && availableTags.length > 12 && (
-                    <div className="text-center mt-2">
-                      <span className="text-xs text-gray-500">
-                        还有 {availableTags.length - 12} 个标签
+                  {!showAllTags && availableTags.length > 15 && (
+                    <div className="text-center py-2">
+                      <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        还有 {availableTags.length - 15} 个标签
                       </span>
                     </div>
                   )}
@@ -456,7 +535,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
 
               {/* 搜索结果 */}
               {tagSearchTerm && (
-                <div className="border border-gray-200 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto">
+                <div className="border-2 border-gray-200 rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
                   {(() => {
                     const filteredTags = availableTags.filter(tag => 
                       tag.name.toLowerCase().includes(tagSearchTerm.toLowerCase()) &&
@@ -465,23 +544,29 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
 
                     if (filteredTags.length === 0) {
                       return (
-                        <div className="p-3 text-sm text-gray-500 text-center">
-                          未找到匹配的标签
+                        <div className="p-4 text-center">
+                          <div className="text-sm text-gray-500 mb-3">
+                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            未找到匹配的标签
+                          </div>
                           {tagSearchTerm.trim() && (
-                            <div className="mt-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (tagSearchTerm.trim() && !selectedTags.includes(tagSearchTerm.trim())) {
-                                    addTag(tagSearchTerm.trim());
-                                    setTagSearchTerm('');
-                                  }
-                                }}
-                                className="text-orange-600 hover:text-orange-800 underline"
-                              >
-                                创建新标签 "#{tagSearchTerm.trim()}"
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (tagSearchTerm.trim() && !selectedTags.includes(tagSearchTerm.trim())) {
+                                  addTag(tagSearchTerm.trim());
+                                  setTagSearchTerm('');
+                                }
+                              }}
+                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              创建标签 &ldquo;{tagSearchTerm.trim()}&rdquo;
+                            </button>
                           )}
                         </div>
                       );
@@ -495,14 +580,21 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                           addTag(tag.name);
                           setTagSearchTerm('');
                         }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                        className="w-full text-left px-4 py-3 hover:bg-orange-50 transition-all duration-200 border-b border-gray-100 last:border-b-0 group"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-medium">#{tag.name}</span>
-                          <span className="text-xs text-gray-500">使用 {tag.usageCount} 次</span>
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 text-gray-400 mr-3 group-hover:text-orange-500 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium text-gray-900 group-hover:text-orange-700 transition-colors">{tag.name}</span>
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full group-hover:bg-orange-100 group-hover:text-orange-600 transition-all">
+                            {tag.usageCount} 次使用
+                          </span>
                         </div>
                         {tag.description && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-gray-500 mt-2 ml-7 group-hover:text-gray-600 transition-colors">
                             {tag.description}
                           </div>
                         )}
@@ -512,11 +604,27 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                 </div>
               )}
 
-              <div className="text-xs text-gray-500 mt-2">
-                已选择 {selectedTags.length}/5 个标签
-                {selectedTags.length < 5 && (
-                  <span> • 点击上方标签快速添加，或搜索查找更多标签</span>
-                )}
+              {/* 标签统计和帮助信息 */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${selectedTags.length >= 5 ? 'bg-red-400' : selectedTags.length >= 3 ? 'bg-yellow-400' : 'bg-green-400'}`}></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      已选择 {selectedTags.length}/5 个标签
+                    </span>
+                  </div>
+                  {selectedTags.length >= 5 && (
+                    <span className="text-xs text-red-600 font-medium">已达上限</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-600 leading-relaxed">
+                  <div className="flex items-center space-x-1">
+                    <svg className="w-3 h-3 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <span>选择合适的标签能帮你获得更准确的回答</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -525,21 +633,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
         {/* 右侧编辑器区域 */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* 问题详情编辑器 */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">
-                  问题详情 <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center space-x-3 text-xs text-gray-500">
-                  <span>支持Markdown语法</span>
-                  {!useSimpleEditor && (
-                    <span>• 右侧可查看目录大纲</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            
+          <div className="flex-1 flex flex-col min-h-0">                        
             <div className="flex-1 min-h-0 bg-white">
               {useSimpleEditor ? (
                 // 简单文本编辑器
@@ -561,11 +655,12 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                 // Vditor编辑器
                 <div className="w-full h-full">
                   {typeof window !== 'undefined' && (
-                    <MarkdownEditor
-                      value={content}
-                      onChange={(value) => setContent(value || '')}
-                      height={window.innerHeight - 200}
-                    />
+                                    <MarkdownEditorWithUpload
+                  ref={editorRef}
+                  value={content}
+                  onChange={(value) => setContent(value || '')}
+                  height={window.innerHeight - 80}
+                />
                   )}
                 </div>
               )}

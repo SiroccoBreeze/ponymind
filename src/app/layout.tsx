@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { getServerSession } from "next-auth/next";
 import SessionProvider from "@/components/SessionProvider";
 import Navbar from "@/components/Navbar";
-
-const inter = Inter({ subsets: ["latin"] });
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "PonyMind - 知识分享社区",
@@ -21,11 +19,12 @@ export default async function RootLayout({
 
   return (
     <html lang="zh">
-      <body className={inter.className}>
+      <body className="font-sans">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <SessionProvider session={session as any}>
           <Navbar />
           <main>{children}</main>
+          <Toaster />
         </SessionProvider>
       </body>
     </html>

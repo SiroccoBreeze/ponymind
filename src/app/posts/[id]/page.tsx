@@ -224,21 +224,7 @@ export default function PostDetailPage() {
     setNewComment(e.target.value);
   }, []);
 
-  const getDifficultyBadge = (difficulty: string) => {
-    const config = {
-      'beginner': { label: '入门', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-      'intermediate': { label: '中级', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-      'advanced': { label: '高级', color: 'bg-red-100 text-red-700 border-red-200' }
-    };
-    const difficultyConfig = config[difficulty as keyof typeof config];
-    if (!difficultyConfig) return null;
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${difficultyConfig.color}`}>
-        {difficultyConfig.label}
-      </span>
-    );
-  };
+
 
   const getStatusBadge = (status: string) => {
     const config = {
@@ -296,7 +282,6 @@ export default function PostDetailPage() {
                 </h1>
                 <div className="flex items-center space-x-2">
                   {post.type === 'question' && post.status && getStatusBadge(post.status)}
-                  {post.difficulty && getDifficultyBadge(post.difficulty)}
                 </div>
               </div>
 

@@ -46,7 +46,7 @@ const postSchema = new mongoose.Schema({
   difficulty: {
     type: String,
     enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'intermediate',
+    default: null,
   },
   status: {
     type: String,
