@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import Comment from '@/models/Comment';
 
 // 获取单个文章
 export async function GET(
@@ -141,6 +142,62 @@ export async function PUT(
     console.error('更新文章失败:', error);
     return NextResponse.json(
       { error: '服务器错误' },
+      { status: 500 }
+    );
+  }
+}
+
+// 删除文章
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: '请先登录' },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+    
+    const { id } = await params;
+
+    // 查找文章并验证权限
+    const post = await Post.findById(id).populate('author', 'email');
+    
+    if (!post) {
+      return NextResponse.json(
+        { error: '文章不存在' },
+        { status: 404 }
+      );
+    }
+
+    // 检查权限：只有作者可以删除自己的文章
+    if (post.author.email !== session.user.email) {
+      return NextResponse.json(
+        { error: '无权限删除此文章' },
+        { status: 403 }
+      );
+    }
+
+    // 删除相关的评论
+    await Comment.deleteMany({ post: id });
+
+    // 删除文章
+    await Post.findByIdAndDelete(id);
+
+    return NextResponse.json({
+      success: true,
+      message: '删除成功'
+    });
+
+  } catch (error) {
+    console.error('删除文章失败:', error);
+    return NextResponse.json(
+      { error: '删除失败' },
       { status: 500 }
     );
   }

@@ -65,14 +65,32 @@ export async function GET() {
           $group: {
             _id: null,
             totalPosts: { $sum: 1 },
+            publishedPosts: {
+              $sum: { $cond: [{ $eq: ['$reviewStatus', 'published'] }, 1, 0] }
+            },
             articles: {
               $sum: { $cond: [{ $eq: ['$type', 'article'] }, 1, 0] }
+            },
+            publishedArticles: {
+              $sum: { $cond: [{ $and: [{ $eq: ['$type', 'article'] }, { $eq: ['$reviewStatus', 'published'] }] }, 1, 0] }
             },
             questions: {
               $sum: { $cond: [{ $eq: ['$type', 'question'] }, 1, 0] }
             },
+            publishedQuestions: {
+              $sum: { $cond: [{ $and: [{ $eq: ['$type', 'question'] }, { $eq: ['$reviewStatus', 'published'] }] }, 1, 0] }
+            },
             openQuestions: {
               $sum: { $cond: [{ $eq: ['$status', 'open'] }, 1, 0] }
+            },
+            draftPosts: {
+              $sum: { $cond: [{ $eq: ['$reviewStatus', 'draft'] }, 1, 0] }
+            },
+            pendingPosts: {
+              $sum: { $cond: [{ $eq: ['$reviewStatus', 'pending'] }, 1, 0] }
+            },
+            rejectedPosts: {
+              $sum: { $cond: [{ $eq: ['$reviewStatus', 'rejected'] }, 1, 0] }
             },
             totalViews: { $sum: '$views' },
             totalLikes: { $sum: '$likes' },
@@ -83,6 +101,25 @@ export async function GET() {
                     $gte: [
                       '$createdAt',
                       new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                    ]
+                  },
+                  1,
+                  0
+                ]
+              }
+            },
+            publishedThisMonth: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$reviewStatus', 'published'] },
+                      {
+                        $gte: [
+                          '$createdAt',
+                          new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                        ]
+                      }
                     ]
                   },
                   1,
@@ -189,12 +226,19 @@ export async function GET() {
         },
         posts: postStats[0] || {
           totalPosts: 0,
+          publishedPosts: 0,
           articles: 0,
+          publishedArticles: 0,
           questions: 0,
+          publishedQuestions: 0,
           openQuestions: 0,
+          draftPosts: 0,
+          pendingPosts: 0,
+          rejectedPosts: 0,
           totalViews: 0,
           totalLikes: 0,
-          newPostsThisMonth: 0
+          newPostsThisMonth: 0,
+          publishedThisMonth: 0
         }
       },
       recentActivity: {

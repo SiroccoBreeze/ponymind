@@ -32,7 +32,8 @@ interface Post {
 }
 
 interface Message {
-  id: string;
+  _id: string;
+  id?: string;
   type: 'info' | 'success' | 'rejection' | 'warning';
   title: string;
   content: string;
@@ -70,7 +71,7 @@ export default function UserCenterPage() {
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
   const [unreadCount, setUnreadCount] = useState(0);
   
   // 搜索状态
@@ -102,7 +103,7 @@ export default function UserCenterPage() {
 
   // 点击外部区域关闭下拉菜单
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (/* _event: MouseEvent */) => {
       if (dropdownOpen) {
         setDropdownOpen(null);
       }
@@ -132,7 +133,7 @@ export default function UserCenterPage() {
       if (postsRes.ok) {
         const postsData = await postsRes.json();
         setPosts(postsData.posts || []);
-        setTotalPages(postsData.pagination?.totalPages || 1);
+  
       }
     } catch (error) {
       console.error('获取用户数据失败:', error);
@@ -214,6 +215,35 @@ export default function UserCenterPage() {
     }
     setEditingPost(postId);
     setShowCreatePost(true);
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('确定要删除这个内容吗？删除后不可恢复。')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // 更新本地状态
+        setPosts(posts.filter(p => p._id !== postId));
+        
+        // 重新获取统计数据
+        fetchUserData();
+        
+        // 显示成功提示
+        alert('删除成功');
+      } else {
+        const error = await response.json();
+        alert(error.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败，请重试');
+    }
   };
 
   if (status === 'loading') {
@@ -577,11 +607,7 @@ export default function UserCenterPage() {
                                   </svg>
                                 </button>
                                 <button 
-                                  onClick={() => {
-                                    if (confirm('确定要删除这个内容吗？')) {
-                                      // TODO: 实现删除功能
-                                    }
-                                  }}
+                                  onClick={() => handleDeletePost(post._id)}
                                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                   title="删除"
                                 >
@@ -602,7 +628,7 @@ export default function UserCenterPage() {
                         <div className="text-sm text-gray-500">
                           显示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredPosts.length)} 项，共 {filteredPosts.length} 项
                           {searchQuery.trim() && (
-                            <span className="ml-2 text-blue-600">（搜索: "{searchQuery}"）</span>
+                            <span className="ml-2 text-blue-600">（搜索: &ldquo;{searchQuery}&rdquo;）</span>
                           )}
                         </div>
                         <div className="flex items-center space-x-2">
@@ -653,7 +679,28 @@ export default function UserCenterPage() {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900">消息中心</h2>
                     {unreadCount > 0 && (
-                      <button className="text-sm text-blue-600 hover:text-blue-800">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/users/messages', {
+                              method: 'PATCH',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({ markAllAsRead: true }),
+                            });
+                            
+                            if (response.ok) {
+                              setUnreadCount(0);
+                              // 重新获取消息列表
+                              fetchMessages();
+                            }
+                          } catch (error) {
+                            console.error('标记已读失败:', error);
+                          }
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
                         标记全部已读
                       </button>
                     )}
@@ -675,7 +722,7 @@ export default function UserCenterPage() {
                   ) : (
                     <div className="space-y-4">
                       {messages.map((message) => (
-                        <div key={message.id} className={`border rounded-lg p-4 transition-all duration-200 ${
+                        <div key={message._id || message.id} className={`border rounded-lg p-4 transition-all duration-200 ${
                           message.isRead ? 'border-gray-200 bg-gray-50/50' : 'border-blue-200 bg-blue-50/50'
                         }`}>
                           <div className="flex items-start space-x-3">

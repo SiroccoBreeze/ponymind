@@ -15,10 +15,26 @@ const commentSchema = new mongoose.Schema({
     ref: 'Post',
     required: true,
   },
+  parentComment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment',
+    default: null,
+  },
+  images: [{
+    type: String, // 图片URL
+  }],
   isAccepted: {
     type: Boolean,
     default: false,
   },
+  likes: {
+    type: Number,
+    default: 0,
+  },
+  likedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
