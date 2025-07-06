@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
+import TagSelectionModal from './TagSelectionModal';
 
 // 动态导入支持图片上传的MarkdownEditor
 const MarkdownEditorWithUpload = dynamic(
@@ -43,6 +44,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [tagSearchTerm, setTagSearchTerm] = useState('');
   const [showAllTags, setShowAllTags] = useState(false);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
   // 获取可用标签
   useEffect(() => {
@@ -261,6 +263,18 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
 
   const removeTag = (tagName: string) => {
     setSelectedTags(selectedTags.filter(tag => tag !== tagName));
+  };
+
+  const handleCreateTag = (tagName: string) => {
+    // 将新创建的标签添加到可用标签列表
+    const newTag: Tag = {
+      _id: `new-${Date.now()}`,
+      name: tagName,
+      description: '',
+      color: '#FB923C',
+      usageCount: 0
+    };
+    setAvailableTags(prev => [newTag, ...prev]);
   };
 
   return (
@@ -494,16 +508,16 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowAllTags(!showAllTags)}
+                      onClick={() => setIsTagModalOpen(true)}
                       className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors"
                     >
-                      {showAllTags ? '收起' : '查看更多'}
+                      查看更多
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(() => {
                       const filteredTags = availableTags.filter(tag => !selectedTags.includes(tag.name));
-                      const tagsToShow = showAllTags ? filteredTags : filteredTags.slice(0, 15);
+                      const tagsToShow = filteredTags.slice(0, 10);
                       
                       return tagsToShow.map((tag) => (
                         <button
@@ -523,10 +537,10 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                       ));
                     })()}
                   </div>
-                  {!showAllTags && availableTags.length > 15 && (
+                  {availableTags.length > 10 && (
                     <div className="text-center py-2">
                       <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        还有 {availableTags.length - 15} 个标签
+                        还有 {availableTags.length - 10} 个标签
                       </span>
                     </div>
                   )}
@@ -668,6 +682,19 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
           </div>
         </div>
       </div>
+
+      {/* 标签选择弹框 */}
+      <TagSelectionModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        availableTags={availableTags}
+        selectedTags={selectedTags}
+        onTagsChange={setSelectedTags}
+        maxTags={5}
+        title="选择标签"
+        onCreateTag={handleCreateTag}
+        themeColor="orange"
+      />
     </div>
   );
 } 

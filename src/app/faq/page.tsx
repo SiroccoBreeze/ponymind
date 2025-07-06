@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 interface FAQItem {
@@ -67,7 +67,15 @@ export default function FAQPage() {
     setExpandedItems(newExpanded);
   };
 
-  const allItems = faqData.flatMap(category => category.items);
+  const allItems = useMemo(() => {
+    const items = faqData.flatMap(category => category.items);
+    // 去重，避免重复的key
+    const uniqueItems = items.filter((item, index, self) => 
+      index === self.findIndex(t => t._id === item._id)
+    );
+    return uniqueItems;
+  }, [faqData]);
+  
   const filteredItems = searchTerm 
     ? allItems.filter(item => 
         item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -590,7 +598,7 @@ export default function FAQPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/posts"
+                href="/ask"
                 className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 提出新问题

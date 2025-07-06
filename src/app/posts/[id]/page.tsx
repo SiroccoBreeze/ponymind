@@ -15,6 +15,14 @@ const TableOfContents = dynamic(() => import('@/components/TableOfContents'), {
   ssr: false,
   loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg"></div>
 });
+const CommentInput = dynamic(() => import('@/components/CommentInput'), { 
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg"></div>
+});
+const ReplyInput = dynamic(() => import('@/components/ReplyInput'), { 
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>
+});
 
 interface Post {
   _id: string;
@@ -66,14 +74,15 @@ export default function PostDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
-  const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [processingAnswer, setProcessingAnswer] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [replyUploadedImages, setReplyUploadedImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isReplyUploading, setIsReplyUploading] = useState(false);
   
   const postId = params?.id as string;
 
@@ -168,106 +177,16 @@ export default function PostDetailPage() {
     }
   };
 
-  // 图片上传
-  const uploadImages = async (files: FileList) => {
-    if (!session) {
-      alert('请先登录后再上传图片');
-      return;
-    }
 
-    const fileArray = Array.from(files);
-    if (fileArray.length > 3) {
-      alert('一次最多只能上传3张图片');
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const maxSize = 5 * 1024 * 1024; // 5MB
-
-    for (const file of fileArray) {
-      if (!allowedTypes.includes(file.type)) {
-        alert(`文件 ${file.name} 格式不支持，仅支持 JPG、PNG、GIF、WebP 格式`);
-        return;
-      }
-      if (file.size > maxSize) {
-        alert(`文件 ${file.name} 大小超过 5MB 限制`);
-        return;
-      }
-    }
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      fileArray.forEach(file => {
-        formData.append('images', file);
-      });
-
-      const response = await fetch('/api/images/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const imageUrls = data.images.map((img: {url: string}) => img.url);
-        setUploadedImages(prev => [...prev, ...imageUrls]);
-      } else {
-        alert('图片上传失败');
-      }
-    } catch (error) {
-      console.error('上传失败:', error);
-      alert('图片上传失败，请重试');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
-    if (!newComment.trim()) return;
-
-    setSubmittingComment(true);
-    try {
-      const response = await fetch(`/api/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: newComment.trim(),
-          images: uploadedImages,
-        }),
-      });
-
-      if (response.ok) {
-        setNewComment('');
-        setUploadedImages([]);
-        await fetchComments(); // 重新获取评论
-      } else {
-        alert('发布失败，请重试');
-      }
-    } catch (error) {
-      console.error('发布评论失败:', error);
-      alert('发布失败，请重试');
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
 
   // 提交回复
-  const handleSubmitReply = async (parentCommentId: string) => {
+  const handleSubmitReply = async (parentCommentId: string, content: string, images: string[]) => {
     if (!session) {
       router.push('/auth/signin');
       return;
     }
 
-    if (!replyContent.trim()) return;
+    if (!content.trim()) return;
 
     setSubmittingReply(true);
     try {
@@ -277,14 +196,16 @@ export default function PostDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: replyContent.trim(),
+          content: content.trim(),
           parentCommentId,
+          images,
         }),
       });
 
       if (response.ok) {
         setReplyContent('');
         setReplyingTo(null);
+        setReplyUploadedImages([]);
         await fetchComments(); // 重新获取评论
       } else {
         alert('回复失败，请重试');
@@ -332,10 +253,7 @@ export default function PostDetailPage() {
     }
   };
 
-  // 防抖处理评论输入
-  const handleCommentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewComment(e.target.value);
-  }, []);
+
 
 
 
@@ -599,38 +517,74 @@ export default function PostDetailPage() {
                         {/* 回复表单 */}
                         {replyingTo === comment._id && (
                           <div className="mt-4 pl-4 border-l-2 border-blue-200">
-                            <form onSubmit={(e) => {
-                              e.preventDefault();
-                              handleSubmitReply(comment._id);
-                            }} className="space-y-3">
-                              <textarea
-                                value={replyContent}
-                                onChange={(e) => setReplyContent(e.target.value)}
-                                rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                                placeholder="写下你的回复..."
-                                required
-                              />
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setReplyingTo(null);
-                                    setReplyContent('');
-                                  }}
-                                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                                >
-                                  取消
-                                </button>
-                                <button
-                                  type="submit"
-                                  disabled={submittingReply || !replyContent.trim()}
-                                  className="px-4 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  {submittingReply ? '回复中...' : '回复'}
-                                </button>
-                              </div>
-                            </form>
+                            <ReplyInput
+                              onSubmit={(content, images) => {
+                                handleSubmitReply(comment._id, content, images);
+                              }}
+                              onCancel={() => {
+                                setReplyingTo(null);
+                                setReplyContent('');
+                                setReplyUploadedImages([]);
+                              }}
+                              onUploadImages={async (files) => {
+                                const fileArray = Array.from(files);
+                                if (fileArray.length > 3) {
+                                  alert('一次最多只能上传3张图片');
+                                  return [];
+                                }
+
+                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                                const maxSize = 5 * 1024 * 1024; // 5MB
+
+                                for (const file of fileArray) {
+                                  if (!allowedTypes.includes(file.type)) {
+                                    alert(`文件 ${file.name} 格式不支持，仅支持 JPG、PNG、GIF、WebP 格式`);
+                                    return [];
+                                  }
+                                  if (file.size > maxSize) {
+                                    alert(`文件 ${file.name} 大小超过 5MB 限制`);
+                                    return [];
+                                  }
+                                }
+
+                                setIsReplyUploading(true);
+                                try {
+                                  const formData = new FormData();
+                                  fileArray.forEach((file, index) => {
+                                    formData.append(`images`, file);
+                                  });
+
+                                  const response = await fetch('/api/images/upload', {
+                                    method: 'POST',
+                                    body: formData,
+                                  });
+
+                                  if (response.ok) {
+                                    const data = await response.json();
+                                    const imageUrls = data.images.map((img: any) => img.url);
+                                    const newImages = [...replyUploadedImages, ...imageUrls];
+                                    setReplyUploadedImages(newImages);
+                                    return imageUrls;
+                                  } else {
+                                    alert('图片上传失败');
+                                    return [];
+                                  }
+                                } catch (error) {
+                                  console.error('上传图片失败:', error);
+                                  alert('图片上传失败');
+                                  return [];
+                                } finally {
+                                  setIsReplyUploading(false);
+                                }
+                              }}
+                              isSubmitting={submittingReply}
+                              isUploading={isReplyUploading}
+                              uploadedImages={replyUploadedImages}
+                              onRemoveImage={(index) => {
+                                setReplyUploadedImages(prev => prev.filter((_, i) => i !== index));
+                              }}
+                              placeholder="写下你的回复..."
+                            />
                           </div>
                         )}
 
@@ -691,106 +645,118 @@ export default function PostDetailPage() {
               </div>
 
               {/* 添加评论 */}
-              {session?.user ? (
-                <div className="border border-gray-200 rounded-lg p-6">
-                  <form onSubmit={handleSubmitComment} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-2">
-                        {post.type === 'question' ? '你的回答' : '添加评论'}
-                      </label>
-                      <textarea
-                        value={newComment}
-                        onChange={handleCommentChange}
-                        rows={6}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                        placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
-                        required
-                      />
-                    </div>
+              <div className="mt-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {post.type === 'question' ? '你的回答' : '添加评论'}
+                </h3>
+                <CommentInput
+                  onSubmit={async (content, images) => {
+                    if (!session) {
+                      router.push('/auth/signin');
+                      return;
+                    }
+                    
+                    setSubmittingComment(true);
+                    try {
+                      const response = await fetch(`/api/posts/${postId}/comments`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          content,
+                          images,
+                        }),
+                      });
 
-                    {/* 图片上传区域 */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-700">图片附件（可选）</label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              uploadImages(e.target.files);
-                            }
-                          }}
-                          className="hidden"
-                          id="image-upload"
-                          disabled={isUploading}
-                        />
-                        <label
-                          htmlFor="image-upload"
-                          className={`cursor-pointer inline-flex items-center px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" />
-                          </svg>
-                          {isUploading ? '上传中...' : '上传图片'}
-                        </label>
-                      </div>
+                      if (response.ok) {
+                        setUploadedImages([]);
+                        await fetchComments();
+                      } else {
+                        alert('发布失败，请重试');
+                      }
+                    } catch (error) {
+                      console.error('发布评论失败:', error);
+                      alert('发布失败，请重试');
+                    } finally {
+                      setSubmittingComment(false);
+                    }
+                  }}
+                  onUploadImages={async (files) => {
+                    const fileArray = Array.from(files);
+                    if (fileArray.length > 3) {
+                      alert('一次最多只能上传3张图片');
+                      return [];
+                    }
 
-                      {/* 已上传图片预览 */}
-                      {uploadedImages.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-lg">
-                          {uploadedImages.map((imageUrl, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={imageUrl}
-                                alt={`预览图片 ${index + 1}`}
-                                className="w-full h-20 object-cover rounded border border-gray-200"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setUploadedImages(prev => prev.filter((_, i) => i !== index));
-                                }}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+                    const maxSize = 5 * 1024 * 1024; // 5MB
 
-                      <p className="text-xs text-gray-500 mt-1">
-                        支持 JPG、PNG、GIF、WebP 格式，单个文件不超过 5MB，最多上传 3 张图片
-                      </p>
-                    </div>
+                    for (const file of fileArray) {
+                      if (!allowedTypes.includes(file.type)) {
+                        alert(`文件 ${file.name} 格式不支持，仅支持 JPG、PNG、GIF、WebP 格式`);
+                        return [];
+                      }
+                      if (file.size > maxSize) {
+                        alert(`文件 ${file.name} 大小超过 5MB 限制`);
+                        return [];
+                      }
+                    }
 
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={submittingComment || !newComment.trim() || isUploading}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {submittingComment ? '发布中...' : (post.type === 'question' ? '发布回答' : '发布评论')}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              ) : (
-                <div className="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
-                  <p className="text-gray-600 mb-4">
-                    {post.type === 'question' ? '登录后可以回答问题' : '登录后可以发表评论'}
-                  </p>
-                  <Link
-                    href="/auth/signin"
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                  >
-                    立即登录
-                  </Link>
-                </div>
-              )}
+                    setIsUploading(true);
+                    try {
+                      const formData = new FormData();
+                      fileArray.forEach((file, index) => {
+                        formData.append(`images`, file);
+                      });
+
+                      const response = await fetch('/api/images/upload', {
+                        method: 'POST',
+                        body: formData,
+                      });
+
+                                             if (response.ok) {
+                         const data = await response.json();
+                         const imageUrls = data.images.map((img: any) => img.url);
+                         const newImages = [...uploadedImages, ...imageUrls];
+                         setUploadedImages(newImages);
+                         return imageUrls;
+                       } else {
+                         alert('图片上传失败');
+                         return [];
+                       }
+                    } catch (error) {
+                      console.error('上传图片失败:', error);
+                      alert('图片上传失败');
+                      return [];
+                    } finally {
+                      setIsUploading(false);
+                    }
+                  }}
+                  placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
+                  isUploading={isUploading}
+                  isSubmitting={submittingComment}
+                  uploadedImages={uploadedImages}
+                  onRemoveImage={(index) => {
+                    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+                  }}
+                  onCleanupImages={async (imageUrls) => {
+                    if (imageUrls.length === 0) return;
+                    
+                    try {
+                      await fetch('/api/images/cleanup', {
+                        method: 'DELETE',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ imageUrls }),
+                      });
+                    } catch (error) {
+                      console.error('清理图片失败:', error);
+                    }
+                  }}
+                />
+              </div>
             </section>
           </div>
 
