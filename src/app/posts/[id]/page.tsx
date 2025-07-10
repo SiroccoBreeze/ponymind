@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { toast } from 'sonner';
 
 // 动态导入组件，避免SSR问题
 const MarkdownPreview = dynamic(() => import('@/components/MarkdownPreview'), { 
@@ -77,12 +78,9 @@ export default function PostDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [processingAnswer, setProcessingAnswer] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [replyUploadedImages, setReplyUploadedImages] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isReplyUploading, setIsReplyUploading] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+
   
   const postId = params?.id as string;
 
@@ -203,19 +201,261 @@ export default function PostDetailPage() {
       });
 
       if (response.ok) {
-        setReplyContent('');
         setReplyingTo(null);
-        setReplyUploadedImages([]);
         await fetchComments(); // 重新获取评论
       } else {
-        alert('回复失败，请重试');
+        toast.error('回复失败，请重试');
       }
     } catch (error) {
       console.error('回复失败:', error);
-      alert('回复失败，请重试');
+      toast.error('回复失败，请重试');
     } finally {
       setSubmittingReply(false);
     }
+  };
+
+  // 展开的回复状态
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+
+  // 切换回复展开状态
+  const toggleReplies = (commentId: string) => {
+    const newExpanded = new Set(expandedReplies);
+    if (newExpanded.has(commentId)) {
+      newExpanded.delete(commentId);
+    } else {
+      newExpanded.add(commentId);
+    }
+    setExpandedReplies(newExpanded);
+  };
+
+  // 获取所有回复（扁平化）
+  const getAllReplies = (comment: Comment): Comment[] => {
+    let allReplies: Comment[] = [];
+    if (comment.replies && comment.replies.length > 0) {
+      comment.replies.forEach(reply => {
+        allReplies.push(reply);
+        allReplies = allReplies.concat(getAllReplies(reply));
+      });
+    }
+    return allReplies;
+  };
+
+  // 渲染主评论
+  const renderMainComment = (comment: Comment) => {
+    const allReplies = getAllReplies(comment);
+    const isExpanded = expandedReplies.has(comment._id);
+
+    return (
+      <div key={comment._id} className={`border-b border-gray-200 pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-4 border border-green-200' : ''}`}>
+        <div className="flex items-start space-x-3">
+          <img
+            src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3b82f6&color=fff`}
+            alt={comment.author.name}
+            className="w-10 h-10 rounded-full flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 mb-1">
+              <h3 className="text-sm font-medium text-gray-900">{comment.author.name}</h3>
+              <time className="text-xs text-gray-500">
+                {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
+              </time>
+              {comment.isAccepted && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  最佳答案
+                </span>
+              )}
+            </div>
+            
+            <div className="prose prose-sm max-w-none mb-3">
+              <MarkdownPreview content={comment.content} />
+            </div>
+            
+            {comment.images && comment.images.length > 0 && (
+              <div className="mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {comment.images.map((imageUrl, index) => (
+                    <img
+                      key={index}
+                      src={imageUrl}
+                      alt={`评论图片 ${index + 1}`}
+                      className="rounded border border-gray-200 max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(imageUrl, '_blank')}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-4">
+                <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <span>{comment.likes}</span>
+                </button>
+                <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
+                  </svg>
+                </button>
+                <button 
+                  onClick={() => setReplyingTo(comment._id)}
+                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  回复
+                </button>
+              </div>
+              
+              {/* 标记最佳答案按钮 - 只对问题作者显示 */}
+              {isQuestionAuthor && (
+                <button
+                  onClick={() => handleToggleBestAnswer(comment._id, comment.isAccepted || false)}
+                  disabled={!!processingAnswer}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    comment.isAccepted
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } disabled:opacity-50`}
+                >
+                  {processingAnswer === comment._id ? '处理中...' : (comment.isAccepted ? '取消最佳答案' : '标记为最佳答案')}
+                </button>
+              )}
+            </div>
+
+            {/* 回复数量和展开按钮 */}
+            {allReplies.length > 0 && (
+              <button
+                onClick={() => toggleReplies(comment._id)}
+                className="flex items-center space-x-1 text-blue-600 text-sm hover:text-blue-700 transition-colors mb-3"
+              >
+                <svg 
+                  className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span>{allReplies.length} 条回复</span>
+              </button>
+            )}
+
+            {/* 回复输入框 */}
+            {replyingTo === comment._id && (
+              <div className="mt-3">
+                <ReplyInput
+                  onSubmit={(content, images) => {
+                    handleSubmitReply(comment._id, content, images);
+                  }}
+                  onCancel={() => {
+                    setReplyingTo(null);
+                  }}
+                  isSubmitting={submittingReply}
+                />
+              </div>
+            )}
+
+            {/* 展开的回复列表 */}
+            {isExpanded && allReplies.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {allReplies.map((reply) => {
+                  // 找到这个回复是回复谁的
+                  const findParentAuthor = (): string | null => {
+                    if (reply.parentComment === comment._id) {
+                      return comment.author.name;
+                    }
+                    // 在所有回复中查找父回复
+                    const parentReply = allReplies.find(r => r._id === reply.parentComment);
+                    return parentReply ? parentReply.author.name : null;
+                  };
+
+                  const parentAuthor = findParentAuthor();
+
+                  return (
+                    <div key={reply._id} className="flex items-start space-x-3">
+                      <img
+                        src={reply.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author.name)}&background=3b82f6&color=fff`}
+                        alt={reply.author.name}
+                        className="w-8 h-8 rounded-full flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="text-sm font-medium text-gray-900">{reply.author.name}</h4>
+                          <time className="text-xs text-gray-500">
+                            {new Date(reply.createdAt).toLocaleDateString('zh-CN')}
+                          </time>
+                        </div>
+                        <div className="text-sm text-gray-700">
+                          {parentAuthor && parentAuthor !== comment.author.name && (
+                            <span className="text-blue-600 font-medium">@{parentAuthor}：</span>
+                          )}
+                          <MarkdownPreview content={reply.content} />
+                        </div>
+                        
+                        {reply.images && reply.images.length > 0 && (
+                          <div className="mt-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {reply.images.map((imageUrl, imgIndex) => (
+                                <img
+                                  key={imgIndex}
+                                  src={imageUrl}
+                                  alt={`回复图片 ${imgIndex + 1}`}
+                                  className="rounded border border-gray-200 max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                                  onClick={() => window.open(imageUrl, '_blank')}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center space-x-3 mt-2">
+                          <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                            <span>{reply.likes || 0}</span>
+                          </button>
+                          <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => setReplyingTo(reply._id)}
+                            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                          >
+                            回复
+                          </button>
+                        </div>
+
+                        {/* 子回复的回复输入框 */}
+                        {replyingTo === reply._id && (
+                          <div className="mt-3">
+                            <ReplyInput
+                              onSubmit={(content, images) => {
+                                handleSubmitReply(reply._id, content, images);
+                              }}
+                              onCancel={() => {
+                                setReplyingTo(null);
+                              }}
+                              isSubmitting={submittingReply}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // 标记/取消最佳答案
@@ -240,14 +480,14 @@ export default function PostDetailPage() {
         await Promise.all([fetchPost(), fetchComments()]);
         
         const data = await response.json();
-        alert(data.message);
+        toast.success(data.message);
       } else {
         const error = await response.json();
-        alert(error.error || '操作失败');
+        toast.error(error.error || '操作失败');
       }
     } catch (error) {
       console.error('标记最佳答案失败:', error);
-      alert('操作失败，请重试');
+      toast.error('操作失败，请重试');
     } finally {
       setProcessingAnswer(null);
     }
@@ -413,235 +653,8 @@ export default function PostDetailPage() {
               </h2>
 
               {/* 评论列表 */}
-              <div className="space-y-8 mb-8">
-                {comments.map((comment) => (
-                  <div key={comment._id} className={`border-b border-gray-200 pb-8 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-6 border border-green-200' : ''}`}>
-                    <div className="flex items-start space-x-4">
-                      <img
-                        src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3b82f6&color=fff`}
-                        alt={comment.author.name}
-                        className="w-10 h-10 rounded-full flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="text-sm font-medium text-gray-900">{comment.author.name}</h3>
-                            {comment.isAccepted && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                                最佳答案
-                              </span>
-                            )}
-                          </div>
-                          <time className="text-sm text-gray-500">
-                            {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
-                          </time>
-                        </div>
-                        <div className="prose prose-sm max-w-none mb-4">
-                          <MarkdownPreview content={comment.content} />
-                        </div>
-
-                        {/* 显示评论中的图片 */}
-                        {comment.images && comment.images.length > 0 && (
-                          <div className="mb-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                              {comment.images.map((imageUrl, index) => (
-                                <img
-                                  key={index}
-                                  src={imageUrl}
-                                  alt={`评论图片 ${index + 1}`}
-                                  className="rounded-lg border border-gray-200 max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => window.open(imageUrl, '_blank')}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <button className="inline-flex items-center space-x-1 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                              <span>{comment.likes}</span>
-                            </button>
-                            <button 
-                              onClick={() => setReplyingTo(comment._id)}
-                              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                            >
-                              回复
-                            </button>
-                          </div>
-                          
-                          {/* 标记最佳答案按钮 - 只对问题作者显示 */}
-                          {isQuestionAuthor && (
-                            <button
-                              onClick={() => handleToggleBestAnswer(comment._id, comment.isAccepted || false)}
-                              disabled={processingAnswer === comment._id}
-                              className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                                comment.isAccepted
-                                  ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-                                  : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              {processingAnswer === comment._id ? (
-                                <>
-                                  <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                  <span>处理中...</span>
-                                </>
-                              ) : comment.isAccepted ? (
-                                <>
-                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                  </svg>
-                                  <span>取消采纳</span>
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                  <span>采纳答案</span>
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* 回复表单 */}
-                        {replyingTo === comment._id && (
-                          <div className="mt-4 pl-4 border-l-2 border-blue-200">
-                            <ReplyInput
-                              onSubmit={(content, images) => {
-                                handleSubmitReply(comment._id, content, images);
-                              }}
-                              onCancel={() => {
-                                setReplyingTo(null);
-                                setReplyContent('');
-                                setReplyUploadedImages([]);
-                              }}
-                              onUploadImages={async (files) => {
-                                const fileArray = Array.from(files);
-                                if (fileArray.length > 3) {
-                                  alert('一次最多只能上传3张图片');
-                                  return [];
-                                }
-
-                                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                                const maxSize = 5 * 1024 * 1024; // 5MB
-
-                                for (const file of fileArray) {
-                                  if (!allowedTypes.includes(file.type)) {
-                                    alert(`文件 ${file.name} 格式不支持，仅支持 JPG、PNG、GIF、WebP 格式`);
-                                    return [];
-                                  }
-                                  if (file.size > maxSize) {
-                                    alert(`文件 ${file.name} 大小超过 5MB 限制`);
-                                    return [];
-                                  }
-                                }
-
-                                setIsReplyUploading(true);
-                                try {
-                                  const formData = new FormData();
-                                  fileArray.forEach((file, index) => {
-                                    formData.append(`images`, file);
-                                  });
-
-                                  const response = await fetch('/api/images/upload', {
-                                    method: 'POST',
-                                    body: formData,
-                                  });
-
-                                  if (response.ok) {
-                                    const data = await response.json();
-                                    const imageUrls = data.images.map((img: any) => img.url);
-                                    const newImages = [...replyUploadedImages, ...imageUrls];
-                                    setReplyUploadedImages(newImages);
-                                    return imageUrls;
-                                  } else {
-                                    alert('图片上传失败');
-                                    return [];
-                                  }
-                                } catch (error) {
-                                  console.error('上传图片失败:', error);
-                                  alert('图片上传失败');
-                                  return [];
-                                } finally {
-                                  setIsReplyUploading(false);
-                                }
-                              }}
-                              isSubmitting={submittingReply}
-                              isUploading={isReplyUploading}
-                              uploadedImages={replyUploadedImages}
-                              onRemoveImage={(index) => {
-                                setReplyUploadedImages(prev => prev.filter((_, i) => i !== index));
-                              }}
-                              placeholder="写下你的回复..."
-                            />
-                          </div>
-                        )}
-
-                        {/* 显示回复 */}
-                        {comment.replies && comment.replies.length > 0 && (
-                          <div className="mt-6 pl-8 space-y-4">
-                            {comment.replies.map((reply) => (
-                              <div key={reply._id} className="border-l-2 border-gray-200 pl-4">
-                                <div className="flex items-start space-x-3">
-                                  <img
-                                    src={reply.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author.name)}&background=6b7280&color=fff`}
-                                    alt={reply.author.name}
-                                    className="w-8 h-8 rounded-full flex-shrink-0"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center space-x-2 mb-2">
-                                      <h4 className="text-sm font-medium text-gray-900">{reply.author.name}</h4>
-                                      <time className="text-xs text-gray-500">
-                                        {new Date(reply.createdAt).toLocaleDateString('zh-CN')}
-                                      </time>
-                                    </div>
-                                    <div className="prose prose-sm max-w-none">
-                                      <MarkdownPreview content={reply.content} />
-                                    </div>
-                                    {reply.images && reply.images.length > 0 && (
-                                      <div className="mt-2">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                          {reply.images.map((imageUrl, index) => (
-                                            <img
-                                              key={index}
-                                              src={imageUrl}
-                                              alt={`回复图片 ${index + 1}`}
-                                              className="rounded border border-gray-200 max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                              onClick={() => window.open(imageUrl, '_blank')}
-                                            />
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                    <div className="flex items-center space-x-2 mt-2">
-                                      <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                        </svg>
-                                        <span>{reply.likes || 0}</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-6 mb-8">
+                {comments.map((comment) => renderMainComment(comment))}
               </div>
 
               {/* 添加评论 */}
@@ -649,113 +662,53 @@ export default function PostDetailPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   {post.type === 'question' ? '你的回答' : '添加评论'}
                 </h3>
-                <CommentInput
-                  onSubmit={async (content, images) => {
-                    if (!session) {
-                      router.push('/auth/signin');
-                      return;
-                    }
-                    
-                    setSubmittingComment(true);
-                    try {
-                      const response = await fetch(`/api/posts/${postId}/comments`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          content,
-                          images,
-                        }),
-                      });
-
-                      if (response.ok) {
-                        setUploadedImages([]);
-                        await fetchComments();
-                      } else {
-                        alert('发布失败，请重试');
+                
+                {!showCommentInput ? (
+                  <button
+                    onClick={() => setShowCommentInput(true)}
+                    className="w-full px-4 py-3 text-left text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  >
+                    {post.type === 'question' ? '写下你的回答...' : '写下你的想法...'}
+                  </button>
+                ) : (
+                  <CommentInput
+                    onSubmit={async (content, images) => {
+                      if (!session) {
+                        router.push('/auth/signin');
+                        return;
                       }
-                    } catch (error) {
-                      console.error('发布评论失败:', error);
-                      alert('发布失败，请重试');
-                    } finally {
-                      setSubmittingComment(false);
-                    }
-                  }}
-                  onUploadImages={async (files) => {
-                    const fileArray = Array.from(files);
-                    if (fileArray.length > 3) {
-                      alert('一次最多只能上传3张图片');
-                      return [];
-                    }
+                      
+                      setSubmittingComment(true);
+                      try {
+                        const response = await fetch(`/api/posts/${postId}/comments`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            content,
+                            images,
+                          }),
+                        });
 
-                    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-                    const maxSize = 5 * 1024 * 1024; // 5MB
-
-                    for (const file of fileArray) {
-                      if (!allowedTypes.includes(file.type)) {
-                        alert(`文件 ${file.name} 格式不支持，仅支持 JPG、PNG、GIF、WebP 格式`);
-                        return [];
+                        if (response.ok) {
+                          setShowCommentInput(false);
+                          await fetchComments();
+                        } else {
+                          toast.error('发布失败，请重试');
+                        }
+                      } catch (error) {
+                        console.error('发布评论失败:', error);
+                        toast.error('发布失败，请重试');
+                      } finally {
+                        setSubmittingComment(false);
                       }
-                      if (file.size > maxSize) {
-                        alert(`文件 ${file.name} 大小超过 5MB 限制`);
-                        return [];
-                      }
-                    }
-
-                    setIsUploading(true);
-                    try {
-                      const formData = new FormData();
-                      fileArray.forEach((file, index) => {
-                        formData.append(`images`, file);
-                      });
-
-                      const response = await fetch('/api/images/upload', {
-                        method: 'POST',
-                        body: formData,
-                      });
-
-                                             if (response.ok) {
-                         const data = await response.json();
-                         const imageUrls = data.images.map((img: any) => img.url);
-                         const newImages = [...uploadedImages, ...imageUrls];
-                         setUploadedImages(newImages);
-                         return imageUrls;
-                       } else {
-                         alert('图片上传失败');
-                         return [];
-                       }
-                    } catch (error) {
-                      console.error('上传图片失败:', error);
-                      alert('图片上传失败');
-                      return [];
-                    } finally {
-                      setIsUploading(false);
-                    }
-                  }}
-                  placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
-                  isUploading={isUploading}
-                  isSubmitting={submittingComment}
-                  uploadedImages={uploadedImages}
-                  onRemoveImage={(index) => {
-                    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-                  }}
-                  onCleanupImages={async (imageUrls) => {
-                    if (imageUrls.length === 0) return;
-                    
-                    try {
-                      await fetch('/api/images/cleanup', {
-                        method: 'DELETE',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ imageUrls }),
-                      });
-                    } catch (error) {
-                      console.error('清理图片失败:', error);
-                    }
-                  }}
-                />
+                    }}
+                    onCancel={() => setShowCommentInput(false)}
+                    placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
+                    isSubmitting={submittingComment}
+                  />
+                )}
               </div>
             </section>
           </div>

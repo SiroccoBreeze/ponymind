@@ -2,16 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { cacheImage, removeCachedImage, CachedImage, validateImage, uploadCachedImages } from '@/lib/image-cache';
 
 interface CommentInputProps {
   onSubmit: (content: string, images: string[]) => void;
-  onUploadImages: (files: FileList) => Promise<string[]>;
-  onCleanupImages?: (imageUrls: string[]) => Promise<void>;
+  onCancel?: () => void;
   placeholder?: string;
-  isUploading?: boolean;
   isSubmitting?: boolean;
-  uploadedImages?: string[];
-  onRemoveImage?: (index: number) => void;
 }
 
 // 表情数据
@@ -23,18 +21,15 @@ const EMOJI_CATEGORIES = {
 
 const CommentInput: React.FC<CommentInputProps> = ({
   onSubmit,
-  onUploadImages,
-  onCleanupImages,
+  onCancel,
   placeholder = "写下你的想法...",
-  isUploading = false,
   isSubmitting = false,
-  uploadedImages = [],
-  onRemoveImage
 }) => {
   const [content, setContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('常用');
-  const [isFocused, setIsFocused] = useState(false);
+  const [cachedImages, setCachedImages] = useState<CachedImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -60,24 +55,39 @@ const CommentInput: React.FC<CommentInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 组件卸载时清理未使用的图片
+  // 组件卸载时清理缓存的图片
   useEffect(() => {
     return () => {
-      if (uploadedImages.length > 0 && onCleanupImages) {
-        onCleanupImages(uploadedImages).catch(console.error);
-      }
+      cachedImages.forEach(img => {
+        removeCachedImage(img.id);
+      });
     };
-  }, [uploadedImages, onCleanupImages]);
+  }, [cachedImages]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     
-    onSubmit(content.trim(), uploadedImages);
-    setContent('');
-    setIsFocused(false);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+    try {
+      // 上传缓存的图片
+      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages) : [];
+      
+      // 提交评论
+      await onSubmit(content.trim(), imageUrls);
+      
+      // 清理缓存的图片
+      cachedImages.forEach(img => {
+        removeCachedImage(img.id);
+      });
+      
+      // 重置表单
+      setContent('');
+      setCachedImages([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
     }
   };
 
@@ -104,14 +114,39 @@ const CommentInput: React.FC<CommentInputProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    try {
-      await onUploadImages(files);
-    } catch (error) {
-      console.error('上传失败:', error);
+    const fileArray = Array.from(files);
+    
+    // 检查文件数量限制
+    if (cachedImages.length + fileArray.length > 5) {
+      toast.error('一次最多只能上传5张图片');
+      e.target.value = '';
+      return;
     }
     
-    // 清空文件输入
-    e.target.value = '';
+    setIsUploading(true);
+    
+    try {
+      const newCachedImages: CachedImage[] = [];
+      
+      for (const file of fileArray) {
+        const validation = validateImage(file);
+        if (!validation.valid) {
+          toast.error(validation.error);
+          continue;
+        }
+        
+        const cachedImage = cacheImage(file);
+        newCachedImages.push(cachedImage);
+      }
+      
+      setCachedImages(prev => [...prev, ...newCachedImages]);
+    } catch (error) {
+      console.error('缓存图片失败:', error);
+    } finally {
+      setIsUploading(false);
+      // 清空文件输入
+      e.target.value = '';
+    }
   };
 
   if (!session?.user) {
@@ -132,25 +167,26 @@ const CommentInput: React.FC<CommentInputProps> = ({
     <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 focus-within:border-blue-500 transition-all duration-200 shadow-sm">
       <form onSubmit={handleSubmit}>
         {/* 图片预览区域 */}
-        {uploadedImages.length > 0 && (
+        {cachedImages.length > 0 && (
           <div className="p-4 pb-0">
             <div className="flex flex-wrap gap-2">
-              {uploadedImages.map((imageUrl, index) => (
-                <div key={index} className="relative group">
+              {cachedImages.map((cachedImage, index) => (
+                <div key={cachedImage.id} className="relative group">
                   <img
-                    src={imageUrl}
+                    src={cachedImage.previewUrl}
                     alt={`预览图片 ${index + 1}`}
                     className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                   />
-                  {onRemoveImage && (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveImage(index)}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeCachedImage(cachedImage.id);
+                      setCachedImages(prev => prev.filter(img => img.id !== cachedImage.id));
+                    }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
@@ -163,8 +199,6 @@ const CommentInput: React.FC<CommentInputProps> = ({
             ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
             className="w-full resize-none border-none outline-none text-gray-900 placeholder-gray-500 text-base leading-relaxed min-h-[3rem] max-h-[8rem] overflow-y-auto"
             style={{ fontSize: '16px' }}
@@ -260,18 +294,37 @@ const CommentInput: React.FC<CommentInputProps> = ({
             )}
           </div>
 
-          {/* 右侧发送按钮 */}
-          <button
-            type="submit"
-            disabled={isSubmitting || !content.trim() || isUploading}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              content.trim() && !isSubmitting && !isUploading
-                ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? '发送中...' : '发送'}
-          </button>
+          {/* 右侧按钮 */}
+          <div className="flex items-center space-x-2">
+            {onCancel && (
+              <button
+                type="button"
+                onClick={() => {
+                  // 清理缓存的图片
+                  cachedImages.forEach(img => {
+                    removeCachedImage(img.id);
+                  });
+                  setCachedImages([]);
+                  setContent('');
+                  onCancel();
+                }}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                取消
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={isSubmitting || !content.trim() || isUploading}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                content.trim() && !isSubmitting && !isUploading
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? '发送中...' : '发送'}
+            </button>
+          </div>
         </div>
       </form>
     </div>

@@ -1,16 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
+import { cacheImage, removeCachedImage, CachedImage, validateImage, uploadCachedImages } from '@/lib/image-cache';
 
 interface ReplyInputProps {
   onSubmit: (content: string, images: string[]) => void;
   onCancel: () => void;
-  onUploadImages: (files: FileList) => Promise<string[]>;
   isSubmitting?: boolean;
-  isUploading?: boolean;
   placeholder?: string;
-  uploadedImages?: string[];
-  onRemoveImage?: (index: number) => void;
 }
 
 // 表情数据
@@ -23,16 +21,14 @@ const EMOJI_CATEGORIES = {
 const ReplyInput: React.FC<ReplyInputProps> = ({
   onSubmit,
   onCancel,
-  onUploadImages,
   isSubmitting = false,
-  isUploading = false,
   placeholder = "写下你的回复...",
-  uploadedImages = [],
-  onRemoveImage
 }) => {
   const [content, setContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('常用');
+  const [cachedImages, setCachedImages] = useState<CachedImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -64,12 +60,37 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 组件卸载时清理缓存的图片
+  useEffect(() => {
+    return () => {
+      cachedImages.forEach(img => {
+        removeCachedImage(img.id);
+      });
+    };
+  }, [cachedImages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     
-    onSubmit(content.trim(), uploadedImages);
-    setContent('');
+    try {
+      // 上传缓存的图片
+      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages) : [];
+      
+      // 提交回复
+      await onSubmit(content.trim(), imageUrls);
+      
+      // 清理缓存的图片
+      cachedImages.forEach(img => {
+        removeCachedImage(img.id);
+      });
+      
+      // 重置表单
+      setContent('');
+      setCachedImages([]);
+    } catch (error) {
+      console.error('提交失败:', error);
+    }
   };
 
   const handleEmojiClick = (emoji: string) => {
@@ -94,38 +115,65 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    try {
-      await onUploadImages(files);
-    } catch (error) {
-      console.error('上传失败:', error);
+    const fileArray = Array.from(files);
+    
+    // 检查文件数量限制
+    if (cachedImages.length + fileArray.length > 3) {
+      toast.error('回复中最多只能上传3张图片');
+      e.target.value = '';
+      return;
     }
     
-    e.target.value = '';
+    setIsUploading(true);
+    
+    try {
+      const newCachedImages: CachedImage[] = [];
+      
+      for (const file of fileArray) {
+        const validation = validateImage(file);
+        if (!validation.valid) {
+          toast.error(validation.error);
+          continue;
+        }
+        
+        const cachedImage = cacheImage(file);
+        newCachedImages.push(cachedImage);
+      }
+      
+      setCachedImages(prev => [...prev, ...newCachedImages]);
+    } catch (error) {
+      console.error('缓存图片失败:', error);
+    } finally {
+      setIsUploading(false);
+      // 清空文件输入
+      e.target.value = '';
+    }
   };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
       <form onSubmit={handleSubmit}>
         {/* 图片预览区域 */}
-        {uploadedImages.length > 0 && (
+        {cachedImages.length > 0 && (
           <div className="p-3 pb-0">
             <div className="flex flex-wrap gap-2">
-              {uploadedImages.map((imageUrl, index) => (
-                <div key={index} className="relative group">
+              {cachedImages.map((cachedImage, index) => (
+                <div key={cachedImage.id} className="relative group">
                   <img
-                    src={imageUrl}
+                    src={cachedImage.previewUrl}
                     alt={`预览图片 ${index + 1}`}
                     className="w-12 h-12 object-cover rounded border border-gray-200"
                   />
-                  {onRemoveImage && (
-                    <button
-                      type="button"
-                      onClick={() => onRemoveImage(index)}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeCachedImage(cachedImage.id);
+                      setCachedImages(prev => prev.filter(img => img.id !== cachedImage.id));
+                    }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>
@@ -238,7 +286,15 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
           <div className="flex items-center space-x-2">
             <button
               type="button"
-              onClick={onCancel}
+              onClick={() => {
+                // 清理缓存的图片
+                cachedImages.forEach(img => {
+                  removeCachedImage(img.id);
+                });
+                setCachedImages([]);
+                setContent('');
+                onCancel();
+              }}
               className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
             >
               取消

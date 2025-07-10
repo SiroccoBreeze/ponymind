@@ -6,6 +6,51 @@ import Post from '@/models/Post';
 import User from '@/models/User';
 import { createMessage } from '@/app/api/users/messages/route';
 
+// 评论数据类型
+interface CommentData {
+  _id: string;
+  content: string;
+  author: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  parentComment?: {
+    _id: string;
+    author: {
+      _id: string;
+      name: string;
+      email: string;
+      avatar?: string;
+    };
+  } | null;
+  images?: string[];
+  isAccepted?: boolean;
+  likes: number;
+  likedBy?: {
+    _id: string;
+    name: string;
+  }[];
+  createdAt: string;
+  replies?: CommentData[];
+}
+
+// 递归构建评论树
+function buildCommentTree(comments: CommentData[], parentId: string | null = null): CommentData[] {
+  return comments
+    .filter(comment => {
+      if (parentId === null) {
+        return comment.parentComment === null;
+      }
+      return comment.parentComment && comment.parentComment._id.toString() === parentId;
+    })
+    .map(comment => ({
+      ...comment,
+      replies: buildCommentTree(comments, comment._id.toString())
+    }));
+}
+
 // 获取评论列表
 export async function GET(
   request: NextRequest,
@@ -16,34 +61,16 @@ export async function GET(
 
     const { id } = await params;
     
-    // 获取所有顶级评论（没有父评论的评论）
-    const topLevelComments = await Comment.find({ 
-      post: id, 
-      parentComment: null 
-    })
+    // 获取所有评论（包括顶级评论和所有回复）
+    const allComments = await Comment.find({ post: id })
       .populate('author', 'name email avatar')
+      .populate('parentComment', '_id author')
       .populate('likedBy', 'name')
       .sort({ createdAt: -1 })
       .lean();
 
-    // 获取所有回复
-    const replies = await Comment.find({ 
-      post: id, 
-      parentComment: { $ne: null } 
-    })
-      .populate('author', 'name email avatar')
-      .populate('parentComment', 'author')
-      .populate('likedBy', 'name')
-      .sort({ createdAt: 1 })
-      .lean();
-
-    // 将回复组织到对应的父评论下
-    const commentsWithReplies = topLevelComments.map(comment => ({
-      ...comment,
-      replies: replies.filter(reply => 
-        reply.parentComment && reply.parentComment._id.toString() === comment._id.toString()
-      )
-    }));
+    // 构建评论树结构
+    const commentsWithReplies = buildCommentTree(allComments);
 
     return NextResponse.json({
       success: true,
