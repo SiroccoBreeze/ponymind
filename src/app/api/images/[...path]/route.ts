@@ -8,7 +8,7 @@ import Image from '@/models/Image';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     // 多层防护机制
@@ -63,7 +63,8 @@ export async function GET(
     await connectDB();
 
     // 解析文件路径
-    const [dateStr, fileName] = params.path;
+    const { path: pathArray } = await params;
+    const [dateStr, fileName] = pathArray;
     if (!dateStr || !fileName) {
       return NextResponse.json(
         { error: '无效的文件路径' },

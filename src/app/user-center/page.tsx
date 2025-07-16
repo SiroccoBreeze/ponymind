@@ -89,13 +89,19 @@ export default function UserCenterPage() {
     }
   }, [session, status, router, currentPage]);
 
-  // 处理URL参数中的编辑请求
+  // 处理URL参数中的编辑请求和section参数
   useEffect(() => {
     const editId = searchParams.get('edit');
+    const section = searchParams.get('section');
+    
     if (editId && session?.user) {
       setEditingPost(editId);
       setShowCreatePost(true);
       setActiveSection('content'); // 切换到内容管理标签
+      // 清除URL参数
+      router.replace('/user-center', { scroll: false });
+    } else if (section && ['profile', 'content', 'messages'].includes(section)) {
+      setActiveSection(section);
       // 清除URL参数
       router.replace('/user-center', { scroll: false });
     }
@@ -769,6 +775,34 @@ export default function UserCenterPage() {
                                 <div className="mt-2">
                                   <Link
                                     href={`/posts/${message.relatedId}`}
+                                    onClick={async () => {
+                                      // 如果消息未读，标记为已读
+                                      if (!message.isRead) {
+                                        try {
+                                          const response = await fetch('/api/users/messages', {
+                                            method: 'PATCH',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({ 
+                                              messageIds: [message._id || message.id] 
+                                            }),
+                                          });
+                                          
+                                          if (response.ok) {
+                                            // 更新本地状态
+                                            setMessages(prev => prev.map(msg => 
+                                              msg._id === message._id || msg.id === message.id 
+                                                ? { ...msg, isRead: true }
+                                                : msg
+                                            ));
+                                            setUnreadCount(prev => Math.max(0, prev - 1));
+                                          }
+                                        } catch (error) {
+                                          console.error('标记消息已读失败:', error);
+                                        }
+                                      }
+                                    }}
                                     className="text-sm text-blue-600 hover:text-blue-800"
                                   >
                                     查看相关内容 →

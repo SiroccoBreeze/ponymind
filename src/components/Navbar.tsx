@@ -249,7 +249,38 @@ export default function Navbar() {
                             </div>
                           ) : (
                             notifications.map((notification) => (
-                              <div key={notification._id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${!notification.isRead ? 'bg-blue-50' : ''}`}>
+                              <div 
+                                key={notification._id} 
+                                className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                                onClick={async () => {
+                                  // 如果消息未读，标记为已读
+                                  if (!notification.isRead) {
+                                    try {
+                                      const response = await fetch('/api/users/messages', {
+                                        method: 'PATCH',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                        body: JSON.stringify({ 
+                                          messageIds: [notification._id] 
+                                        }),
+                                      });
+                                      
+                                      if (response.ok) {
+                                        // 更新本地状态
+                                        setNotifications(prev => prev.map(msg => 
+                                          msg._id === notification._id 
+                                            ? { ...msg, isRead: true }
+                                            : msg
+                                        ));
+                                        setUnreadCount(prev => Math.max(0, prev - 1));
+                                      }
+                                    } catch (error) {
+                                      console.error('标记消息已读失败:', error);
+                                    }
+                                  }
+                                }}
+                              >
                                 <div className="flex items-start space-x-3">
                                   <div className={`w-2 h-2 rounded-full mt-2 ${!notification.isRead ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                                   <div className="flex-1 min-w-0">
