@@ -28,6 +28,7 @@ export default function Home() {
   });
   const [realTimeStats, setRealTimeStats] = useState<{
     hotPosts: Array<{
+      _id: string;
       title: string;
       type: string;
       views: number;
@@ -254,22 +255,28 @@ export default function Home() {
               </h3>
               <div className="space-y-3">
                 {realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
-                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                      item.type === 'question' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
-                    }`}>
-                      {item.type === 'question' ? '?' : 'A'}
+                  <Link 
+                    key={index} 
+                    href={`/posts/${item._id}`}
+                    className="block hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    <div className="flex items-start space-x-3 p-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                        item.type === 'question' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        {item.type === 'question' ? '?' : 'A'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {item.type === 'question' ? `${item.answers} 个回答` : `${item.views} 次浏览`}
+                          {item.likes > 0 && ` • ${item.likes} 点赞`}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                        {item.title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {item.type === 'question' ? `${item.answers} 个回答` : `${item.views} 次浏览`}
-                        {item.likes > 0 && ` • ${item.likes} 点赞`}
-                      </p>
-                    </div>
-                  </div>
+                  </Link>
                 )) : (
                   <div className="text-center py-4 text-gray-500 text-sm">
                     暂无热点内容

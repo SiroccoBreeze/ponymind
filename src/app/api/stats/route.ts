@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       .populate('author', 'name email')
       .sort({ views: -1, likes: -1, createdAt: -1 })
       .limit(5)
-      .select('title type views likes answers createdAt'),
+      .select('_id title type views likes answers createdAt'),
       
       // 热门标签统计
       Post.aggregate([
@@ -114,6 +114,7 @@ export async function GET(request: Request) {
     
     // 格式化数据
     const formattedHotPosts = hotPosts.map(post => ({
+      _id: post._id.toString(),  // 将 ObjectId 转换为字符串
       title: post.title,
       type: post.type,
       views: post.views,
