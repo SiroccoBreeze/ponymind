@@ -4,7 +4,8 @@ import connectDB from '@/lib/mongodb';
 import Comment from '@/models/Comment';
 import Post from '@/models/Post';
 import User from '@/models/User';
-import { createMessage } from '@/app/api/users/messages/route';
+import { createMessage } from '@/lib/message-utils';
+import { Types } from 'mongoose';
 
 // 评论数据类型
 interface CommentData {
@@ -36,17 +37,70 @@ interface CommentData {
   replies?: CommentData[];
 }
 
+// MongoDB文档类型
+interface CommentDocument {
+  _id: Types.ObjectId;
+  content: string;
+  author: {
+    _id: Types.ObjectId;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  parentComment?: {
+    _id: Types.ObjectId;
+    author: {
+      _id: Types.ObjectId;
+      name: string;
+      email: string;
+      avatar?: string;
+    };
+  } | null;
+  images?: string[];
+  isAccepted?: boolean;
+  likes: number;
+  likedBy?: {
+    _id: Types.ObjectId;
+    name: string;
+  }[];
+  createdAt: Date;
+}
+
 // 递归构建评论树
-function buildCommentTree(comments: CommentData[], parentId: string | null = null): CommentData[] {
+function buildCommentTree(comments: CommentDocument[], parentId: string | null = null): CommentData[] {
   return comments
     .filter(comment => {
       if (parentId === null) {
-        return comment.parentComment === null;
+        return !comment.parentComment;
       }
       return comment.parentComment && comment.parentComment._id.toString() === parentId;
     })
     .map(comment => ({
-      ...comment,
+      _id: comment._id.toString(),
+      content: comment.content,
+      author: {
+        _id: comment.author._id.toString(),
+        name: comment.author.name,
+        email: comment.author.email,
+        avatar: comment.author.avatar
+      },
+      parentComment: comment.parentComment ? {
+        _id: comment.parentComment._id.toString(),
+        author: {
+          _id: comment.parentComment.author._id.toString(),
+          name: comment.parentComment.author.name,
+          email: comment.parentComment.author.email,
+          avatar: comment.parentComment.author.avatar
+        }
+      } : null,
+      images: comment.images,
+      isAccepted: comment.isAccepted,
+      likes: comment.likes,
+      likedBy: comment.likedBy?.map((user: { _id: Types.ObjectId; name: string }) => ({
+        _id: user._id.toString(),
+        name: user.name
+      })),
+      createdAt: comment.createdAt.toISOString(),
       replies: buildCommentTree(comments, comment._id.toString())
     }));
 }
@@ -62,12 +116,12 @@ export async function GET(
     const { id } = await params;
     
     // 获取所有评论（包括顶级评论和所有回复）
-    const allComments = await Comment.find({ post: id })
+    const allComments = (await Comment.find({ post: id })
       .populate('author', 'name email avatar')
       .populate('parentComment', '_id author')
       .populate('likedBy', 'name')
       .sort({ createdAt: -1 })
-      .lean();
+      .lean()) as unknown as CommentDocument[];
 
     // 构建评论树结构
     const commentsWithReplies = buildCommentTree(allComments);
@@ -396,7 +450,7 @@ export async function PATCH(
       }
 
       // 取消点赞
-      comment.likedBy = comment.likedBy.filter(id => !id.equals(user._id));
+      comment.likedBy = comment.likedBy.filter((likedId: Types.ObjectId) => !likedId.equals(user._id));
       comment.likes -= 1;
       await comment.save();
 
@@ -420,4 +474,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-} 
+}

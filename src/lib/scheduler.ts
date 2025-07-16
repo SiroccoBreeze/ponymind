@@ -159,7 +159,7 @@ class TaskScheduler {
         imageUrls.forEach(url => usedImageUrls.add(url));
         
         if (comment.images) {
-          comment.images.forEach(url => usedImageUrls.add(url));
+          comment.images.forEach((url: string) => usedImageUrls.add(url));
         }
       }
       
