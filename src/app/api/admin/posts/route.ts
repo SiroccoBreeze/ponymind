@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import { deletePostWithCascade } from '@/lib/cascade-delete';
 
 // 检查管理员权限
 async function checkAdminPermission() {
@@ -226,11 +227,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '文章ID不能为空' }, { status: 400 });
     }
 
-    const deletedPost = await Post.findByIdAndDelete(postId);
-
-    if (!deletedPost) {
+    // 检查文章是否存在
+    const post = await Post.findById(postId);
+    if (!post) {
       return NextResponse.json({ error: '文章不存在' }, { status: 404 });
     }
+
+    // 使用级联删除功能删除文章及其相关的图片和评论
+    await deletePostWithCascade(postId);
 
     return NextResponse.json({ message: '文章删除成功' });
   } catch (error) {

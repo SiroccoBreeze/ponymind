@@ -24,6 +24,27 @@ interface SystemSettings {
   enableViews: boolean;
 }
 
+interface ScheduledTask {
+  _id: string;
+  name: string;
+  description: string;
+  taskType: string;
+  isEnabled: boolean;
+  schedule: string;
+  lastRun: string | null;
+  nextRun: string;
+  status: 'idle' | 'running' | 'completed' | 'failed';
+  lastResult: {
+    success: boolean;
+    message: string;
+    details?: any;
+    duration: number;
+  };
+  config: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface SystemInfo {
   version: string;
   nodeVersion: string;
@@ -68,14 +89,19 @@ export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('basic');
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [executingTask, setExecutingTask] = useState<string | null>(null);
 
   useEffect(() => {
     // 加载设置和系统信息
     const loadData = async () => {
       try {
-        const [settingsResponse, systemInfoResponse] = await Promise.all([
+        const [settingsResponse, systemInfoResponse, tasksResponse] = await Promise.all([
           fetch('/api/admin/settings'),
-          fetch('/api/admin/system-info')
+          fetch('/api/admin/system-info'),
+          fetch('/api/admin/scheduled-tasks')
         ]);
 
         if (settingsResponse.ok) {
@@ -86,6 +112,11 @@ export default function SystemSettings() {
         if (systemInfoResponse.ok) {
           const systemInfoData = await systemInfoResponse.json();
           setSystemInfo(systemInfoData.systemInfo);
+        }
+
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          setScheduledTasks(tasksData.tasks);
         }
       } catch (error) {
         console.error('加载数据失败:', error);
@@ -137,6 +168,106 @@ export default function SystemSettings() {
     }));
   };
 
+  // 定时任务相关函数
+  const handleSaveTask = async (taskData: any) => {
+    try {
+      const url = taskData.taskId ? '/api/admin/scheduled-tasks' : '/api/admin/scheduled-tasks';
+      const method = taskData.taskId ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      if (response.ok) {
+        // 重新加载任务列表
+        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          setScheduledTasks(tasksData.tasks);
+        }
+        
+        setShowTaskModal(false);
+        setEditingTask(null);
+        alert(taskData.taskId ? '任务更新成功' : '任务创建成功');
+      } else {
+        alert('操作失败');
+      }
+    } catch (error) {
+      console.error('保存任务失败:', error);
+      alert('操作失败');
+    }
+  };
+
+  const handleExecuteTask = async (taskId: string) => {
+    setExecutingTask(taskId);
+    try {
+      const response = await fetch('/api/admin/scheduled-tasks/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId }),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        const result = responseData.result;
+        
+        if (result && result.success) {
+          alert(`任务执行成功: ${result.message}`);
+        } else {
+          alert(`任务执行失败: ${result?.message || '未知错误'}`);
+        }
+        
+        // 重新加载任务列表
+        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          setScheduledTasks(tasksData.tasks);
+        }
+      } else {
+        const errorData = await response.json();
+        alert(`执行失败: ${errorData.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('执行任务失败:', error);
+      alert('执行失败');
+    } finally {
+      setExecutingTask(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('确定要删除这个任务吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/scheduled-tasks?taskId=${taskId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // 重新加载任务列表
+        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          setScheduledTasks(tasksData.tasks);
+        }
+        alert('任务删除成功');
+      } else {
+        alert('删除失败');
+      }
+    } catch (error) {
+      console.error('删除任务失败:', error);
+      alert('删除失败');
+    }
+  };
+
   const tabs = [
     { id: 'basic', label: '基本设置', icon: '⚙️' },
     { id: 'user', label: '用户设置', icon: '👥' },
@@ -144,6 +275,7 @@ export default function SystemSettings() {
     { id: 'notification', label: '通知设置', icon: '🔔' },
     { id: 'security', label: '安全设置', icon: '🔒' },
     { id: 'system', label: '系统设置', icon: '💻' },
+    { id: 'scheduled-tasks', label: '定时任务', icon: '⏰' },
   ];
 
   if (loading) {
@@ -578,6 +710,261 @@ export default function SystemSettings() {
               </div>
             </div>
           )}
+
+          {/* 定时任务管理 */}
+          {activeTab === 'scheduled-tasks' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">定时任务管理</h3>
+                  <p className="text-sm text-gray-500">管理系统定时任务，包括图片清理、数据备份等</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowTaskModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  添加任务
+                </button>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {scheduledTasks.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-gray-400 mb-4">
+                          <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <p className="text-gray-500">暂无定时任务</p>
+                        <button
+                          onClick={() => {
+                            setEditingTask(null);
+                            setShowTaskModal(true);
+                          }}
+                          className="mt-2 text-blue-600 hover:text-blue-700"
+                        >
+                          创建第一个任务
+                        </button>
+                      </div>
+                    ) : (
+                      scheduledTasks.map((task) => (
+                        <div key={task._id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3">
+                                <h4 className="text-sm font-medium text-gray-900">{task.name}</h4>
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  task.isEnabled 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {task.isEnabled ? '启用' : '禁用'}
+                                </span>
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  task.status === 'running' ? 'bg-blue-100 text-blue-800' :
+                                  task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                  task.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {task.status === 'running' ? '运行中' :
+                                   task.status === 'completed' ? '已完成' :
+                                   task.status === 'failed' ? '失败' : '空闲'}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                <span>类型: {task.taskType}</span>
+                                <span>计划: {task.schedule}</span>
+                                <span>下次执行: {new Date(task.nextRun).toLocaleString()}</span>
+                                {task.lastRun && (
+                                  <span>上次执行: {new Date(task.lastRun).toLocaleString()}</span>
+                                )}
+                              </div>
+                              {task.lastResult && (
+                                <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className={task.lastResult.success ? 'text-green-600' : 'text-red-600'}>
+                                      {task.lastResult.message}
+                                    </span>
+                                    <span className="text-gray-500">
+                                      耗时: {task.lastResult.duration}ms
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 ml-4">
+                              <button
+                                onClick={() => handleExecuteTask(task._id)}
+                                disabled={task.status === 'running' || executingTask === task._id}
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {executingTask === task._id ? '执行中...' : '立即执行'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingTask(task);
+                                  setShowTaskModal(true);
+                                }}
+                                className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+                              >
+                                编辑
+                              </button>
+                              <button
+                                onClick={() => handleDeleteTask(task._id)}
+                                className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                删除
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 定时任务模态框 */}
+      {showTaskModal && (
+        <TaskModal
+          task={editingTask}
+          onClose={() => {
+            setShowTaskModal(false);
+            setEditingTask(null);
+          }}
+          onSave={handleSaveTask}
+        />
+      )}
+    </div>
+  );
+}
+
+// 定时任务模态框组件
+function TaskModal({ task, onClose, onSave }: { 
+  task: ScheduledTask | null; 
+  onClose: () => void; 
+  onSave: (taskData: any) => void; 
+}) {
+  const [formData, setFormData] = useState({
+    name: task?.name || '',
+    description: task?.description || '',
+    taskType: task?.taskType || 'cleanupUnusedImages',
+    schedule: task?.schedule || '0 2 * * *',
+    isEnabled: task?.isEnabled ?? true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(task ? { ...formData, taskId: task._id } : formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+        <div className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {task ? '编辑定时任务' : '添加定时任务'}
+          </h3>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                任务名称
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                任务描述
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                任务类型
+              </label>
+              <select
+                value={formData.taskType}
+                onChange={(e) => setFormData(prev => ({ ...prev, taskType: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="cleanupUnusedImages">清理未使用图片</option>
+                <option value="autoCloseQuestions">自动关闭过期问题</option>
+                <option value="cleanupLogs">清理日志</option>
+                <option value="backupDatabase">备份数据库</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                执行计划 (Cron表达式)
+              </label>
+              <input
+                type="text"
+                value={formData.schedule}
+                onChange={(e) => setFormData(prev => ({ ...prev, schedule: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0 2 * * *"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                格式: 分钟 小时 日 月 星期 (例如: 0 2 * * * 表示每天凌晨2点)
+              </p>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isEnabled"
+                checked={formData.isEnabled}
+                onChange={(e) => setFormData(prev => ({ ...prev, isEnabled: e.target.checked }))}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isEnabled" className="ml-2 block text-sm text-gray-900">
+                启用任务
+              </label>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+              >
+                {task ? '更新' : '创建'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

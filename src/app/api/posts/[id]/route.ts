@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
-import Comment from '@/models/Comment';
+import { deletePostWithCascade } from '@/lib/cascade-delete';
 
 // 获取单个文章
 export async function GET(
@@ -183,11 +183,8 @@ export async function DELETE(
       );
     }
 
-    // 删除相关的评论
-    await Comment.deleteMany({ post: id });
-
-    // 删除文章
-    await Post.findByIdAndDelete(id);
+    // 使用级联删除功能删除文章及其相关的图片和评论
+    await deletePostWithCascade(id);
 
     return NextResponse.json({
       success: true,

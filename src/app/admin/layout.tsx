@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import SchedulerInitializer from '@/components/SchedulerInitializer';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -184,6 +185,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* 调度器初始化组件 */}
+      <SchedulerInitializer />
     </div>
   );
 } 
