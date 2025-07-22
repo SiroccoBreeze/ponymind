@@ -128,7 +128,6 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: '首页', icon: '🏠' },
     { href: '/faq', label: 'FAQ', icon: '❓' },
-    { href: '/ai', label: 'AI', icon: '🤖' },
     { href: '/services', label: '服务', icon: '⚙️' },
   ];
 

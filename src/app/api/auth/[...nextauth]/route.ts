@@ -38,7 +38,7 @@ const authOptions = {
           return {
             id: user._id.toString(),
             email: user.email,
-            name: user.username,
+            name: user.name,
           };
         } catch (error) {
           console.error('Auth error:', error);

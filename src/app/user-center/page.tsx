@@ -6,6 +6,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
 import CreateQuestion from '@/components/CreateQuestion';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from '@/components/ui/pagination';
 
 interface UserStats {
   totalPosts: number;
@@ -61,6 +69,8 @@ export default function UserCenterPage() {
     pendingReview: 0
   });
   const [posts, setPosts] = useState<Post[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 5;
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -128,7 +138,7 @@ export default function UserCenterPage() {
     try {
       const [statsRes, postsRes] = await Promise.all([
         fetch('/api/users/stats'),
-        fetch(`/api/users/posts?page=${currentPage}&limit=5`)
+        fetch(`/api/users/posts?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`)
       ]);
 
       if (statsRes.ok) {
@@ -139,7 +149,7 @@ export default function UserCenterPage() {
       if (postsRes.ok) {
         const postsData = await postsRes.json();
         setPosts(postsData.posts || []);
-  
+        setTotalCount(postsData.pagination?.total || 0);
       }
     } catch (error) {
       console.error('获取用户数据失败:', error);
@@ -179,34 +189,8 @@ export default function UserCenterPage() {
     );
   };
 
-  const filteredPosts = posts.filter(post => {
-    // 搜索过滤
-    const matchesSearch = searchQuery.trim() === '' || 
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (post.tags && post.tags.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase())));
-    
-    if (!matchesSearch) return false;
-    
-    // 状态过滤
-    switch (activeTab) {
-      case 'published':
-        return post.reviewStatus === 'published';
-      case 'drafts':
-        return post.reviewStatus === 'draft';
-      case 'pending':
-        return post.reviewStatus === 'pending';
-      case 'rejected':
-        return post.reviewStatus === 'rejected';
-      default:
-        return true;
-    }
-  });
-
   // 计算分页数据
-  const itemsPerPage = 5;
-  const totalFilteredPages = Math.ceil(filteredPosts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedPosts = filteredPosts.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   // 当搜索或标签页改变时，重置到第一页
   useEffect(() => {
@@ -480,7 +464,7 @@ export default function UserCenterPage() {
                   <div className="border-b border-gray-100">
                     <nav className="flex space-x-8 px-6" aria-label="Tabs">
                       {[
-                        { id: 'overview', label: '全部内容', count: posts.length, icon: '📄' },
+                        { id: 'overview', label: '全部内容', count: totalCount, icon: '📄' },
                         { id: 'published', label: '已发布', count: posts.filter(p => p.reviewStatus === 'published').length, icon: '✅' },
                         { id: 'pending', label: '待审核', count: posts.filter(p => p.reviewStatus === 'pending').length, icon: '⏳' },
                         { id: 'drafts', label: '草稿', count: posts.filter(p => p.reviewStatus === 'draft').length, icon: '📝' },
@@ -516,7 +500,7 @@ export default function UserCenterPage() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                         <p className="text-gray-500 mt-2">加载中...</p>
                       </div>
-                    ) : filteredPosts.length === 0 ? (
+                    ) : posts.length === 0 ? (
                       <div className="text-center py-12">
                         <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d={searchQuery.trim() ? "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" : "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"} />
@@ -545,7 +529,7 @@ export default function UserCenterPage() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {paginatedPosts.map((post) => (
+                        {posts.map((post) => (
                           <div key={post._id} className="group border border-gray-100 rounded-lg p-5 hover:shadow-md hover:border-gray-200 transition-all duration-200 bg-gradient-to-r from-white to-gray-50/50">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -629,48 +613,46 @@ export default function UserCenterPage() {
                     )}
                     
                     {/* 分页 */}
-                    {totalFilteredPages > 1 && (
-                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
-                        <div className="text-sm text-gray-500">
-                          显示第 {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredPosts.length)} 项，共 {filteredPosts.length} 项
-                          {searchQuery.trim() && (
-                            <span className="ml-2 text-blue-600">（搜索: &ldquo;{searchQuery}&rdquo;）</span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            上一页
-                          </button>
-                          <div className="flex space-x-1">
-                            {[...Array(totalFilteredPages)].map((_, i) => {
-                              const page = i + 1;
-                              return (
-                                <button
-                                  key={page}
-                                  onClick={() => setCurrentPage(page)}
-                                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                                    currentPage === page
-                                      ? 'bg-blue-600 text-white'
-                                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                                  }`}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center mt-6 pt-4 border-t border-gray-100">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                href="#"
+                                onClick={e => {
+                                  e.preventDefault();
+                                  setCurrentPage(prev => Math.max(prev - 1, 1));
+                                }}
+                                aria-disabled={currentPage === 1}
+                              />
+                            </PaginationItem>
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                              <PaginationItem key={i + 1}>
+                                <PaginationLink
+                                  href="#"
+                                  isActive={currentPage === i + 1}
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    setCurrentPage(i + 1);
+                                  }}
                                 >
-                                  {page}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalFilteredPages))}
-                            disabled={currentPage === totalFilteredPages}
-                            className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            下一页
-                          </button>
-                        </div>
+                                  {i + 1}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                              <PaginationNext
+                                href="#"
+                                onClick={e => {
+                                  e.preventDefault();
+                                  setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                }}
+                                aria-disabled={currentPage === totalPages}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
                       </div>
                     )}
                   </div>
