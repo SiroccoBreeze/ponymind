@@ -1,6 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 interface SystemSettings {
   siteName: string;
@@ -869,14 +879,12 @@ function TaskModal({ task, onClose, onSave }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
-        <div className="p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {task ? '编辑定时任务' : '添加定时任务'}
-          </h3>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <AlertDialog open={true} onOpenChange={onClose}>
+      <AlertDialogContent className="max-w-md w-full">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{task ? '编辑定时任务' : '添加定时任务'}</AlertDialogTitle>
+        </AlertDialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 任务名称
@@ -949,24 +957,12 @@ function TaskModal({ task, onClose, onSave }: {
               </label>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-              >
-                {task ? '更新' : '创建'}
-              </button>
-            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button" onClick={onClose}>取消</AlertDialogCancel>
+              <AlertDialogAction type="submit">保存</AlertDialogAction>
+            </AlertDialogFooter>
           </form>
-        </div>
-      </div>
-    </div>
-  );
+        </AlertDialogContent>
+      </AlertDialog>
+    );
 } 

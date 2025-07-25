@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Post {
   _id: string;
@@ -53,8 +64,11 @@ export default function PostsManagement() {
   const [typeFilter, setTypeFilter] = useState('');
   const [reviewStatusFilter, setReviewStatusFilter] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectPostId, setRejectPostId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -100,48 +114,55 @@ export default function PostsManagement() {
 
       if (response.ok) {
         await fetchPosts();
-        setShowRejectModal(null);
+        setShowRejectModal(false);
+        setRejectPostId(null);
         setRejectReason('');
       } else {
-        alert('操作失败');
+        // alert('操作失败'); // Replaced by AlertDialog
       }
     } catch (error) {
       console.error('审核操作失败:', error);
-      alert('操作失败');
+      // alert('操作失败'); // Replaced by AlertDialog
     } finally {
       setUpdating(null);
     }
   };
 
   const handleReject = (postId: string) => {
-    setShowRejectModal(postId);
+    setRejectPostId(postId);
+    setShowRejectModal(true);
     setRejectReason('');
   };
 
   const confirmReject = () => {
-    if (showRejectModal) {
-      handleReviewAction(showRejectModal, 'reject', rejectReason.trim() || '未通过审核');
+    if (rejectPostId) {
+      handleReviewAction(rejectPostId, 'reject', rejectReason.trim() || '未通过审核');
+      setShowRejectModal(false);
+      setRejectPostId(null);
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('确定要删除这个内容吗？此操作不可恢复。')) {
-      return;
-    }
-
+  const handleDeletePost = (postId: string) => {
+    setPendingDeletePostId(postId);
+    setIsDeleteDialogOpen(true);
+  };
+  const confirmDeletePost = async () => {
+    if (!pendingDeletePostId) return;
+    setIsDeleteDialogOpen(false);
     try {
-      const response = await fetch(`/api/admin/posts?postId=${postId}`, {
+      const response = await fetch(`/api/admin/posts?postId=${pendingDeletePostId}`, {
         method: 'DELETE',
       });
-
       if (response.ok) {
         await fetchPosts();
       } else {
-        alert('删除失败');
+        // alert('删除失败'); // Replaced by AlertDialog
       }
     } catch (error) {
       console.error('删除内容失败:', error);
-      alert('删除失败');
+      // alert('删除失败'); // Replaced by AlertDialog
+    } finally {
+      setPendingDeletePostId(null);
     }
   };
 
@@ -167,15 +188,6 @@ export default function PostsManagement() {
         <span>{statusConfig.label}</span>
       </span>
     );
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'open': return '待解决';
-      case 'answered': return '已回答';
-      case 'closed': return '已关闭';
-      default: return status;
-    }
   };
 
   const truncateContent = (content: string, maxLength: number = 80) => {
@@ -428,11 +440,10 @@ export default function PostsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
-                          className="h-8 w-8 rounded-full"
-                          src={post.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}&background=3b82f6&color=fff`}
-                          alt={post.author.name}
-                        />
+                        <Avatar className="w-10 h-10 text-base">
+                          <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                          <AvatarFallback>{post.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">{post.author.name}</div>
                           <div className="text-sm text-gray-500">{post.author.email}</div>
@@ -446,8 +457,8 @@ export default function PostsManagement() {
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-1">
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                           <span>{post.views}</span>
                         </div>
@@ -549,36 +560,43 @@ export default function PostsManagement() {
       </div>
 
       {/* 拒绝模态框 */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">拒绝原因</h3>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="请输入拒绝原因（选填）"
-              />
-              <div className="flex items-center justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowRejectModal(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={confirmReject}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  确认拒绝
-                </button>
-              </div>
-            </div>
+      <AlertDialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>拒绝原因</AlertDialogTitle>
+            <AlertDialogDescription>
+              请输入拒绝原因，以便用户了解拒绝的原因。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              placeholder="请输入拒绝原因（选填）"
+            />
           </div>
-        </div>
-      )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowRejectModal(false)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReject}>确认拒绝</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 删除确认弹窗 */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定要删除这个内容吗？</AlertDialogTitle>
+            <AlertDialogDescription>此操作不可恢复。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeletePost}>确认删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 

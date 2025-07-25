@@ -169,7 +169,7 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
             {/* 关闭按钮 */}
             <button
               onClick={() => setShowModal(false)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
+              className="absolute -top-5 right-0 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
               title="关闭"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

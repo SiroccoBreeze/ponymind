@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -308,11 +309,10 @@ export default function Navbar() {
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
                       className="flex items-center space-x-3 p-2 rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 focus:outline-none transition-all duration-200"
                     >
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
-                        <span className="text-white text-sm font-medium">
-                          {session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={session.user.image || undefined} alt={session.user.name || session.user.email || 'U'} />
+                        <AvatarFallback>{session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                      </Avatar>
                       <span className="hidden sm:block font-medium text-sm">
                         {session.user.name || session.user.email?.split('@')[0]}
                       </span>

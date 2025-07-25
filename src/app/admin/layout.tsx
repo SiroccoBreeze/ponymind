@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import SchedulerInitializer from '@/components/SchedulerInitializer';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -111,11 +112,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </Link>
               <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
                 <div className="relative">
-                  <img
-                    src={session?.user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(session?.user?.name || 'Admin')}&background=3b82f6&color=fff`}
-                    alt="用户头像"
-                    className="h-8 w-8 rounded-full ring-2 ring-white"
-                  />
+                  <Avatar>
+                    <AvatarImage src={session?.user?.image || undefined} alt="用户头像" />
+                    <AvatarFallback>{session?.user?.name?.charAt(0).toUpperCase() || 'A'}</AvatarFallback>
+                  </Avatar>
                   <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
                 </div>
                 <div className="hidden sm:block">

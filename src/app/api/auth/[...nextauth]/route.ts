@@ -49,6 +49,7 @@ const authOptions = {
   ],
   session: {
     strategy: 'jwt' as const,
+    maxAge: 3 * 60 * 60, // 3小时（单位：秒）
   },
   pages: {
     signIn: '/auth/signin',

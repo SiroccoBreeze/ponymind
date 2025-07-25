@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Post {
   _id: string;
@@ -13,6 +14,7 @@ interface Post {
     _id: string;
     name: string;
     email: string;
+    avatar?: string; // Added avatar field
   };
   tags: string[];
   views: number;
@@ -296,11 +298,10 @@ export default function PostList({
 
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
                     <div className="flex items-center space-x-1">
-                      <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-white">
-                          {post.author.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <Avatar className="w-5 h-5">
+                        <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                        <AvatarFallback>{post.author.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
                       <span className="font-medium">{post.author.name}</span>
                     </div>
                     <span>{formatDate(post.createdAt)}</span>

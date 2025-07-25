@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import ExcelFilter from '@/components/ExcelFilter';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface FAQItem {
   _id: string;
@@ -423,11 +424,10 @@ export default function FAQPage() {
                           {/* 标签和统计 */}
                           <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
                             <div className="flex items-center gap-1">
-                              <img
-                                src={item.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.author.name)}&background=3b82f6&color=fff`}
-                                alt={item.author.name}
-                                className="w-4 h-4 rounded-full"
-                              />
+                              <Avatar>
+                                <AvatarImage src={item.author.avatar || undefined} alt={item.author.name} />
+                                <AvatarFallback>{item.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                              </Avatar>
                               <span>{item.author.name}</span>
                             </div>
                             <span className="flex items-center gap-1">👁 {item.views}</span>
@@ -686,11 +686,10 @@ export default function FAQPage() {
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex items-center">
-                              <img
-                                className="w-8 h-8 rounded-full mr-3 ring-2 ring-gray-100"
-                                src={item.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.author.name)}&background=3b82f6&color=fff`}
-                                alt={item.author.name}
-                              />
+                              <Avatar>
+                                <AvatarImage src={item.author.avatar || undefined} alt={item.author.name} />
+                                <AvatarFallback>{item.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                              </Avatar>
                               <span className="text-sm font-medium text-gray-900">{item.author.name}</span>
                             </div>
                           </td>

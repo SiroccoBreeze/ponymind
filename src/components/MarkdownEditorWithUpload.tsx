@@ -7,6 +7,16 @@ import { toast } from 'sonner';
 import { commands } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 // 动态导入 MDEditor 以避免 SSR 问题
 const MDEditor = dynamic(
@@ -53,6 +63,8 @@ const MarkdownEditorWithUpload = forwardRef<
   const [showImageModal, setShowImageModal] = useState(false);
   const sessionUploadedImages = useRef<string[]>([]); // 本次会话上传的图片ID
   const [isSaved, setIsSaved] = useState(false); // 标记是否已保存
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [pendingDeleteImageId, setPendingDeleteImageId] = useState<string | null>(null);
 
   // 清理未保存的图片
   useEffect(() => {
@@ -294,15 +306,18 @@ const MarkdownEditorWithUpload = forwardRef<
 
   // 删除图片
   const deleteImage = async (imageId: string) => {
-    if (!confirm('确定要删除这张图片吗？')) return;
-
+    setPendingDeleteImageId(imageId);
+    setIsDeleteDialogOpen(true);
+  };
+  const confirmDeleteImage = async () => {
+    if (!pendingDeleteImageId) return;
+    setIsDeleteDialogOpen(false);
     try {
-      const response = await fetch(`/api/images/${imageId}`, {
+      const response = await fetch(`/api/images/${pendingDeleteImageId}`, {
         method: 'DELETE',
       });
-
       if (response.ok) {
-        setUploadedImages(prev => prev.filter(img => img.id !== imageId));
+        setUploadedImages(prev => prev.filter(img => img.id !== pendingDeleteImageId));
         toast.success('图片删除成功');
       } else {
         toast.error('删除失败');
@@ -310,6 +325,8 @@ const MarkdownEditorWithUpload = forwardRef<
     } catch (error) {
       console.error('删除图片失败:', error);
       toast.error('删除失败');
+    } finally {
+      setPendingDeleteImageId(null);
     }
   };
 
@@ -500,6 +517,19 @@ const MarkdownEditorWithUpload = forwardRef<
           </div>
         </div>
       )}
+
+      {/* 删除图片确认弹窗 */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定要删除这张图片吗？</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteImage}>确认删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });

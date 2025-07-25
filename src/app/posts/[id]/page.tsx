@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // 动态导入组件，避免SSR问题
 const MarkdownPreview = dynamic(() => import('@/components/MarkdownPreview'), { 
@@ -66,6 +67,47 @@ interface Comment {
   createdAt: string;
 }
 
+// 通用图片弹窗组件
+function ImagePreviewModal({ src, alt, open, onClose }: { src: string; alt?: string; open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+      style={{ minHeight: '100vh', minWidth: '100vw' }}
+      onClick={onClose}
+    >
+      {/* 关闭按钮，固定在右上角 */}
+      <button
+        onClick={onClose}
+        className="absolute top-6 right-8 text-white hover:text-gray-300 z-60 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
+        title="关闭"
+        style={{ zIndex: 60 }}
+      >
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      {/* 图片内容 */}
+      <div
+        className="flex flex-col items-center justify-center"
+        onClick={e => e.stopPropagation()}
+      >
+        <img
+          src={src}
+          alt={alt || '图片'}
+          className="rounded-lg transition-opacity duration-300 max-w-[80vw] max-h-[80vh] object-contain"
+          style={{ background: '#fff' }}
+        />
+        {alt && (
+          <span className="mt-4 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded max-w-md text-center">
+            {alt}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -80,6 +122,8 @@ export default function PostDetailPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState<string | undefined>(undefined);
 
   
   const postId = params?.id as string;
@@ -248,11 +292,11 @@ export default function PostDetailPage() {
     return (
       <div key={comment._id} className={`border-b border-gray-200 pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-4 border border-green-200' : ''}`}>
         <div className="flex items-start space-x-3">
-          <img
-            src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3b82f6&color=fff`}
-            alt={comment.author.name}
-            className="w-10 h-10 rounded-full flex-shrink-0"
-          />
+          <Avatar className="w-10 h-10 text-base">
+            <AvatarImage src={comment.author.avatar || undefined} alt={comment.author.name} />
+            <AvatarFallback>{comment.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+          </Avatar>
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-sm font-medium text-gray-900">{comment.author.name}</h3>
@@ -273,6 +317,7 @@ export default function PostDetailPage() {
               <MarkdownPreview content={comment.content} />
             </div>
             
+            {/* 评论图片弹窗预览 */}
             {comment.images && comment.images.length > 0 && (
               <div className="mb-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -282,7 +327,10 @@ export default function PostDetailPage() {
                       src={imageUrl}
                       alt={`评论图片 ${index + 1}`}
                       className="rounded border border-gray-200 max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => window.open(imageUrl, '_blank')}
+                      onClick={() => {
+                        setPreviewImage(imageUrl);
+                        setPreviewAlt(`评论图片 ${index + 1}`);
+                      }}
                     />
                   ))}
                 </div>
@@ -377,11 +425,10 @@ export default function PostDetailPage() {
 
                   return (
                     <div key={reply._id} className="flex items-start space-x-3">
-                      <img
-                        src={reply.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author.name)}&background=3b82f6&color=fff`}
-                        alt={reply.author.name}
-                        className="w-8 h-8 rounded-full flex-shrink-0"
-                      />
+                      <Avatar className="w-10 h-10 text-base">
+                        <AvatarImage src={reply.author.avatar || undefined} alt={reply.author.name} />
+                        <AvatarFallback>{reply.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                      </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-sm font-medium text-gray-900">{reply.author.name}</h4>
@@ -396,6 +443,7 @@ export default function PostDetailPage() {
                           <MarkdownPreview content={reply.content} />
                         </div>
                         
+                        {/* 渲染回复的图片弹窗预览 */}
                         {reply.images && reply.images.length > 0 && (
                           <div className="mt-2">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -405,7 +453,10 @@ export default function PostDetailPage() {
                                   src={imageUrl}
                                   alt={`回复图片 ${imgIndex + 1}`}
                                   className="rounded border border-gray-200 max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => window.open(imageUrl, '_blank')}
+                                  onClick={() => {
+                                    setPreviewImage(imageUrl);
+                                    setPreviewAlt(`回复图片 ${imgIndex + 1}`);
+                                  }}
                                 />
                               ))}
                             </div>
@@ -559,11 +610,10 @@ export default function PostDetailPage() {
               {/* 作者信息 */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={post.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author.name)}&background=3b82f6&color=fff`}
-                    alt={post.author.name}
-                    className="w-10 h-10 rounded-full"
-                  />
+                  <Avatar className="w-10 h-10 text-base">
+                    <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                    <AvatarFallback>{post.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{post.author.name}</p>
                     <p className="text-sm text-gray-500">
@@ -725,6 +775,8 @@ export default function PostDetailPage() {
           )}
         </div>
       </div>
+      {/* 全局图片预览弹窗 */}
+      <ImagePreviewModal src={previewImage || ''} alt={previewAlt} open={!!previewImage} onClose={() => setPreviewImage(null)} />
     </div>
   );
 } 

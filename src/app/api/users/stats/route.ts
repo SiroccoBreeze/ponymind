@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
@@ -48,6 +48,12 @@ export async function GET() {
           },
           pending: {
             $sum: { $cond: [{ $eq: ['$reviewStatus', 'pending'] }, 1, 0] }
+          },
+          published: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'published'] }, 1, 0] }
+          },
+          rejected: {
+            $sum: { $cond: [{ $eq: ['$reviewStatus', 'rejected'] }, 1, 0] }
           }
         }
       }
@@ -60,7 +66,9 @@ export async function GET() {
       totalViews: 0,
       totalLikes: 0,
       drafts: 0,
-      pending: 0
+      pending: 0,
+      published: 0,
+      rejected: 0
     };
 
     return NextResponse.json(result);

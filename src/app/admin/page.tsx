@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Post {
   _id: string;
@@ -400,11 +401,10 @@ export default function AdminDashboard() {
             {data.recentActivity.recentUsers.slice(0, 5).map((user) => (
               <div key={user._id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="flex-shrink-0">
-                  <img
-                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`}
-                    alt={user.name}
-                    className="w-10 h-10 rounded-full"
-                  />
+                  <Avatar className="w-10 h-10 text-base">
+                    <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                    <AvatarFallback>{user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">

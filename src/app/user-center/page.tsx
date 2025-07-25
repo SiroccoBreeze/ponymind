@@ -14,6 +14,17 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from '@/components/ui/pagination';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface UserStats {
   totalPosts: number;
@@ -22,7 +33,9 @@ interface UserStats {
   totalViews: number;
   totalLikes: number;
   drafts: number;
-  pendingReview: number;
+  pending: number;
+  published: number;
+  rejected: number;
 }
 
 interface Post {
@@ -66,7 +79,9 @@ export default function UserCenterPage() {
     totalViews: 0,
     totalLikes: 0,
     drafts: 0,
-    pendingReview: 0
+    pending: 0,
+    published: 0,
+    rejected: 0
   });
   const [posts, setPosts] = useState<Post[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -87,6 +102,10 @@ export default function UserCenterPage() {
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
+  const [deleteResult, setDeleteResult] = useState<string | null>(null);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin?callbackUrl=/user-center');
@@ -97,7 +116,7 @@ export default function UserCenterPage() {
       fetchUserData();
       fetchMessages();
     }
-  }, [session, status, router, currentPage]);
+  }, [session, status, router, currentPage, activeTab]);
 
   // 处理URL参数中的编辑请求和section参数
   useEffect(() => {
@@ -136,16 +155,34 @@ export default function UserCenterPage() {
 
   const fetchUserData = async () => {
     try {
+      // 根据 activeTab 组装 status 参数
+      let status = '';
+      switch (activeTab) {
+        case 'published': status = 'published'; break;
+        case 'pending': status = 'pending'; break;
+        case 'drafts': status = 'draft'; break;
+        case 'rejected': status = 'rejected'; break;
+        default: status = ''; // overview
+      }
       const [statsRes, postsRes] = await Promise.all([
         fetch('/api/users/stats'),
-        fetch(`/api/users/posts?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`)
+        fetch(`/api/users/posts?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}${status ? `&status=${status}` : ''}`)
       ]);
-
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        setStats(statsData);
+        // 兼容后端没有返回 published/rejected 时的情况
+        setStats({
+          totalPosts: statsData.totalPosts || 0,
+          totalArticles: statsData.totalArticles || 0,
+          totalQuestions: statsData.totalQuestions || 0,
+          totalViews: statsData.totalViews || 0,
+          totalLikes: statsData.totalLikes || 0,
+          drafts: statsData.drafts || 0,
+          pending: statsData.pending || 0,
+          published: statsData.published || 0,
+          rejected: statsData.rejected || 0
+        });
       }
-
       if (postsRes.ok) {
         const postsData = await postsRes.json();
         setPosts(postsData.posts || []);
@@ -207,32 +244,29 @@ export default function UserCenterPage() {
     setShowCreatePost(true);
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('确定要删除这个内容吗？删除后不可恢复。')) {
-      return;
-    }
-    
+  const handleDeletePost = (postId: string) => {
+    setPendingDeletePostId(postId);
+    setIsDeleteDialogOpen(true);
+  };
+  const confirmDeletePost = async () => {
+    if (!pendingDeletePostId) return;
+    setIsDeleteDialogOpen(false);
     try {
-      const response = await fetch(`/api/posts/${postId}`, {
+      const response = await fetch(`/api/posts/${pendingDeletePostId}`, {
         method: 'DELETE',
       });
-      
       if (response.ok) {
-        // 更新本地状态
-        setPosts(posts.filter(p => p._id !== postId));
-        
-        // 重新获取统计数据
+        setPosts(posts.filter(p => p._id !== pendingDeletePostId));
         fetchUserData();
-        
-        // 显示成功提示
-        alert('删除成功');
+        setDeleteResult('删除成功');
       } else {
         const error = await response.json();
-        alert(error.error || '删除失败');
+        setDeleteResult(error.error || '删除失败');
       }
     } catch (error) {
-      console.error('删除失败:', error);
-      alert('删除失败，请重试');
+      setDeleteResult('删除失败，请重试');
+    } finally {
+      setPendingDeletePostId(null);
     }
   };
 
@@ -256,11 +290,10 @@ export default function UserCenterPage() {
           <div className="w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
               <div className="flex items-center space-x-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
-                  <span className="text-white text-2xl font-bold">
-                    {session?.user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
-                </div>
+                <Avatar className="w-13 h-13 text-2xl">
+                  <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'U'} />
+                  <AvatarFallback>{session?.user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">{session?.user?.name}</h1>
                   <p className="text-sm text-gray-600">{session?.user?.email}</p>
@@ -294,9 +327,9 @@ export default function UserCenterPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <span>内容管理</span>
-                  {stats.pendingReview > 0 && (
+                  {stats.pending > 0 && (
                     <span className="ml-auto bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
-                      {stats.pendingReview}
+                      {stats.pending}
                     </span>
                   )}
                 </button>
@@ -432,7 +465,7 @@ export default function UserCenterPage() {
                     <div className="text-sm text-gray-600">问题</div>
                   </div>
                   <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{stats.pendingReview}</div>
+                    <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
                     <div className="text-sm text-gray-600">待审核</div>
                   </div>
                 </div>
@@ -464,11 +497,11 @@ export default function UserCenterPage() {
                   <div className="border-b border-gray-100">
                     <nav className="flex space-x-8 px-6" aria-label="Tabs">
                       {[
-                        { id: 'overview', label: '全部内容', count: totalCount, icon: '📄' },
-                        { id: 'published', label: '已发布', count: posts.filter(p => p.reviewStatus === 'published').length, icon: '✅' },
-                        { id: 'pending', label: '待审核', count: posts.filter(p => p.reviewStatus === 'pending').length, icon: '⏳' },
-                        { id: 'drafts', label: '草稿', count: posts.filter(p => p.reviewStatus === 'draft').length, icon: '📝' },
-                        { id: 'rejected', label: '已拒绝', count: posts.filter(p => p.reviewStatus === 'rejected').length, icon: '❌' }
+                        { id: 'overview', label: '全部内容', count: stats.totalPosts, icon: '📄' },
+                        { id: 'published', label: '已发布', count: stats.published, icon: '✅' },
+                        { id: 'pending', label: '待审核', count: stats.pending, icon: '⏳' },
+                        { id: 'drafts', label: '草稿', count: stats.drafts, icon: '📝' },
+                        { id: 'rejected', label: '已拒绝', count: stats.rejected, icon: '❌' }
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -836,6 +869,30 @@ export default function UserCenterPage() {
           )}
         </>
       )}
+      {/* 删除确认弹窗 */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定要删除这个内容吗？</AlertDialogTitle>
+            <AlertDialogDescription>删除后不可恢复。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeletePost}>确认删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* 删除结果提示弹窗 */}
+      <AlertDialog open={!!deleteResult} onOpenChange={() => setDeleteResult(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{deleteResult}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setDeleteResult(null)}>确定</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 
