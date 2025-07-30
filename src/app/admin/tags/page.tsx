@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,6 +16,19 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { 
+  Tag, 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Filter,
+  Download,
+  Palette,
+  Hash,
+  Calendar,
+  Activity
+} from "lucide-react";
 
 interface Tag {
   _id: string;
@@ -18,6 +36,7 @@ interface Tag {
   description?: string;
   color?: string;
   postCount: number;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,8 +63,7 @@ export default function TagsManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialog, setEditDialog] = useState<{ open: boolean; tag: Tag | null }>({ open: false, tag: null });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; tagId?: string; tagName?: string }>({ open: false });
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; tagId?: string; tagName?: string; action?: 'delete' | 'restore' }>({ open: false });
 
   const [newTag, setNewTag] = useState({
     name: "",
@@ -97,65 +115,91 @@ export default function TagsManagement() {
         setAddDialogOpen(false);
         setNewTag({ name: "", description: "", color: "#3b82f6" });
         await fetchTags();
+      } else if (response.status === 409) {
+        // 标签已存在但被删除，询问是否重新启用
+        const errorData = await response.json();
+        if (confirm(`标签 "${newTag.name}" 已存在但已被删除。是否要重新启用该标签？`)) {
+          await handleRestoreTag(errorData.existingTagId);
+        }
       } else {
-        const error = await response.json();
-        alert(error.error || "添加失败");
+        const errorData = await response.json();
+        alert(errorData.error || "添加标签失败");
       }
     } catch (error) {
       console.error("添加标签失败:", error);
-      alert("添加失败");
+      alert("添加标签失败");
     }
   };
 
   const handleEditTag = async () => {
-    if (!editDialog.tag) return;
+    if (!editDialog.tag || !editDialog.tag.name.trim()) {
+      alert("请输入标签名称");
+      return;
+    }
     try {
-      const response = await fetch("/api/admin/tags", {
+      const response = await fetch(`/api/admin/tags`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tagId: editDialog.tag._id,
           name: editDialog.tag.name,
           description: editDialog.tag.description,
-          color: editDialog.tag.color,
+          color: editDialog.tag.color
         }),
       });
       if (response.ok) {
         setEditDialog({ open: false, tag: null });
         await fetchTags();
       } else {
-        const error = await response.json();
-        alert(error.error || "更新失败");
+        const errorData = await response.json();
+        alert(errorData.error || "更新标签失败");
       }
     } catch (error) {
       console.error("更新标签失败:", error);
-      alert("更新失败");
+      alert("更新标签失败");
     }
   };
 
   const handleDeleteTag = (tagId: string, tagName: string) => {
-    setDeleteDialog({ open: true, tagId, tagName });
+    setDeleteDialog({ open: true, tagId, tagName, action: 'delete' });
+  };
+
+  const handleRestoreTag = async (tagId: string) => {
+    try {
+      const response = await fetch(`/api/admin/tags?tagId=${tagId}&action=restore`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await fetchTags();
+        return true;
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "重新启用标签失败");
+        return false;
+      }
+    } catch (error) {
+      console.error("重新启用标签失败:", error);
+      alert("重新启用标签失败");
+      return false;
+    }
   };
 
   const confirmDeleteTag = async () => {
     if (!deleteDialog.tagId) return;
-    setUpdating(deleteDialog.tagId);
     try {
       const response = await fetch(`/api/admin/tags?tagId=${deleteDialog.tagId}`, {
         method: "DELETE",
       });
       if (response.ok) {
+        setDeleteDialog({ open: false });
         await fetchTags();
       } else {
-        const error = await response.json();
-        alert(error.error || "删除失败");
+        const errorData = await response.json();
+        alert(errorData.error || "删除标签失败");
       }
     } catch (error) {
       console.error("删除标签失败:", error);
-      alert("删除失败");
-    } finally {
-      setUpdating(null);
-      setDeleteDialog({ open: false });
+      alert("删除标签失败");
     }
   };
 
@@ -166,279 +210,412 @@ export default function TagsManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20 border-t-primary mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Tag className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">正在加载标签数据...</p>
+            <p className="text-sm text-muted-foreground">请稍候，正在获取标签信息</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">加载数据失败</p>
+      <div className="text-center py-12 space-y-4">
+        <div className="text-muted-foreground text-6xl">🏷️</div>
+        <p className="text-muted-foreground text-lg">加载数据失败</p>
+        <Button onClick={() => window.location.reload()}>
+          重新加载
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* 页面标题和统计 */}
+    <div className="space-y-8">
       <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">标签管理</h1>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm text-gray-600">总标签数</p>
-              <p className="text-2xl font-bold text-gray-900">{data.stats.totalTags}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm text-gray-600">活跃标签</p>
-              <p className="text-2xl font-bold text-green-600">{data.stats.activeTags}</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <p className="text-sm text-gray-600">未使用标签</p>
-              <p className="text-2xl font-bold text-orange-600">{data.stats.unusedTags}</p>
-            </div>
-          </div>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            标签管理
+          </h1>
+          <p className="text-muted-foreground">管理系统中的所有内容标签和分类</p>
         </div>
-        <button
-          onClick={() => setAddDialogOpen(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <span>+</span>
-          <span>添加标签</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            导出数据
+          </Button>
+          <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            添加标签
+          </Button>
+        </div>
       </div>
 
-      {/* 搜索和筛选 */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">搜索标签</label>
-            <input
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="relative overflow-hidden border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总标签数</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
+              <Tag className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{data.stats.totalTags}</div>
+            <p className="text-xs text-muted-foreground">系统标签总数</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">活跃标签</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg">
+              <Activity className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{data.stats.activeTags}</div>
+            <p className="text-xs text-muted-foreground">正在使用的标签</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">未使用标签</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg">
+              <Hash className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{data.stats.unusedTags}</div>
+            <p className="text-xs text-muted-foreground">未被使用的标签</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 搜索 */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Filter className="h-5 w-5 text-primary" />
+            <CardTitle>搜索标签</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="搜索标签名称或描述..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10"
             />
           </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              重置
-            </button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* 标签列表 */}
-      <div className="bg-white shadow-sm rounded-lg border overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-6">
-          {data.tags.map((tag) => (
-            <div key={tag._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: tag.color || "#3b82f6" }}
-                  ></div>
-                  <h3 className="font-medium text-gray-900 truncate">{tag.name}</h3>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => setEditDialog({ open: true, tag })}
-                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="编辑"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTag(tag._id, tag.name)}
-                    disabled={updating === tag._id}
-                    className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                    title="删除"
-                  >
-                    {updating === tag._id ? (
-                      <div className="w-4 h-4 border border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              {tag.description && (
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{tag.description}</p>
-              )}
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>{tag.postCount} 个内容</span>
-                <span>{formatDate(tag.createdAt)}</span>
-              </div>
+      {/* 标签表格 */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Palette className="h-5 w-5 text-primary" />
+              <CardTitle>标签列表</CardTitle>
             </div>
-          ))}
-        </div>
-        {data.tags.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">暂无标签</p>
+            <Badge variant="secondary" className="text-xs">
+              共 {data.pagination.total} 个标签
+            </Badge>
           </div>
-        )}
-      </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">标签</TableHead>
+                  <TableHead className="font-semibold">描述</TableHead>
+                  <TableHead className="font-semibold">使用次数</TableHead>
+                  <TableHead className="font-semibold">创建时间</TableHead>
+                  <TableHead className="font-semibold text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.tags.map((tag) => (
+                  <TableRow 
+                    key={tag._id} 
+                    className={`hover:bg-muted/50 transition-colors ${!tag.isActive ? 'opacity-60 bg-muted/30' : ''}`}
+                  >
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <div 
+                          className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: tag.color || "#3b82f6" }}
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Badge 
+                            variant="outline" 
+                            className="font-medium"
+                            style={{ 
+                              borderColor: tag.color || "#3b82f6",
+                              color: tag.color || "#3b82f6"
+                            }}
+                          >
+                            {tag.name}
+                          </Badge>
+                          {!tag.isActive && (
+                            <Badge variant="secondary" className="text-xs">
+                              已删除
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground max-w-xs">
+                      <div className="truncate">
+                        {tag.description || "无描述"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-medium">
+                        {tag.postCount}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(tag.createdAt)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        {tag.isActive ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditDialog({ open: true, tag: { ...tag } })}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteTag(tag._id, tag.name)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRestoreTag(tag._id)}
+                            className="hover:bg-green-50 hover:border-green-200 hover:text-green-600"
+                          >
+                            重新启用
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 分页 */}
-      {data.pagination.pages > 1 && (
-        <div className="flex justify-center">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              上一页
-            </button>
-            <span className="px-3 py-2 text-sm text-gray-700">
-              第 {currentPage} 页，共 {data.pagination.pages} 页
-            </span>
-            <button
-              onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
-              disabled={currentPage === data.pagination.pages}
-              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              下一页
-            </button>
+      <Card className="border-primary/20">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              显示 {((currentPage - 1) * 20) + 1} 到 {Math.min(currentPage * 20, data.pagination.total)} 条，
+              共 {data.pagination.total} 条记录
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm text-muted-foreground px-4 py-2 bg-muted rounded-md">
+                第 {currentPage} 页，共 {data.pagination.pages} 页
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
+                disabled={currentPage === data.pagination.pages}
+              >
+                下一页
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* 添加标签弹框 */}
+      {/* 添加标签对话框 */}
       <AlertDialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>添加标签</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <Plus className="h-5 w-5 text-primary" />
+              <span>添加新标签</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              创建一个新的内容标签，用于分类和组织内容
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">标签名称 *</label>
-              <input
-                type="text"
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">标签名称</label>
+              <Input
                 value={newTag.name}
-                onChange={e => setNewTag({ ...newTag, name: e.target.value })}
+                onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
                 placeholder="输入标签名称"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">标签描述</label>
-              <textarea
+            <div className="space-y-2">
+              <label className="text-sm font-medium">描述</label>
+              <Input
                 value={newTag.description}
-                onChange={e => setNewTag({ ...newTag, description: e.target.value })}
+                onChange={(e) => setNewTag({ ...newTag, description: e.target.value })}
                 placeholder="输入标签描述（可选）"
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {predefinedColors.map(color => (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">颜色</label>
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-8 h-8 rounded border shadow-sm"
+                  style={{ backgroundColor: newTag.color }}
+                />
+                <Input
+                  type="color"
+                  value={newTag.color}
+                  onChange={(e) => setNewTag({ ...newTag, color: e.target.value })}
+                  className="w-20"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {predefinedColors.map((color) => (
                   <button
                     key={color}
-                    type="button"
                     onClick={() => setNewTag({ ...newTag, color })}
-                    className={`w-8 h-8 rounded-full border-2 ${newTag.color === color ? "border-gray-800" : "border-gray-300"}`}
+                    className="w-6 h-6 rounded border hover:scale-110 transition-transform shadow-sm"
                     style={{ backgroundColor: color }}
                   />
                 ))}
               </div>
-              <input
-                type="color"
-                value={newTag.color}
-                onChange={e => setNewTag({ ...newTag, color: e.target.value })}
-                className="w-full h-10 border border-gray-300 rounded-md"
-              />
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAddDialogOpen(false)}>取消</AlertDialogCancel>
+            <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction onClick={handleAddTag}>添加</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 编辑标签弹框 */}
-      <AlertDialog open={editDialog.open} onOpenChange={open => setEditDialog(v => ({ ...v, open }))}>
-        <AlertDialogContent>
+      {/* 编辑标签对话框 */}
+      <AlertDialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ open, tag: null })}>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>编辑标签</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5 text-primary" />
+              <span>编辑标签</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              修改标签信息，更改将同步到所有使用该标签的内容
+            </AlertDialogDescription>
           </AlertDialogHeader>
           {editDialog.tag && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">标签名称 *</label>
-                <input
-                  type="text"
-                  value={editDialog.tag.name}
-                  onChange={e => setEditDialog(v => ({ ...v, tag: { ...v.tag!, name: e.target.value } }))}
-                  placeholder="输入标签名称"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">标签描述</label>
-                <textarea
-                  value={editDialog.tag.description || ""}
-                  onChange={e => setEditDialog(v => ({ ...v, tag: { ...v.tag!, description: e.target.value } }))}
-                  placeholder="输入标签描述（可选）"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">标签颜色</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {predefinedColors.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setEditDialog(v => ({ ...v, tag: { ...v.tag!, color } }))}
-                      className={`w-8 h-8 rounded-full border-2 ${editDialog.tag?.color === color ? "border-gray-800" : "border-gray-300"}`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">标签名称</label>
+                  <Input
+                    value={editDialog.tag.name}
+                    onChange={(e) => setEditDialog({ ...editDialog, tag: { ...editDialog.tag!, name: e.target.value } })}
+                    placeholder="输入标签名称"
+                  />
                 </div>
-                <input
-                  type="color"
-                  value={editDialog.tag?.color || "#3b82f6"}
-                  onChange={e => setEditDialog(v => ({ ...v, tag: { ...v.tag!, color: e.target.value } }))}
-                  className="w-full h-10 border border-gray-300 rounded-md"
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">描述</label>
+                  <Input
+                    value={editDialog.tag.description || ""}
+                    onChange={(e) => setEditDialog({ ...editDialog, tag: { ...editDialog.tag!, description: e.target.value } })}
+                    placeholder="输入标签描述（可选）"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">颜色</label>
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-8 h-8 rounded border shadow-sm"
+                      style={{ backgroundColor: editDialog.tag.color || "#3b82f6" }}
+                    />
+                    <Input
+                      type="color"
+                      value={editDialog.tag.color || "#3b82f6"}
+                      onChange={(e) => setEditDialog({ ...editDialog, tag: { ...editDialog.tag!, color: e.target.value } })}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {predefinedColors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setEditDialog({ ...editDialog, tag: { ...editDialog.tag!, color } })}
+                        className="w-6 h-6 rounded border hover:scale-110 transition-transform shadow-sm"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={handleEditTag}>保存</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
           )}
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEditDialog({ open: false, tag: null })}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleEditTag}>保存</AlertDialogAction>
-          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 删除标签弹框 */}
-      <AlertDialog open={deleteDialog.open} onOpenChange={open => setDeleteDialog(v => ({ ...v, open }))}>
+      {/* 删除确认对话框 */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定要删除标签“{deleteDialog.tagName}”吗？</AlertDialogTitle>
-            <AlertDialogDescription>此操作不可恢复。</AlertDialogDescription>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              <span>确认删除</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除标签 &ldquo;{deleteDialog.tagName}&rdquo; 吗？此操作无法撤销。
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialog({ open: false })}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteTag} disabled={!!updating}>确认删除</AlertDialogAction>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTag} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              删除
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

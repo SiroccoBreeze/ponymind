@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const posts = await Post.find(query)
-      .populate('author', 'username email')
+      .populate('author', 'name email avatar')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

@@ -1,7 +1,28 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { useEffect, useState } from 'react';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Search, 
+  RotateCcw,
+  Loader2,
+  Filter,
+  Download,
+  Plus,
+  Crown,
+  UserCog,
+  Activity
+} from 'lucide-react';
 
 interface User {
   _id: string;
@@ -11,7 +32,7 @@ interface User {
   role: 'user' | 'admin' | 'moderator';
   status: 'active' | 'inactive' | 'banned';
   createdAt: string;
-  posts: any[];
+  posts: Array<{ _id: string; title: string }>;
 }
 
 interface UserData {
@@ -35,8 +56,8 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [updating, setUpdating] = useState<string | null>(null);
 
   const fetchUsers = async () => {
@@ -45,8 +66,8 @@ export default function UsersManagement() {
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
-        ...(roleFilter && { role: roleFilter }),
-        ...(statusFilter && { status: statusFilter }),
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
       });
 
       const response = await fetch(`/api/admin/users?${params}`);
@@ -99,199 +120,319 @@ export default function UsersManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20 border-t-primary mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">正在加载用户数据...</p>
+            <p className="text-sm text-muted-foreground">请稍候，正在获取用户信息</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">加载数据失败</p>
+      <div className="text-center py-12 space-y-4">
+        <div className="text-muted-foreground text-6xl">👥</div>
+        <p className="text-muted-foreground text-lg">加载数据失败</p>
+        <Button onClick={() => window.location.reload()}>
+          重新加载
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">用户管理</h1>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-600">总用户数</p>
-            <p className="text-2xl font-bold text-gray-900">{data.stats.totalUsers}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-600">活跃用户</p>
-            <p className="text-2xl font-bold text-green-600">{data.stats.activeUsers}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-600">管理员</p>
-            <p className="text-2xl font-bold text-blue-600">{data.stats.adminUsers}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <p className="text-sm text-gray-600">已封禁用户</p>
-            <p className="text-2xl font-bold text-red-600">{data.stats.bannedUsers}</p>
-          </div>
+    <div className="space-y-8">
+      <div className="flex justify-between items-start">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            用户管理
+          </h1>
+          <p className="text-muted-foreground">管理系统中的所有用户账户和权限</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            导出数据
+          </Button>
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            添加用户
+          </Button>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">搜索用户</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="搜索用户名或邮箱..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">角色筛选</label>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">全部角色</option>
-              <option value="user">用户</option>
-              <option value="moderator">版主</option>
-              <option value="admin">管理员</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">状态筛选</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">全部状态</option>
-              <option value="active">活跃</option>
-              <option value="inactive">非活跃</option>
-              <option value="banned">已封禁</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setRoleFilter('');
-                setStatusFilter('');
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              重置筛选
-            </button>
-          </div>
-        </div>
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">总用户数</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{data.stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">注册用户总数</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">活跃用户</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg">
+              <UserCheck className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{data.stats.activeUsers}</div>
+            <p className="text-xs text-muted-foreground">当前活跃用户</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">管理员</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg">
+              <Crown className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{data.stats.adminUsers}</div>
+            <p className="text-xs text-muted-foreground">系统管理员</p>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">已封禁用户</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg">
+              <UserX className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{data.stats.bannedUsers}</div>
+            <p className="text-xs text-muted-foreground">被封禁账户</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-white shadow-sm rounded-lg border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  用户
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  角色
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  状态
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  文章数
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  注册时间
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.users.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Avatar className="w-10 h-10 text-base">
-                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                        <AvatarFallback>{user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                      </Avatar>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+      {/* 筛选器 */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Filter className="h-5 w-5 text-primary" />
+            <CardTitle>筛选用户</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">搜索用户</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="搜索用户名或邮箱..."
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">角色筛选</label>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部角色</SelectItem>
+                  <SelectItem value="user">用户</SelectItem>
+                  <SelectItem value="moderator">版主</SelectItem>
+                  <SelectItem value="admin">管理员</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">状态筛选</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="全部状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="active">活跃</SelectItem>
+                  <SelectItem value="inactive">非活跃</SelectItem>
+                  <SelectItem value="banned">已封禁</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm('');
+                                  setRoleFilter('all');
+                setStatusFilter('all');
+                  setCurrentPage(1);
+                }}
+                className="w-full"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                重置筛选
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 用户表格 */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <UserCog className="h-5 w-5 text-primary" />
+              <CardTitle>用户列表</CardTitle>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              共 {data.pagination.total} 个用户
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">用户</TableHead>
+                  <TableHead className="font-semibold">角色</TableHead>
+                  <TableHead className="font-semibold">状态</TableHead>
+                  <TableHead className="font-semibold">文章数</TableHead>
+                  <TableHead className="font-semibold">注册时间</TableHead>
+                  <TableHead className="font-semibold text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.users.map((user) => (
+                  <TableRow key={user._id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                          <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+                            {user.name?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{user.name}</div>
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleUpdateUser(user._id, { role: e.target.value })}
-                      disabled={updating === user._id}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="user">用户</option>
-                      <option value="moderator">版主</option>
-                      <option value="admin">管理员</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={user.status}
-                      onChange={(e) => handleUpdateUser(user._id, { status: e.target.value })}
-                      disabled={updating === user._id}
-                      className={`text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        user.status === 'active' ? 'text-green-600' :
-                        user.status === 'banned' ? 'text-red-600' : 'text-gray-600'
-                      }`}
-                    >
-                      <option value="active">活跃</option>
-                      <option value="inactive">非活跃</option>
-                      <option value="banned">已封禁</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.posts?.length || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.role}
+                        onValueChange={(value) => handleUpdateUser(user._id, { role: value })}
+                        disabled={updating === user._id}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">用户</SelectItem>
+                          <SelectItem value="moderator">版主</SelectItem>
+                          <SelectItem value="admin">管理员</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.status}
+                        onValueChange={(value) => handleUpdateUser(user._id, { status: value })}
+                        disabled={updating === user._id}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">活跃</SelectItem>
+                          <SelectItem value="inactive">非活跃</SelectItem>
+                          <SelectItem value="banned">已封禁</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-medium">
+                        {user.posts?.length || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(user.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {updating === user._id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Button variant="ghost" size="sm">
+                          <Activity className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between bg-white px-6 py-3 border rounded-lg">
-        <div className="text-sm text-gray-700">
-          显示 {((currentPage - 1) * 10) + 1} 到 {Math.min(currentPage * 10, data.pagination.total)} 条，
-          共 {data.pagination.total} 条记录
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            上一页
-          </button>
-          <span className="px-3 py-1 text-sm">
-            第 {currentPage} 页，共 {data.pagination.pages} 页
-          </span>
-          <button
-            onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
-            disabled={currentPage === data.pagination.pages}
-            className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-          >
-            下一页
-          </button>
-        </div>
-      </div>
+      {/* 分页 */}
+      <Card className="border-primary/20">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              显示 {((currentPage - 1) * 10) + 1} 到 {Math.min(currentPage * 10, data.pagination.total)} 条，
+              共 {data.pagination.total} 条记录
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm text-muted-foreground px-4 py-2 bg-muted rounded-md">
+                第 {currentPage} 页，共 {data.pagination.pages} 页
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
+                disabled={currentPage === data.pagination.pages}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

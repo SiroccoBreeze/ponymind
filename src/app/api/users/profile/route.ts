@@ -1,24 +1,24 @@
-import { getServerSession } from 'next-auth/next';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
-// 获取用户资料
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // 验证会话
     const session = await getServerSession();
-    
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: '请先登录' },
+        { error: '需要登录才能获取用户资料' },
         { status: 401 }
       );
     }
 
     await connectDB();
 
+    // 查找用户
     const user = await User.findOne({ email: session.user.email })
-      .select('-password');
+      .select('name email avatar bio location website createdAt updatedAt');
 
     if (!user) {
       return NextResponse.json(
@@ -28,82 +28,80 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      id: user._id,
-      username: user.username,
+      name: user.name,
       email: user.email,
-      role: user.role,
-      createdAt: user.createdAt
+      avatar: user.avatar || '',
+      bio: user.bio || '',
+      location: user.location || '',
+      website: user.website || '',
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     });
+
   } catch (error) {
-    console.error('获取用户信息失败:', error);
+    console.error('❌ 获取用户资料失败:', error);
     return NextResponse.json(
-      { error: '获取用户信息失败' },
+      { error: '获取用户资料失败' },
       { status: 500 }
     );
   }
 }
 
-// 更新用户资料
 export async function PUT(request: NextRequest) {
   try {
+    // 验证会话
     const session = await getServerSession();
-    
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: '请先登录' },
+        { error: '需要登录才能更新用户资料' },
         { status: 401 }
       );
     }
 
     await connectDB();
 
-    const { username } = await request.json();
-    
-    if (!username) {
-      return NextResponse.json(
-        { error: '用户名不能为空' },
-        { status: 400 }
-      );
-    }
+    // 获取请求数据
+    const { bio, location, website } = await request.json();
 
-    // 检查用户名是否已存在（排除当前用户）
-    const existingUser = await User.findOne({ 
-      username, 
-      email: { $ne: session.user.email } 
-    });
-    
-    if (existingUser) {
-      return NextResponse.json(
-        { error: '用户名已存在' },
-        { status: 400 }
-      );
-    }
-
-    // 更新用户信息
-    const updatedUser = await User.findOneAndUpdate(
-      { email: session.user.email },
-      { username },
-      { new: true }
-    ).select('-password');
-
-    if (!updatedUser) {
+    // 查找用户
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
       return NextResponse.json(
         { error: '用户不存在' },
         { status: 404 }
       );
     }
 
+    // 更新用户资料
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    if (bio !== undefined) updateData.bio = bio;
+    if (location !== undefined) updateData.location = location;
+    if (website !== undefined) updateData.website = website;
+
+    await User.findByIdAndUpdate(user._id, updateData);
+
+    // 返回更新后的用户资料
+    const updatedUser = await User.findById(user._id)
+      .select('name email avatar bio location website createdAt updatedAt');
+
     return NextResponse.json({
-      id: updatedUser._id,
-      username: updatedUser.username,
+      name: updatedUser.name,
       email: updatedUser.email,
-      role: updatedUser.role,
-      createdAt: updatedUser.createdAt
+      avatar: updatedUser.avatar || '',
+      bio: updatedUser.bio || '',
+      location: updatedUser.location || '',
+      website: updatedUser.website || '',
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt
     });
+
   } catch (error) {
-    console.error('更新用户信息失败:', error);
+    console.error('❌ 更新用户资料失败:', error);
     return NextResponse.json(
-      { error: '更新用户信息失败' },
+      { error: '更新用户资料失败' },
       { status: 500 }
     );
   }

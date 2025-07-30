@@ -28,7 +28,10 @@ interface Tag {
 
 export default function CreatePost({ onPostCreated, editPostId, onClose }: CreatePostProps) {
   const router = useRouter();
-  const editorRef = useRef<{ markAsSaved: () => void }>(null);
+  const editorRef = useRef<{ 
+    markAsSaved: () => void;
+    getUploadedImageIds: () => string[];
+  }>(null);
   // 如果有editPostId或onClose回调，说明是从外部调用，应该直接显示全屏
   const [isOpen, setIsOpen] = useState<boolean>(Boolean(editPostId || onClose));
   const [loading, setLoading] = useState(false);
@@ -146,12 +149,16 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
       const url = editPostId ? `/api/posts/${editPostId}` : '/api/posts';
       const method = editPostId ? 'PUT' : 'POST';
       
+      // 获取上传的图片ID列表
+      const imageIds = editorRef.current?.getUploadedImageIds() || [];
+      
       const body: any = {
         title: title.trim(),
         content: content.trim(),
         summary: content.trim().substring(0, 200) + '...',
         tags: selectedTags,
         type: 'article',
+        imageIds, // 传递图片ID列表
       };
 
       // 编辑模式的状态处理
@@ -210,12 +217,16 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
       const url = editPostId ? `/api/posts/${editPostId}` : '/api/posts';
       const method = editPostId ? 'PUT' : 'POST';
       
+      // 获取上传的图片ID列表
+      const imageIds = editorRef.current?.getUploadedImageIds() || [];
+      
       const body: any = {
         title: title.trim(),
         content: content.trim(),
         summary: content.trim().substring(0, 200) + '...',
         tags: selectedTags,
         type: 'article',
+        imageIds, // 传递图片ID列表
       };
 
       // 编辑模式和新建模式都保存为草稿

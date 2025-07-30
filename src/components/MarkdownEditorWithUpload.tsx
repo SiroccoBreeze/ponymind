@@ -13,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogFooter,
   AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
@@ -43,7 +42,10 @@ interface MarkdownEditorWithUploadProps {
 }
 
 const MarkdownEditorWithUpload = forwardRef<
-  { markAsSaved: () => void },
+  { 
+    markAsSaved: () => void;
+    getUploadedImageIds: () => string[];
+  },
   MarkdownEditorWithUploadProps
 >(({
   value,
@@ -66,6 +68,11 @@ const MarkdownEditorWithUpload = forwardRef<
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [pendingDeleteImageId, setPendingDeleteImageId] = useState<string | null>(null);
 
+  // 获取本次会话上传的图片ID列表
+  const getUploadedImageIds = useCallback(() => {
+    return sessionUploadedImages.current;
+  }, []);
+
   // 清理未保存的图片
   useEffect(() => {
     return () => {
@@ -84,6 +91,8 @@ const MarkdownEditorWithUpload = forwardRef<
     };
   }, [isSaved]);
 
+
+
   // 当内容保存时清理标记
   const markAsSaved = useCallback(() => {
     setIsSaved(true);
@@ -93,8 +102,9 @@ const MarkdownEditorWithUpload = forwardRef<
 
   // 暴露给父组件的方法
   useImperativeHandle(ref, () => ({
-    markAsSaved
-  }), [markAsSaved]);
+    markAsSaved,
+    getUploadedImageIds
+  }), [markAsSaved, getUploadedImageIds]);
 
   // 处理内容变化
   const handleChange = useCallback((val?: string) => {
@@ -172,7 +182,7 @@ const MarkdownEditorWithUpload = forwardRef<
   }, [value, handleChange]);
 
   // 上传图片
-  const uploadImages = async (files: FileList | File[]) => {
+  const uploadImages = useCallback(async (files: FileList | File[]) => {
     if (!session) {
       toast.error('请先登录后再上传图片');
       return;
@@ -181,8 +191,8 @@ const MarkdownEditorWithUpload = forwardRef<
     const fileArray = Array.from(files);
     
     // 验证文件数量
-    if (fileArray.length > 5) {
-      toast.error('一次最多只能上传5张图片');
+    if (fileArray.length > 50) {
+      toast.error('一次最多只能上传50张图片');
       return;
     }
 
@@ -264,7 +274,47 @@ const MarkdownEditorWithUpload = forwardRef<
       setIsUploading(false);
       setUploadProgress(0);
     }
-  };
+  }, [session, insertTextAtCursor]);
+
+  // 处理粘贴事件
+  useEffect(() => {
+    const handlePaste = async (event: ClipboardEvent) => {
+      // 检查是否在编辑器区域内
+      const target = event.target as HTMLElement;
+      const isInEditor = target.closest('.markdown-editor-container') || 
+                        target.closest('.w-md-editor') ||
+                        target.closest('[data-color-mode]');
+      
+      if (!isInEditor) return;
+
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            imageFiles.push(file);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+        await uploadImages(imageFiles);
+      }
+    };
+
+    // 监听整个文档的粘贴事件
+    document.addEventListener('paste', handlePaste);
+    
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [uploadImages]);
 
   // 处理文件选择
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -337,6 +387,7 @@ const MarkdownEditorWithUpload = forwardRef<
   }, [isUploading]);
 
   // 重写图片命令，集成上传和图片库功能
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const commandsFilter = useCallback((command: any) => {
     if (command.name === 'image') {
       return {
@@ -399,6 +450,13 @@ const MarkdownEditorWithUpload = forwardRef<
           <div className="text-blue-600 text-lg font-medium">松开鼠标上传图片</div>
         </div>
       )}
+
+      {/* 粘贴上传提示 */}
+      {/* <div className="absolute top-2 right-2 z-30">
+        <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md opacity-75">
+          支持粘贴图片 (Ctrl+V)
+        </div>
+      </div> */}
 
       {/* 隐藏的文件输入 */}
       <input

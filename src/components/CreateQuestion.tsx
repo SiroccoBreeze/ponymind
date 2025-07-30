@@ -28,7 +28,10 @@ interface Tag {
 
 export default function CreateQuestion({ onQuestionCreated, editQuestionId, onClose }: CreateQuestionProps) {
   const router = useRouter();
-  const editorRef = useRef<{ markAsSaved: () => void }>(null);
+  const editorRef = useRef<{ 
+    markAsSaved: () => void;
+    getUploadedImageIds: () => string[];
+  }>(null);
   const [loading, setLoading] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +129,9 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
       const url = editQuestionId ? `/api/posts/${editQuestionId}` : '/api/posts';
       const method = editQuestionId ? 'PUT' : 'POST';
       
+      // 获取上传的图片ID列表
+      const imageIds = editorRef.current?.getUploadedImageIds() || [];
+      
       const body = {
         title: title.trim(),
         content: content.trim(),
@@ -141,7 +147,8 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
           version: '',
           operation: ''
         },
-        reviewStatus: editQuestionId && originalQuestion?.reviewStatus === 'published' ? 'published' : 'pending'
+        reviewStatus: editQuestionId && originalQuestion?.reviewStatus === 'published' ? 'published' : 'pending',
+        imageIds // 传递图片ID列表
       };
 
       const res = await fetch(url, {

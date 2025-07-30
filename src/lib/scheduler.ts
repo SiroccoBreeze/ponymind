@@ -129,80 +129,32 @@ class TaskScheduler {
     try {
       console.log('🧹 开始清理未使用的图片...');
       
-      // 这里我们需要重新实现清理逻辑，因为原来的函数没有返回值
-      await connectDB();
-      
-      // 查找所有图片记录
-      const Image = (await import('@/models/Image')).default;
-      const Post = (await import('@/models/Post')).default;
-      const Comment = (await import('@/models/Comment')).default;
-      
-      const allImages = await Image.find({});
-      console.log(`检查 ${allImages.length} 张图片的使用情况`);
-      
-      // 查找所有文章和评论
-      const allPosts = await Post.find({}, 'content');
-      const allComments = await Comment.find({}, 'content images');
-      
-      // 收集所有正在使用的图片URL
-      const usedImageUrls = new Set<string>();
-      
-      // 从文章内容中提取
-      for (const post of allPosts) {
-        const imageUrls = this.extractImagesFromContent(post.content);
-        imageUrls.forEach(url => usedImageUrls.add(url));
-      }
-      
-      // 从评论内容和图片字段中提取
-      for (const comment of allComments) {
-        const imageUrls = this.extractImagesFromContent(comment.content);
-        imageUrls.forEach(url => usedImageUrls.add(url));
-        
-        if (comment.images) {
-          comment.images.forEach((url: string) => usedImageUrls.add(url));
-        }
-      }
-      
-      // 找出未使用的图片
-      const unusedImages = allImages.filter(image => !usedImageUrls.has(image.url));
-      console.log(`发现 ${unusedImages.length} 张未使用的图片`);
-      
-      // 删除未使用的图片
-      let deletedCount = 0;
-      for (const image of unusedImages) {
-        try {
-          const { unlink } = await import('fs/promises');
-          const { existsSync } = await import('fs');
-          
-          // 删除物理文件
-          if (existsSync(image.path)) {
-            await unlink(image.path);
-            console.log(`已删除未使用的物理文件: ${image.path}`);
-          }
-          
-          // 删除数据库记录
-          await Image.findByIdAndDelete(image._id);
-          console.log(`已删除未使用的图片记录: ${image.url}`);
-          
-          deletedCount++;
-        } catch (error) {
-          console.error(`删除未使用图片失败: ${image.url}`, error);
-        }
-      }
+      // 使用改进的清理逻辑
+      const { improvedCleanupUnusedImages } = await import('./improved-cleanup');
+      const result = await improvedCleanupUnusedImages();
       
       const duration = Date.now() - startTime;
-      console.log(`清理完成，删除了 ${deletedCount} 张未使用的图片`);
       
-      return {
-        success: true,
-        message: `成功清理了 ${deletedCount} 张未使用的图片`,
-        details: {
-          totalImages: allImages.length,
-          unusedImages: unusedImages.length,
-          deletedImages: deletedCount
-        },
-        duration
-      };
+      if (result.success) {
+        console.log(`✅ 清理完成: ${result.message}`);
+        return {
+          success: true,
+          message: result.message,
+          details: {
+            ...result.details,
+            duration
+          },
+          duration
+        };
+      } else {
+        console.error(`❌ 清理失败: ${result.message}`);
+        return {
+          success: false,
+          message: result.message,
+          details: result.details,
+          duration
+        };
+      }
       
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -309,8 +261,8 @@ class TaskScheduler {
     
     while ((match = markdownImageRegex.exec(content)) !== null) {
       const imageUrl = match[1];
-      // 只处理本站上传的图片 (以 /uploads/images/ 开头)
-      if (imageUrl.startsWith('/uploads/images/')) {
+      // 处理API格式的图片URL
+      if (imageUrl.startsWith('/api/images/') || imageUrl.includes('/api/images/')) {
         imageUrls.push(imageUrl);
       }
     }
@@ -320,8 +272,8 @@ class TaskScheduler {
     
     while ((match = htmlImageRegex.exec(content)) !== null) {
       const imageUrl = match[1];
-      // 只处理本站上传的图片
-      if (imageUrl.startsWith('/uploads/images/')) {
+      // 处理API格式的图片URL
+      if (imageUrl.startsWith('/api/images/') || imageUrl.includes('/api/images/')) {
         imageUrls.push(imageUrl);
       }
     }

@@ -19,11 +19,20 @@ const imageSchema = new mongoose.Schema({
   },
   path: {
     type: String,
-    required: true,
+    required: false, // 对于MinIO存储，path字段可选
   },
   url: {
     type: String,
     required: true,
+  },
+  objectName: {
+    type: String,
+    required: false, // MinIO对象名称
+  },
+  storageType: {
+    type: String,
+    enum: ['local', 'minio'],
+    default: 'minio',
   },
   uploader: {
     type: mongoose.Schema.Types.ObjectId,

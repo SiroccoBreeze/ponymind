@@ -39,6 +39,7 @@ const authOptions = {
             id: user._id.toString(),
             email: user.email,
             name: user.name,
+            image: user.avatar, // 添加头像信息
           };
         } catch (error) {
           console.error('Auth error:', error);

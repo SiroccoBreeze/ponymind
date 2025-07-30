@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UserAvatar from '@/components/UserAvatar';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -22,8 +22,33 @@ export default function Navbar() {
     createdAt: string;
   }[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    email: string;
+    avatar?: string;
+    bio?: string;
+    location?: string;
+    website?: string;
+    createdAt: string;
+  } | null>(null);
+
   const adminCheckCacheRef = useRef<{ [key: string]: boolean }>({});
   const adminCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 获取用户资料
+  const fetchUserProfile = async () => {
+    if (!session?.user?.email) return;
+    
+    try {
+      const response = await fetch('/api/users/profile');
+      if (response.ok) {
+        const profileData = await response.json();
+        setUserProfile(profileData);
+      }
+    } catch (error) {
+      console.error('获取用户资料失败:', error);
+    }
+  };
 
   // 获取未读消息数量
   useEffect(() => {
@@ -51,6 +76,25 @@ export default function Navbar() {
     
     return () => clearInterval(interval);
   }, [session?.user?.email]);
+
+  // 获取用户资料
+  useEffect(() => {
+    fetchUserProfile();
+  }, [session?.user?.email]);
+
+  // 监听头像变化事件
+  useEffect(() => {
+    const handleAvatarChange = () => {
+      fetchUserProfile();
+    };
+
+    // 监听自定义事件
+    window.addEventListener('avatar-changed', handleAvatarChange);
+    
+    return () => {
+      window.removeEventListener('avatar-changed', handleAvatarChange);
+    };
+  }, []);
 
   // 优化admin权限检查，添加缓存和防抖
   useEffect(() => {
@@ -309,12 +353,13 @@ export default function Navbar() {
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
                       className="flex items-center space-x-3 p-2 rounded-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50 focus:outline-none transition-all duration-200"
                     >
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={session.user.image || undefined} alt={session.user.name || session.user.email || 'U'} />
-                        <AvatarFallback>{session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                         avatar={userProfile?.avatar}
+                         userName={userProfile?.name || session.user.name || session.user.email || '用户'}
+                         size="sm"
+                       />
                       <span className="hidden sm:block font-medium text-sm">
-                        {session.user.name || session.user.email?.split('@')[0]}
+                        {userProfile?.name || session.user.name || session.user.email?.split('@')[0]}
                       </span>
                       <svg className="w-4 h-4 transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20" style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
                         <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -325,8 +370,8 @@ export default function Navbar() {
                     {isMenuOpen && (
                       <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-gray-100">
-                          <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+                          <p className="text-sm font-medium text-gray-900">{userProfile?.name || session.user.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{userProfile?.email || session.user.email}</p>
                         </div>
                         
                         <Link

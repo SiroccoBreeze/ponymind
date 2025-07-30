@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       Post.find({
         reviewStatus: 'published'
       })
-      .populate('author', 'name email')
+      .populate('author', 'name email avatar')
       .sort({ views: -1, likes: -1, createdAt: -1 })
       .limit(5)
       .select('_id title type views likes answers createdAt'),

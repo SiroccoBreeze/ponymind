@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import Image from '@/models/Image';
+import { deleteFromMinio } from '@/lib/minio';
+import { extractImagesFromContent } from '@/lib/cascade-delete';
+import { moveImageToPost } from '@/lib/minio';
+import { updateImageLinksInContent } from '@/lib/image-utils';
 
 // 获取文章列表
 export async function GET(request: NextRequest) {
@@ -25,7 +30,7 @@ export async function GET(request: NextRequest) {
     const author = searchParams.get('author');
 
     // 构建查询条件
-    let query: any = {
+    const query: Record<string, any> = {
       reviewStatus: 'published' // 默认只显示已发布的内容
     };
     
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建排序条件
-    let sortCondition: any = {};
+    let sortCondition: Record<string, number> = {};
     
     switch (sort) {
       case 'newest':
@@ -92,7 +97,7 @@ export async function GET(request: NextRequest) {
     }
 
     const posts = await Post.find(query)
-      .populate('author', 'name email')
+      .populate('author', 'name email avatar')
       .sort(sortCondition)
       .skip(skip)
       .limit(limit);
@@ -133,13 +138,14 @@ export async function POST(request: NextRequest) {
     const { 
       title, 
       content, 
-      summary, 
+      summary,
       tags, 
-      type = 'article',
-      difficulty = 'intermediate',
-      bounty = 0,
-      status = 'pending',
-      questionDetails
+      type, 
+      difficulty, 
+      bounty, 
+      questionDetails, 
+      status = 'draft',
+      imageIds = [] // 保留但不使用，改为从内容中提取
     } = await request.json();
 
     if (!title || !content) {
@@ -159,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建文章/问题
-    const postData: any = {
+    const postData: Record<string, any> = {
       title,
       content,
       summary: summary || content.substring(0, 200) + '...',
@@ -178,11 +184,117 @@ export async function POST(request: NextRequest) {
     }
 
     const post = new Post(postData);
-
     await post.save();
 
+    // 处理图片移动：从文章内容中提取实际使用的图片
+    try {
+      // 从文章内容中提取图片URL
+      const imageUrls = extractImagesFromContent(content);
+      console.log(`从文章内容中提取到 ${imageUrls.length} 张图片链接`);
+      
+      if (imageUrls.length > 0) {
+        // 查找这些图片对应的数据库记录
+        const usedImages = await Image.find({
+          uploader: user._id,
+          associatedPost: null,
+          objectName: { $regex: /\/temp\// }
+        });
+        
+        console.log(`找到 ${usedImages.length} 张临时图片`);
+        
+        // 将实际使用的图片关联到文章
+        const imagesToMove = usedImages.filter(image => {
+          const imageUrl = `/api/images/${image.objectName}`;
+          return imageUrls.includes(imageUrl);
+        });
+        
+        console.log(`移动 ${imagesToMove.length} 张图片到文章目录`);
+        
+        // 移动图片文件并更新数据库记录
+        for (const image of imagesToMove) {
+          try {
+            // 移动MinIO中的文件从temp目录到文章目录
+            await moveImageToPost(
+              image.objectName,
+              user._id.toString(),
+              post._id.toString(),
+              image.filename
+            );
+
+            // 更新数据库记录
+            const newObjectName = `images/${user._id}/${post._id}/${image.filename}`;
+            await Image.findByIdAndUpdate(image._id, {
+              associatedPost: post._id,
+              isUsed: true,
+              url: `/api/images/${newObjectName}`,
+              objectName: newObjectName,
+              updatedAt: new Date()
+            });
+            
+            console.log(`✅ 图片已移动到文章: ${image.filename}`);
+          } catch (imageError) {
+            console.error(`❌ 移动图片 ${image.filename} 失败:`, imageError);
+          }
+        }
+        
+        // 更新文章内容中的图片链接
+        if (imagesToMove.length > 0) {
+          const updatedContent = updateImageLinksInContent(
+            content, 
+            user._id.toString(), 
+            post._id.toString(), 
+            imagesToMove
+          );
+          
+          // 如果内容有更新，重新保存文章
+          if (updatedContent !== content) {
+            await Post.findByIdAndUpdate(post._id, {
+              content: updatedContent,
+              summary: updatedContent.substring(0, 200) + '...',
+              updatedAt: new Date()
+            });
+            console.log(`✅ 文章内容已更新，图片链接已修正`);
+          }
+        }
+      }
+      
+      // 清理所有未使用的临时图片
+      const allTempImages = await Image.find({
+        uploader: user._id,
+        associatedPost: null,
+        objectName: { $regex: /\/temp\// }
+      });
+      
+      const unusedImages = allTempImages.filter(image => {
+        const imageUrl = `/api/images/${image.objectName}`;
+        return !imageUrls.includes(imageUrl);
+      });
+      
+      console.log(`清理 ${unusedImages.length} 张未使用的临时图片`);
+      
+      for (const unusedImage of unusedImages) {
+        try {
+          // 删除MinIO中的文件
+          if (unusedImage.storageType === 'minio' && unusedImage.objectName) {
+            await deleteFromMinio(unusedImage.objectName);
+            console.log(`✅ 已删除未使用的MinIO文件: ${unusedImage.objectName}`);
+          }
+          
+          // 删除数据库记录
+          await Image.findByIdAndDelete(unusedImage._id);
+          console.log(`✅ 已删除未使用的图片记录: ${unusedImage.filename}`);
+        } catch (error) {
+          console.error(`❌ 清理未使用图片失败: ${unusedImage.filename}`, error);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ 处理图片移动失败:', error);
+      // 图片移动失败不影响帖子创建
+    }
+
     // 返回带有作者信息的文章
-    await post.populate('author', 'name email');
+          await post.populate('author', 'name email avatar');
 
     return NextResponse.json(post, { status: 201 });
   } catch (error) {

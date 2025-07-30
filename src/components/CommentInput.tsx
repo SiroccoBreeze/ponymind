@@ -117,8 +117,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
     const fileArray = Array.from(files);
     
     // 检查文件数量限制
-    if (cachedImages.length + fileArray.length > 5) {
-      toast.error('一次最多只能上传5张图片');
+    if (cachedImages.length + fileArray.length > 50) {
+      toast.error('一次最多只能上传50张图片');
       e.target.value = '';
       return;
     }

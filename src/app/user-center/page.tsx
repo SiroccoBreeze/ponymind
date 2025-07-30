@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
 import CreateQuestion from '@/components/CreateQuestion';
+import AvatarUpload from '@/components/AvatarUpload';
 import {
   Pagination,
   PaginationContent,
@@ -25,6 +26,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UserAvatar from '@/components/UserAvatar';
 
 interface UserStats {
   totalPosts: number;
@@ -63,6 +65,16 @@ interface Message {
   isRead: boolean;
   createdAt: string;
   priority: 'low' | 'normal' | 'high';
+}
+
+interface UserProfile {
+  name: string;
+  email: string;
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  createdAt: string;
 }
 
 export default function UserCenterPage() {
@@ -106,6 +118,10 @@ export default function UserCenterPage() {
   const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
   const [deleteResult, setDeleteResult] = useState<string | null>(null);
 
+  // 用户资料状态
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin?callbackUrl=/user-center');
@@ -114,6 +130,7 @@ export default function UserCenterPage() {
     
     if (session?.user) {
       fetchUserData();
+      fetchUserProfile();
       fetchMessages();
     }
   }, [session, status, router, currentPage, activeTab]);
@@ -193,6 +210,29 @@ export default function UserCenterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 获取用户资料
+  const fetchUserProfile = async () => {
+    if (!session?.user?.email) return;
+    
+    setProfileLoading(true);
+    try {
+      const response = await fetch('/api/users/profile');
+      if (response.ok) {
+        const profileData = await response.json();
+        setUserProfile(profileData);
+      }
+    } catch (error) {
+      console.error('获取用户资料失败:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // 处理头像更新
+  const handleAvatarChange = (avatarUrl: string | undefined) => {
+    setUserProfile(prev => prev ? { ...prev, avatar: avatarUrl } : null);
   };
 
   const fetchMessages = async () => {
@@ -290,10 +330,11 @@ export default function UserCenterPage() {
           <div className="w-64 flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
               <div className="flex items-center space-x-4 mb-6">
-                <Avatar className="w-13 h-13 text-2xl">
-                  <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'U'} />
-                  <AvatarFallback>{session?.user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  avatar={userProfile?.avatar}
+                  userName={session?.user?.name || session?.user?.email || '用户'}
+                  size="lg"
+                />
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">{session?.user?.name}</h1>
                   <p className="text-sm text-gray-600">{session?.user?.email}</p>
@@ -364,12 +405,22 @@ export default function UserCenterPage() {
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-6">个人资料</h2>
                   
+                  {/* 头像上传区域 */}
+                  <div className="mb-8">
+                    <AvatarUpload
+                      currentAvatar={userProfile?.avatar}
+                      userName={session?.user?.name || '用户'}
+                      onAvatarChange={handleAvatarChange}
+                      className="mb-6"
+                    />
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
                       <input
                         type="text"
-                        value={session?.user?.name || ''}
+                        value={userProfile?.name || session?.user?.name || ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         readOnly
                       />
@@ -379,7 +430,7 @@ export default function UserCenterPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
                       <input
                         type="email"
-                        value={session?.user?.email || ''}
+                        value={userProfile?.email || session?.user?.email || ''}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                         readOnly
                       />
@@ -389,7 +440,10 @@ export default function UserCenterPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">加入时间</label>
                       <input
                         type="text"
-                        value={new Date().toLocaleDateString('zh-CN')}
+                        value={userProfile?.createdAt 
+                          ? new Date(userProfile.createdAt).toLocaleDateString('zh-CN')
+                          : new Date().toLocaleDateString('zh-CN')
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                         readOnly
                       />
@@ -410,8 +464,32 @@ export default function UserCenterPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">个人简介</label>
                     <textarea
                       rows={4}
+                      value={userProfile?.bio || ''}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="介绍一下你自己..."
+                      readOnly
+                    />
+                  </div>
+                  
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">位置</label>
+                    <input
+                      type="text"
+                      value={userProfile?.location || ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                      placeholder="你的位置"
+                      readOnly
+                    />
+                  </div>
+                  
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">个人网站</label>
+                    <input
+                      type="url"
+                      value={userProfile?.website || ''}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                      placeholder="https://your-website.com"
+                      readOnly
                     />
                   </div>
                   

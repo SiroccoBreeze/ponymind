@@ -6,7 +6,11 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
 import PostList from '@/components/PostList';
-import SearchBar from '@/components/SearchBar';
+import NewSearchBar from '@/components/NewSearchBar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tag } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { data: session } = useSession();
@@ -20,12 +24,7 @@ export default function Home() {
     tag: '',
     author: ''
   });
-  const [stats, setStats] = useState({
-    totalPosts: 0,
-    totalQuestions: 0,
-    totalUsers: 0,
-    totalAnswers: 0
-  });
+
   const [realTimeStats, setRealTimeStats] = useState<{
     hotPosts: Array<{
       _id: string;
@@ -134,8 +133,8 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* 左侧主内容区 */}
           <div className="lg:col-span-3">
-            {/* SearchBar */}
-            <SearchBar onSearch={handleSearch} />
+            {/* NewSearchBar */}
+            <NewSearchBar onSearch={handleSearch} />
 
             {/* 创建内容区域 */}
             {session && (
@@ -248,105 +247,187 @@ export default function Home() {
           {/* 右侧边栏 */}
           <div className="lg:col-span-1 space-y-6">
             {/* 今日热点 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="mr-2">🔥</span>
-                今日热点
-              </h3>
-              <div className="space-y-3">
-                {realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
-                  <Link 
-                    key={index} 
-                    href={`/posts/${item._id}`}
-                    className="block hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    <div className="flex items-start space-x-3 p-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                        item.type === 'question' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        {item.type === 'question' ? '?' : 'A'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                          {item.title}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {item.type === 'question' ? `${item.answers} 个回答` : `${item.views} 次浏览`}
-                          {item.likes > 0 && ` • ${item.likes} 点赞`}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                )) : (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    暂无热点内容
+            <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center">
+                    <span className="text-xs">🔥</span>
                   </div>
-                )}
-              </div>
-            </div>
+                  今日热点
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  {realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
+                    <Link 
+                      key={index} 
+                      href={`/posts/${item._id}`}
+                      className="block hover:bg-muted/50 transition-colors duration-200 rounded-lg"
+                    >
+                      <div className="flex items-start space-x-3 p-3">
+                        <Badge 
+                          variant={item.type === 'question' ? 'destructive' : 'default'}
+                          className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs"
+                        >
+                          {item.type === 'question' ? '?' : 'A'}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium line-clamp-2">
+                            {item.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {item.type === 'question' ? `${item.answers} 个回答` : `${item.views} 次浏览`}
+                            {item.likes > 0 && ` • ${item.likes} 点赞`}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  )) : (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      暂无热点内容
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* 热门标签 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">热门标签</h3>
-              <div className="flex flex-wrap gap-2">
-                {realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag) => (
-                  <Link
-                    key={tag.name}
-                    href={`/?tag=${tag.name}`}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-blue-100 hover:text-blue-800 transition-colors duration-200"
-                  >
-                    {tag.name}
-                    <span className="ml-1 text-gray-500">{tag.count}</span>
-                  </Link>
-                )) : (
-                  <div className="text-center py-2 text-gray-500 text-sm">
-                    暂无标签数据
-                  </div>
-                )}
-              </div>
-            </div>
+            <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-primary" />
+                  热门标签
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-wrap gap-2">
+                  {realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag, index) => (
+                    <Badge
+                      key={tag.name}
+                      variant={searchFilters.tag === tag.name ? "default" : "secondary"}
+                      className={cn(
+                        "cursor-pointer transition-all duration-200 gap-1.5 px-3 py-1.5 text-sm font-medium",
+                        searchFilters.tag === tag.name 
+                          ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 scale-105" 
+                          : "bg-secondary/80 hover:bg-primary/10 hover:text-primary hover:border-primary/20 hover:shadow-sm hover:scale-105",
+                        index < 3 && "ring-2 ring-primary/10"
+                      )}
+                      onClick={() => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        // 保留其他筛选条件
+                        if (searchFilters.search) params.set('search', searchFilters.search);
+                        if (searchFilters.author) params.set('author', searchFilters.author);
+                        
+                        // 如果当前标签已经选中，则清除标签筛选
+                        const newTag = searchFilters.tag === tag.name ? '' : tag.name;
+                        if (newTag) {
+                          params.set('tag', newTag);
+                        }
+                        
+                        // 更新 URL
+                        router.push(`/?${params.toString()}`);
+                        
+                        // 立即更新搜索状态和触发刷新
+                        const newFilters = {
+                          ...searchFilters,
+                          tag: newTag
+                        };
+                        setSearchFilters(newFilters);
+                        setRefreshTrigger(prev => prev + 1);
+                        
+                        // 通知搜索栏组件更新
+                        handleSearch(newFilters);
+                      }}
+                    >
+                      <span>{tag.name}</span>
+                      <span className={cn(
+                        "text-xs font-normal px-1.5 py-0.5 rounded-full",
+                        searchFilters.tag === tag.name 
+                          ? "bg-white/20 text-white" 
+                          : "bg-primary/10 text-primary"
+                      )}>
+                        {tag.count}
+                      </span>
+                    </Badge>
+                  )) : (
+                    <div className="text-center py-4 text-muted-foreground text-sm w-full">
+                      <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      暂无标签数据
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* 问答统计 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">社区统计</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">今日新内容</span>
-                  <span className="text-sm font-semibold text-blue-600">{realTimeStats.stats.todayPosts}</span>
+            <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">#</span>
+                  </div>
+                  社区统计
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">今日新内容</span>
+                    <Badge variant="outline" className="text-blue-600 border-blue-200">
+                      {realTimeStats.stats.todayPosts}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">今日新回答</span>
+                    <Badge variant="outline" className="text-green-600 border-green-200">
+                      {realTimeStats.stats.todayComments}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">待解决问题</span>
+                    <Badge variant="outline" className="text-orange-600 border-orange-200">
+                      {realTimeStats.stats.unansweredQuestions}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">今日新回答</span>
-                  <span className="text-sm font-semibold text-green-600">{realTimeStats.stats.todayComments}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">待解决问题</span>
-                  <span className="text-sm font-semibold text-orange-600">{realTimeStats.stats.unansweredQuestions}</span>
-                </div>
-
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* 活跃用户 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">本周活跃用户</h3>
-              <div className="space-y-3">
-                {realTimeStats.activeUsers.length > 0 ? realTimeStats.activeUsers.map((user, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <span className="text-lg">{user.badge}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {user.reputation} 声望 • 本周活跃度 {user.weekActivity}
-                      </p>
+            <Card className="shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-green-600">👥</span>
+                  </div>
+                  本周活跃用户
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  {realTimeStats.activeUsers.length > 0 ? realTimeStats.activeUsers.map((user, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                      <span className="text-lg">{user.badge}</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{user.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            {user.reputation} 声望
+                          </Badge>
+                          <Badge variant="outline" className="text-xs px-1 py-0">
+                            活跃度 {user.weekActivity}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )) : (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    暂无活跃用户数据
-                  </div>
-                )}
-              </div>
-            </div>
+                  )) : (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      暂无活跃用户数据
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

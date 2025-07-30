@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import connectDB from '@/lib/mongodb';
 import Image from '@/models/Image';
+import { uploadToMinio } from '@/lib/minio';
 
 // 允许的文件类型
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_FILES_PER_REQUEST = 5;
+const MAX_FILES_PER_REQUEST = 50;
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +37,7 @@ export async function POST(request: NextRequest) {
     // 解析表单数据
     const formData = await request.formData();
     const files = formData.getAll('images') as File[];
+    const postId = formData.get('postId') as string; // 获取帖子ID（可选）
 
     if (!files || files.length === 0) {
       return NextResponse.json(
@@ -57,19 +57,6 @@ export async function POST(request: NextRequest) {
     const uploadedImages = [];
     const errors = [];
 
-    // 创建上传目录
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'images');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // 按日期创建子目录
-    const dateStr = new Date().toISOString().split('T')[0];
-    const dailyDir = path.join(uploadDir, dateStr);
-    if (!existsSync(dailyDir)) {
-      await mkdir(dailyDir, { recursive: true });
-    }
-
     for (const file of files) {
       try {
         // 验证文件类型
@@ -87,25 +74,32 @@ export async function POST(request: NextRequest) {
         // 生成唯一文件名
         const fileExt = path.extname(file.name);
         const fileName = `${crypto.randomUUID()}${fileExt}`;
-        const filePath = path.join(dailyDir, fileName);
 
-        // 保存文件
+        // 保存文件到MinIO，传递用户ID和帖子ID
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
+        const fileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), postId);
 
-        // 生成访问URL
-        const fileUrl = `/uploads/images/${dateStr}/${fileName}`;
+        // 生成对象名称
+        let objectName: string;
+        if (postId) {
+          objectName = `images/${user._id}/${postId}/${fileName}`;
+        } else {
+          objectName = `images/${user._id}/temp/${fileName}`;
+        }
 
-        // 保存到数据库
+        // 保存到数据库，但标记为未确认
         const imageRecord = new Image({
           filename: fileName,
           originalName: file.name,
           mimetype: file.type,
           size: file.size,
-          path: filePath,
           url: fileUrl,
+          objectName: objectName,
+          storageType: 'minio',
           uploader: user._id,
+          associatedPost: postId || null,
+          isUsed: false, // 标记为未确认使用
         });
 
         await imageRecord.save();
@@ -116,6 +110,7 @@ export async function POST(request: NextRequest) {
           originalName: file.name,
           url: fileUrl,
           size: file.size,
+          isConfirmed: false, // 前端需要确认使用
         });
 
       } catch (error) {

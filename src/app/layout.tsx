@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { getServerSession } from "next-auth/next";
 import SessionProvider from "@/components/SessionProvider";
-import Navbar from "@/components/Navbar";
+import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
@@ -22,7 +22,7 @@ export default async function RootLayout({
       <body className="font-sans">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <SessionProvider session={session as any}>
-          <Navbar />
+          <ConditionalNavbar />
           <main>{children}</main>
           <Toaster />
         </SessionProvider>

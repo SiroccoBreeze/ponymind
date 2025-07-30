@@ -2,85 +2,62 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Image from '@/models/Image';
-import { unlink } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+import { deleteFromMinio } from '@/lib/minio';
 
-export async function DELETE(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // 验证用户登录状态
+    // 验证会话
     const session = await getServerSession();
     if (!session?.user?.email) {
       return NextResponse.json(
-        { error: '请先登录' },
+        { error: '需要登录才能执行清理操作' },
         { status: 401 }
       );
     }
 
     await connectDB();
 
-    // 查找用户信息以获取用户ID
-    const User = (await import('@/models/User')).default;
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json(
-        { error: '用户不存在' },
-        { status: 404 }
-      );
-    }
+    // 查找所有未关联到文章的图片
+    const unusedImages = await Image.find({
+      associatedPost: null,
+      isUsed: false
+    });
 
-    const { imageUrls } = await request.json();
+    console.log(`找到 ${unusedImages.length} 张未使用的图片`);
 
-    if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      return NextResponse.json(
-        { error: '请提供要删除的图片URL列表' },
-        { status: 400 }
-      );
-    }
+    let deletedCount = 0;
+    let errorCount = 0;
 
-    const deletedImages = [];
-    const errors = [];
-
-    for (const imageUrl of imageUrls) {
+    for (const imageRecord of unusedImages) {
       try {
-        // 查找图片记录
-        const imageRecord = await Image.findOne({ 
-          url: imageUrl, 
-          uploader: user._id 
-        });
-
-        if (!imageRecord) {
-          errors.push(`图片 ${imageUrl} 不存在或无权限删除`);
-          continue;
+        // 删除MinIO中的文件
+        if (imageRecord.storageType === 'minio' && imageRecord.objectName) {
+          await deleteFromMinio(imageRecord.objectName);
+          console.log(`✅ 已删除MinIO文件: ${imageRecord.objectName}`);
         }
-
-        // 删除物理文件
-        const filePath = path.join(process.cwd(), 'public', imageUrl);
-        if (existsSync(filePath)) {
-          await unlink(filePath);
-        }
-
+        
         // 删除数据库记录
         await Image.findByIdAndDelete(imageRecord._id);
-
-        deletedImages.push(imageUrl);
+        console.log(`✅ 已删除图片记录: ${imageRecord.filename}`);
+        
+        deletedCount++;
       } catch (error) {
-        console.error(`删除图片 ${imageUrl} 失败:`, error);
-        errors.push(`删除图片 ${imageUrl} 失败`);
+        console.error(`❌ 删除图片失败: ${imageRecord.filename}`, error);
+        errorCount++;
       }
     }
 
     return NextResponse.json({
-      success: true,
-      message: `成功删除 ${deletedImages.length} 张图片`,
-      deletedImages,
-      errors: errors.length > 0 ? errors : undefined,
+      message: '清理完成',
+      deletedCount,
+      errorCount,
+      totalUnused: unusedImages.length
     });
 
   } catch (error) {
-    console.error('批量删除图片失败:', error);
+    console.error('❌ 清理操作失败:', error);
     return NextResponse.json(
-      { error: '批量删除图片失败' },
+      { error: '清理操作失败' },
       { status: 500 }
     );
   }

@@ -118,8 +118,8 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
     const fileArray = Array.from(files);
     
     // 检查文件数量限制
-    if (cachedImages.length + fileArray.length > 3) {
-      toast.error('回复中最多只能上传3张图片');
+    if (cachedImages.length + fileArray.length > 50) {
+      toast.error('回复中最多只能上传50张图片');
       e.target.value = '';
       return;
     }

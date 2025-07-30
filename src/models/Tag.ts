@@ -4,7 +4,6 @@ const TagSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     maxlength: 50
   },
@@ -36,7 +35,7 @@ const TagSchema = new mongoose.Schema({
 });
 
 // 索引
-TagSchema.index({ name: 1 });
+TagSchema.index({ name: 1 }, { unique: true });
 TagSchema.index({ postCount: -1 });
 TagSchema.index({ createdAt: -1 });
 

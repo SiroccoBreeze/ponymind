@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
 
     // 构建查询条件
-    const query: Record<string, unknown> = { isActive: true };
+    const query: Record<string, unknown> = {};
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -82,6 +82,7 @@ export async function GET(request: Request) {
         description: tag.description,
         color: tag.color,
         postCount: tag.postCount,
+        isActive: tag.isActive,
         createdAt: tag.createdAt,
         updatedAt: tag.updatedAt,
         createdBy: tag.createdBy
@@ -120,14 +121,27 @@ export async function POST(request: Request) {
 
     const tagName = name.trim();
 
-    // 检查标签名称是否已存在
+    // 检查标签名称是否已存在（包括已删除的标签）
     const existingTag = await Tag.findOne({ 
-      name: { $regex: new RegExp(`^${tagName}$`, 'i') },
-      isActive: true 
+      name: { $regex: new RegExp(`^${tagName}$`, 'i') }
     });
     
     if (existingTag) {
-      return NextResponse.json({ error: '标签名称已存在' }, { status: 400 });
+      if (existingTag.isActive) {
+        return NextResponse.json({ error: '标签名称已存在' }, { status: 400 });
+      } else {
+        // 如果标签已存在但被删除，询问是否要重新启用
+        return NextResponse.json({ 
+          error: '标签已存在但已被删除',
+          existingTagId: existingTag._id,
+          existingTag: {
+            _id: existingTag._id,
+            name: existingTag.name,
+            description: existingTag.description,
+            color: existingTag.color
+          }
+        }, { status: 409 }); // 409 Conflict
+      }
     }
 
     // 验证颜色格式
@@ -261,6 +275,7 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const tagId = searchParams.get('tagId');
+    const action = searchParams.get('action'); // 'delete' 或 'restore'
 
     if (!tagId) {
       return NextResponse.json({ error: '标签ID不能为空' }, { status: 400 });
@@ -268,28 +283,39 @@ export async function DELETE(request: Request) {
 
     // 查找标签
     const tag = await Tag.findById(tagId);
-    if (!tag || !tag.isActive) {
+    if (!tag) {
       return NextResponse.json({ error: '标签不存在' }, { status: 404 });
     }
 
-    // 检查标签是否被使用
-    const postsWithTag = await Post.countDocuments({ 
-      tags: tag.name,
-      status: { $ne: 'deleted' }
-    });
-    
-    if (postsWithTag > 0) {
-      return NextResponse.json({ 
-        error: `该标签正在被 ${postsWithTag} 篇内容使用，无法删除。请先移除相关内容中的标签引用。` 
-      }, { status: 400 });
+    if (action === 'restore') {
+      // 重新启用标签
+      await Tag.findByIdAndUpdate(tagId, { isActive: true });
+      return NextResponse.json({ message: '标签重新启用成功' });
+    } else {
+      // 删除标签
+      if (!tag.isActive) {
+        return NextResponse.json({ error: '标签已被删除' }, { status: 400 });
+      }
+
+      // 检查标签是否被使用
+      const postsWithTag = await Post.countDocuments({ 
+        tags: tag.name,
+        status: { $ne: 'deleted' }
+      });
+      
+      if (postsWithTag > 0) {
+        return NextResponse.json({ 
+          error: `该标签正在被 ${postsWithTag} 篇内容使用，无法删除。请先移除相关内容中的标签引用。` 
+        }, { status: 400 });
+      }
+
+      // 软删除标签（设置为非活跃状态）
+      await Tag.findByIdAndUpdate(tagId, { isActive: false });
+
+      return NextResponse.json({ message: '标签删除成功' });
     }
-
-    // 软删除标签（设置为非活跃状态）
-    await Tag.findByIdAndUpdate(tagId, { isActive: false });
-
-    return NextResponse.json({ message: '标签删除成功' });
   } catch (error) {
-    console.error('删除标签失败:', error);
-    return NextResponse.json({ error: '删除标签失败' }, { status: 500 });
+    console.error('标签操作失败:', error);
+    return NextResponse.json({ error: '标签操作失败' }, { status: 500 });
   }
 } 
