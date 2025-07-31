@@ -28,7 +28,6 @@ interface TagSelectionModalProps {
   onTagsChange: (tags: string[]) => void;
   maxTags?: number;
   title?: string;
-  onCreateTag?: (tagName: string) => void;
   themeColor?: 'blue' | 'orange';
 }
 
@@ -40,7 +39,6 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
   onTagsChange,
   maxTags = 5,
   title = "选择标签",
-  onCreateTag,
   themeColor = 'blue'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,16 +133,7 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
     }
   };
 
-  const handleCreateTag = () => {
-    if (searchTerm.trim() && !localSelectedTags.includes(searchTerm.trim()) && localSelectedTags.length < maxTags) {
-      const newTag = searchTerm.trim();
-      setLocalSelectedTags(prev => [...prev, newTag]);
-      if (onCreateTag) {
-        onCreateTag(newTag);
-      }
-      setSearchTerm('');
-    }
-  };
+
 
   const filteredTags = availableTags.filter(tag =>
     tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,25 +169,10 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="搜索标签或输入新标签名称..."
+              placeholder="搜索标签..."
               className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
             />
           </div>
-          
-          {/* 创建新标签按钮 */}
-          {searchTerm.trim() && !filteredTags.some(tag => tag.name.toLowerCase() === searchTerm.toLowerCase()) && canSelectMore && (
-            <div className="mt-3">
-              <button
-                onClick={handleCreateTag}
-                className={`inline-flex items-center px-4 py-2 bg-gradient-to-r ${colors.gradient} hover:${colors.gradientHover} text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5`}
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                创建标签 &ldquo;{searchTerm.trim()}&rdquo;
-              </button>
-            </div>
-          )}
         </div>
 
         {/* 已选择的标签 */}

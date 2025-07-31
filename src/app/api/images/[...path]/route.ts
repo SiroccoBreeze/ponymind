@@ -32,16 +32,17 @@ async function checkImageAccess(image: IImage, user: IUser): Promise<{ allowed: 
     return { allowed: true, reason: '公开头像' };
   }
   
-  // 如果图片关联到文章，文章作者可以访问
+  // 如果图片关联到文章，允许所有登录用户访问（文章内容是公开的）
   if (image.associatedPost) {
     const Post = (await import('@/models/Post')).default;
-    const post = await Post.findById(image.associatedPost).populate('author', 'email');
-    if (post && post.author.email === user.email) {
-      return { allowed: true, reason: '文章作者' };
+    const post = await Post.findById(image.associatedPost);
+    if (post) {
+      return { allowed: true, reason: '文章内容图片' };
     }
   }
   
-  return { allowed: false, reason: '无权限访问' };
+  // 其他情况：允许所有登录用户访问（保持开放性）
+  return { allowed: true, reason: '登录用户' };
 }
 
 export async function GET(

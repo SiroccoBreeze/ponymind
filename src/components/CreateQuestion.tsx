@@ -279,17 +279,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
     setSelectedTags(selectedTags.filter(tag => tag !== tagName));
   };
 
-  const handleCreateTag = (tagName: string) => {
-    // 将新创建的标签添加到可用标签列表
-    const newTag: Tag = {
-      _id: `new-${Date.now()}`,
-      name: tagName,
-      description: '',
-      color: '#FB923C',
-      usageCount: 0
-    };
-    setAvailableTags(prev => [newTag, ...prev]);
-  };
+
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col" style={{ overflow: 'hidden' }}>
@@ -492,7 +482,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                       type="text"
                       value={tagSearchTerm}
                       onChange={(e) => setTagSearchTerm(e.target.value)}
-                      placeholder="搜索或创建标签..."
+                      placeholder="搜索标签..."
                       className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-gray-900 placeholder-gray-400 shadow-sm hover:border-gray-300"
                     />
                     {tagSearchTerm && (
@@ -579,23 +569,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
                             </svg>
                             未找到匹配的标签
                           </div>
-                          {tagSearchTerm.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (tagSearchTerm.trim() && !selectedTags.includes(tagSearchTerm.trim())) {
-                                  addTag(tagSearchTerm.trim());
-                                  setTagSearchTerm('');
-                                }
-                              }}
-                              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                            >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                              </svg>
-                              创建标签 &ldquo;{tagSearchTerm.trim()}&rdquo;
-                            </button>
-                          )}
+
                         </div>
                       );
                     }
@@ -706,7 +680,6 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
         onTagsChange={setSelectedTags}
         maxTags={5}
         title="选择标签"
-        onCreateTag={handleCreateTag}
         themeColor="orange"
       />
     </div>
