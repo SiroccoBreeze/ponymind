@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建排序条件
-    let sortCondition: Record<string, number> = {};
+    let sortCondition: any = {};
     
     switch (sort) {
       case 'newest':

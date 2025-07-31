@@ -115,16 +115,23 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
     if (shouldShowFullScreen) {
       // 保存当前滚动位置
       const scrollY = window.scrollY;
-      // 阻止页面滚动
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      // 使用更安全的方式阻止页面滚动，不影响滚动条显示
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const originalPaddingRight = window.getComputedStyle(document.body).paddingRight;
+      
+      // 计算滚动条宽度
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      document.body.style.overflow = 'hidden';
+      // 补偿滚动条宽度，防止页面内容向左偏移
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
       
       return () => {
         // 恢复页面滚动
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
+        document.body.style.overflow = originalStyle;
+        document.body.style.paddingRight = originalPaddingRight;
         window.scrollTo(0, scrollY);
       };
     }
@@ -329,7 +336,7 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
   }
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col" style={{ overflow: 'hidden' }}>
       {/* 顶部导航栏 */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white shadow-sm">
         <div className="flex items-center space-x-4">

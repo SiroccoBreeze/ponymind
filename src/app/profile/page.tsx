@@ -47,7 +47,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarChange = (avatarUrl: string) => {
+  const handleAvatarChange = (avatarUrl: string | undefined) => {
     setUserProfile(prev => prev ? { ...prev, avatar: avatarUrl } : null);
   };
 

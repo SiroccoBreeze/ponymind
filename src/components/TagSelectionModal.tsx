@@ -105,13 +105,15 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('keydown', handleEscapeKey);
-      document.body.style.overflow = 'hidden';
+      // 移除动态修改body overflow的代码，避免影响页面滚动条
+      // document.body.style.overflow = 'hidden';
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscapeKey);
-      document.body.style.overflow = 'unset';
+      // 移除动态修改body overflow的代码，避免影响页面滚动条
+      // document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
 

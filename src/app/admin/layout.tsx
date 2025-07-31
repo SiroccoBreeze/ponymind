@@ -116,31 +116,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '仪表板', 
       icon: LayoutDashboard, 
       exact: true,
-      description: '系统概览和统计'
+      description: ''
     },
     { 
       href: '/admin/users', 
       label: '用户管理', 
       icon: Users,
-      description: '管理用户账户和权限'
+      description: ''
     },
     { 
       href: '/admin/posts', 
       label: '内容管理', 
       icon: FileText,
-      description: '管理文章和问题'
+      description: ''
     },
     { 
       href: '/admin/tags', 
       label: '标签管理', 
       icon: Tags,
-      description: '管理内容标签'
+      description: ''
     },
     { 
       href: '/admin/settings', 
       label: '系统设置', 
       icon: Settings,
-      description: '配置系统参数'
+      description: ''
     },
   ];
 
