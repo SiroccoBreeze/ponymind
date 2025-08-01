@@ -54,10 +54,11 @@ export const config = {
      * - 管理页面 (/admin/*)
      * 但排除:
      * - API 路由 (/api/*)（除了管理API）
-     * - 静态资源 (_next/static/*)
+     * - 静态资源 (_next/static/*, _next/image/*)
      * - 图片等文件 (.*\\..*$)
+     * - 公共资源 (public/*)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*$).*)',
   ],
 };
  
