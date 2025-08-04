@@ -285,27 +285,27 @@ export default function FAQPage() {
     return [];
   };
 
-  if (loading) {
+      if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">正在加载FAQ内容...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">正在加载FAQ内容...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-background">
       {/* 紧凑的头部区域 */}
-      <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+      <div className="bg-card border-b border-border shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             {/* 标题和描述 */}
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">常见问题解答</h1>
-              <p className="text-sm text-gray-600">快速找到您需要的答案和解决方案</p>
+              <h1 className="text-2xl font-bold text-foreground mb-1">常见问题解答</h1>
+              <p className="text-sm text-muted-foreground">快速找到您需要的答案和解决方案</p>
             </div>
             
             {/* 搜索和视图切换 */}
@@ -322,7 +322,7 @@ export default function FAQPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="搜索问题标题或关键词..."
-                  className="block w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  className="block w-full pl-10 pr-4 py-2.5 text-sm border border-input rounded-lg bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-all duration-200"
                 />
                 {searchTerm && (
                   <button
@@ -337,13 +337,13 @@ export default function FAQPage() {
               </div>
               
               {/* 视图切换按钮 */}
-              <div className="flex bg-gray-100 rounded-lg p-1">
+              <div className="flex bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('card')}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                     viewMode === 'card'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-background text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,8 +355,8 @@ export default function FAQPage() {
                   onClick={() => setViewMode('table')}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                     viewMode === 'table'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-background text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,12 +372,12 @@ export default function FAQPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {sortedItems.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="text-gray-400 text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <div className="bg-card rounded-xl shadow-sm border border-border p-12 text-center">
+            <div className="text-muted-foreground text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               {searchTerm || titleFilter !== 'all' || statusFilter !== 'all' || authorFilter !== 'all' || tagFilter !== 'all' ? '没有找到相关问题' : '暂无问题'}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               {searchTerm || titleFilter !== 'all' || statusFilter !== 'all' || authorFilter !== 'all' || tagFilter !== 'all'
                 ? '尝试调整筛选条件或使用其他关键词搜索'
                 : '这个分类下还没有问题，欢迎提交你的问题'
@@ -386,7 +386,7 @@ export default function FAQPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href="/posts"
-                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 浏览所有内容
               </Link>
@@ -407,7 +407,7 @@ export default function FAQPage() {
             {viewMode === 'card' && (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {sortedItems.map((item) => (
-                  <div key={item._id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 overflow-hidden group">
+                  <div key={item._id} className="bg-card rounded-xl shadow-sm border border-border hover:shadow-md transition-all duration-300 overflow-hidden group">
                     <div
                       className="p-5 cursor-pointer"
                       onClick={() => toggleExpanded(item._id)}
@@ -473,7 +473,7 @@ export default function FAQPage() {
 
                     {/* 展开的内容 */}
                     {expandedItems.has(item._id) && (
-                      <div className="px-5 pb-5 border-t border-gray-100 bg-gray-50">
+                      <div className="px-5 pb-5 border-t border-border bg-muted/50">
                         <div className="pt-4">
                           <div 
                             className="prose prose-sm max-w-none text-gray-700"
@@ -507,7 +507,7 @@ export default function FAQPage() {
 
             {/* 现代化表格视图 - 全屏显示 */}
             {viewMode === 'table' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">

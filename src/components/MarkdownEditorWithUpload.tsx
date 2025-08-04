@@ -3,6 +3,7 @@
 import React, { useCallback, useState, useRef, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
 import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
+import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { commands } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -57,6 +58,7 @@ const MarkdownEditorWithUpload = forwardRef<
   onSaved
 }, ref) => {
   const { data: session } = useSession();
+  const { theme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -412,10 +414,10 @@ const MarkdownEditorWithUpload = forwardRef<
   if (typeof window === 'undefined') {
     return (
       <div 
-        className={`border rounded-lg bg-gray-50 flex items-center justify-center ${className}`}
+        className={`border rounded-lg bg-muted flex items-center justify-center ${className}`}
         style={{ height }}
       >
-        <div className="text-gray-500">加载编辑器中...</div>
+        <div className="text-muted-foreground">加载编辑器中...</div>
       </div>
     );
   }
@@ -478,7 +480,7 @@ const MarkdownEditorWithUpload = forwardRef<
           value={value || ''}
           onChange={handleChange}
           height={height}
-          data-color-mode="light"
+          data-color-mode={theme === 'dark' ? 'dark' : 'light'}
           preview={preview}
           visibleDragbar={true}
           extraCommands={extraCommands}

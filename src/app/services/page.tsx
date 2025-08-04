@@ -145,7 +145,7 @@ export default function ServicesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* 头部横幅 */}
       <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-blue-600 to-purple-600">
         <div className="absolute inset-0 bg-black/10"></div>

@@ -43,10 +43,10 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-Markdown预览样式
+/* Markdown预览样式 */
 .wmde-markdown {
   background-color: transparent !important;
-  color: #374151 !important;
+  color: hsl(var(--foreground)) !important;
   font-family: inherit !important;
 }
 
@@ -56,7 +56,7 @@ Markdown预览样式
 .wmde-markdown h4,
 .wmde-markdown h5,
 .wmde-markdown h6 {
-  color: #111827 !important;
+  color: hsl(var(--foreground)) !important;
   font-weight: 600 !important;
   margin-top: 1.5em !important;
   margin-bottom: 0.5em !important;
@@ -64,13 +64,13 @@ Markdown预览样式
 
 .wmde-markdown h1 {
   font-size: 2em !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
   padding-bottom: 0.3em !important;
 }
 
 .wmde-markdown h2 {
   font-size: 1.5em !important;
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
   padding-bottom: 0.3em !important;
 }
 
@@ -84,8 +84,8 @@ Markdown预览样式
 }
 
 .wmde-markdown pre {
-  background-color: #f3f4f6 !important;
-  border: 1px solid #e5e7eb !important;
+  background-color: hsl(var(--muted)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 0.5rem !important;
   padding: 1rem !important;
   overflow-x: auto !important;
@@ -93,8 +93,8 @@ Markdown预览样式
 }
 
 .wmde-markdown code {
-  background-color: #f3f4f6 !important;
-  color: #dc2626 !important;
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--destructive)) !important;
   padding: 0.2em 0.4em !important;
   border-radius: 0.25rem !important;
   font-size: 0.875em !important;
@@ -102,16 +102,16 @@ Markdown预览样式
 
 .wmde-markdown pre code {
   background-color: transparent !important;
-  color: #374151 !important;
+  color: hsl(var(--foreground)) !important;
   padding: 0 !important;
 }
 
 .wmde-markdown blockquote {
-  border-left: 4px solid #3b82f6 !important;
+  border-left: 4px solid hsl(var(--primary)) !important;
   padding-left: 1rem !important;
   margin: 1em 0 !important;
-  color: #6b7280 !important;
-  background-color: #f8fafc !important;
+  color: hsl(var(--muted-foreground)) !important;
+  background-color: hsl(var(--muted)) !important;
   padding: 1rem !important;
   border-radius: 0.5rem !important;
 }
@@ -157,7 +157,7 @@ Markdown预览样式
 /* 确保列表项显示标记 */
 .wmde-markdown ul li::marker,
 .wmde-markdown ol li::marker {
-  color: #6b7280 !important;
+  color: hsl(var(--muted-foreground)) !important;
 }
 
 /* 任务列表特殊处理 */
@@ -446,7 +446,7 @@ h1, h2, h3, h4, h5, h6 {
 /* 目录容器滚动条样式 */
 .toc-nav-container {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
 }
 
 .toc-nav-container::-webkit-scrollbar {
@@ -454,17 +454,17 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .toc-nav-container::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: hsl(var(--muted));
   border-radius: 3px;
 }
 
 .toc-nav-container::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: hsl(var(--border));
   border-radius: 3px;
 }
 
 .toc-nav-container::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: hsl(var(--muted-foreground));
 }
 
 /* 移动端响应式调整 */

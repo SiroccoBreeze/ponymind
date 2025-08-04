@@ -41,8 +41,8 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
           fontSize: '14px',
           margin: '20px 0',
           padding: '20px',
-          backgroundColor: '#fafafa',
-          border: '1px solid #e5e7eb',
+                  backgroundColor: 'hsl(var(--muted))',
+        border: '1px solid hsl(var(--border))',
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
         }}
         {...props}
@@ -51,10 +51,10 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
       </SyntaxHighlighter>
       
       {/* 复制按钮 */}
-      <button
-        onClick={handleCopy}
-        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 shadow-sm"
-      >
+              <button
+          onClick={handleCopy}
+          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background hover:bg-muted border border-border rounded-lg px-3 py-2 text-sm font-medium text-foreground shadow-sm"
+        >
         {copied ? (
           <div className="flex items-center space-x-2">
             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
 
   if (error) {
     return (
-      <span className="inline-block bg-gray-100 border border-gray-200 rounded-lg p-6 text-center my-4 w-full max-w-md mx-auto">
+      <span className="inline-block bg-muted border border-border rounded-lg p-6 text-center my-4 w-full max-w-md mx-auto">
         <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
@@ -109,13 +109,13 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
       <span className="inline-block w-full my-4 group">
         {/* 加载占位符 */}
         {!loaded && !error && (
-          <span className="block bg-gray-50 rounded min-h-[200px] flex items-center justify-center">
+          <span className="block bg-muted rounded min-h-[200px] flex items-center justify-center">
             <span className="text-center">
-              <svg className="w-8 h-8 text-gray-400 mx-auto mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-muted-foreground mx-auto mb-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" />
               </svg>
-              <span className="block text-xs text-gray-500 mb-1">加载图片中...</span>
-              <span className="block text-xs text-gray-400 break-all max-w-xs">{src}</span>
+              <span className="block text-xs text-muted-foreground mb-1">加载图片中...</span>
+              <span className="block text-xs text-muted-foreground break-all max-w-xs">{src}</span>
             </span>
           </span>
         )}
@@ -256,7 +256,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
           {children}
         </CodeBlock>
       ) : (
-        <code className="bg-gray-100 px-2 py-1 rounded-md text-sm font-mono text-gray-800 border border-gray-200" {...props}>
+        <code className="bg-muted px-2 py-1 rounded-md text-sm font-mono text-foreground border border-border" {...props}>
           {children}
         </code>
       );
@@ -264,8 +264,8 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     // 表格样式
     table({ children }: any) {
       return (
-        <div className="overflow-x-auto my-8 rounded-lg border border-gray-200 shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto my-8 rounded-lg border border-border shadow-sm">
+          <table className="min-w-full divide-y divide-border">
             {children}
           </table>
         </div>
@@ -273,28 +273,28 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     },
     thead({ children }: any) {
       return (
-        <thead className="bg-gray-50">
+        <thead className="bg-muted">
           {children}
         </thead>
       );
     },
     tbody({ children }: any) {
       return (
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-background divide-y divide-border">
           {children}
         </tbody>
       );
     },
     th({ children }: any) {
       return (
-        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           {children}
         </th>
       );
     },
     td({ children }: any) {
       return (
-        <td className="px-6 py-4 text-sm text-gray-900 align-top">
+        <td className="px-6 py-4 text-sm text-foreground align-top">
           {children}
         </td>
       );
@@ -302,27 +302,27 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     // 标题样式
     h1({ children }: any) {
       const id = generateId(String(children));
-      return <h1 id={id} className="text-3xl font-bold text-gray-900 mb-6 mt-8 pb-3 border-b border-gray-200" style={{ scrollMarginTop: '100px' }}>{children}</h1>;
+      return <h1 id={id} className="text-3xl font-bold text-foreground mb-6 mt-8 pb-3 border-b border-border" style={{ scrollMarginTop: '100px' }}>{children}</h1>;
     },
     h2({ children }: any) {
       const id = generateId(String(children));
-      return <h2 id={id} className="text-2xl font-bold text-gray-900 mb-5 mt-8" style={{ scrollMarginTop: '100px' }}>{children}</h2>;
+      return <h2 id={id} className="text-2xl font-bold text-foreground mb-5 mt-8" style={{ scrollMarginTop: '100px' }}>{children}</h2>;
     },
     h3({ children }: any) {
       const id = generateId(String(children));
-      return <h3 id={id} className="text-xl font-bold text-gray-900 mb-4 mt-6" style={{ scrollMarginTop: '100px' }}>{children}</h3>;
+      return <h3 id={id} className="text-xl font-bold text-foreground mb-4 mt-6" style={{ scrollMarginTop: '100px' }}>{children}</h3>;
     },
     h4({ children }: any) {
       const id = generateId(String(children));
-      return <h4 id={id} className="text-lg font-semibold text-gray-900 mb-3 mt-5" style={{ scrollMarginTop: '100px' }}>{children}</h4>;
+      return <h4 id={id} className="text-lg font-semibold text-foreground mb-3 mt-5" style={{ scrollMarginTop: '100px' }}>{children}</h4>;
     },
     h5({ children }: any) {
       const id = generateId(String(children));
-      return <h5 id={id} className="text-base font-semibold text-gray-900 mb-2 mt-4" style={{ scrollMarginTop: '100px' }}>{children}</h5>;
+      return <h5 id={id} className="text-base font-semibold text-foreground mb-2 mt-4" style={{ scrollMarginTop: '100px' }}>{children}</h5>;
     },
     h6({ children }: any) {
       const id = generateId(String(children));
-      return <h6 id={id} className="text-sm font-semibold text-gray-900 mb-2 mt-3" style={{ scrollMarginTop: '100px' }}>{children}</h6>;
+      return <h6 id={id} className="text-sm font-semibold text-foreground mb-2 mt-3" style={{ scrollMarginTop: '100px' }}>{children}</h6>;
     },
     // 段落样式 - 优化处理仅包含图片的段落
     p({ children, node }: any) {
@@ -345,14 +345,14 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
         return <div className="my-6">{children}</div>;
       }
       
-      return <p className="mb-6 leading-relaxed text-gray-700 text-base">{children}</p>;
+      return <p className="mb-6 leading-relaxed text-foreground text-base">{children}</p>;
     },
     // 链接样式
     a({ href, children }: any) {
       return (
         <a 
           href={href} 
-          className="text-blue-600 hover:text-blue-800 underline font-medium transition-colors decoration-blue-300 hover:decoration-blue-500"
+          className="text-primary hover:text-primary/80 underline font-medium transition-colors decoration-primary/30 hover:decoration-primary/60"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -385,25 +385,25 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     // 引用样式
     blockquote({ children }: any) {
       return (
-        <blockquote className="border-l-4 border-blue-500 pl-6 py-4 mb-6 bg-blue-50 rounded-r-lg">
-          <div className="text-gray-700 italic font-medium">{children}</div>
+        <blockquote className="border-l-4 border-primary pl-6 py-4 mb-6 bg-muted rounded-r-lg">
+          <div className="text-muted-foreground italic font-medium">{children}</div>
         </blockquote>
       );
     },
     // 分隔线
     hr() {
-      return <hr className="my-8 border-t-2 border-gray-200" />;
+      return <hr className="my-8 border-t-2 border-border" />;
     },
     // 强调文本
     strong({ children }: any) {
-      return <strong className="font-bold text-gray-900">{children}</strong>;
+      return <strong className="font-bold text-foreground">{children}</strong>;
     },
     em({ children }: any) {
-      return <em className="italic text-gray-700">{children}</em>;
+      return <em className="italic text-foreground">{children}</em>;
     },
     // 删除线
     del({ children }: any) {
-      return <del className="line-through text-gray-500">{children}</del>;
+      return <del className="line-through text-muted-foreground">{children}</del>;
     },
     // 任务列表
     input({ type, checked, ...props }: any) {
@@ -413,7 +413,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
             type="checkbox"
             checked={checked}
             readOnly
-            className="mr-3 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="mr-3 w-4 h-4 rounded border-border text-primary focus:ring-primary"
             {...props}
           />
         );

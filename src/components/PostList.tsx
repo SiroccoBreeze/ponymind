@@ -158,21 +158,21 @@ export default function PostList({
     return (
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+          <div key={i} className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse">
             <div className="flex space-x-4">
               <div className="flex flex-col space-y-2 w-20">
-                <div className="h-8 bg-gray-200 rounded text-center"></div>
-                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-8 bg-muted rounded text-center"></div>
+                <div className="h-4 bg-muted rounded"></div>
               </div>
               <div className="flex-1">
-                <div className="h-6 bg-gray-200 rounded mb-3"></div>
+                <div className="h-6 bg-muted rounded mb-3"></div>
                 <div className="space-y-2 mb-4">
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded"></div>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
                 </div>
                 <div className="flex space-x-2">
-                  <div className="h-6 bg-gray-200 rounded w-16"></div>
-                  <div className="h-6 bg-gray-200 rounded w-16"></div>
+                  <div className="h-6 bg-muted rounded w-16"></div>
+                  <div className="h-6 bg-muted rounded w-16"></div>
                 </div>
               </div>
             </div>
@@ -204,12 +204,12 @@ export default function PostList({
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
-          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">暂无内容</h3>
-          <p className="text-gray-600">成为第一个发布内容的人吧！</p>
+                  <div className="bg-muted rounded-lg p-8 max-w-md mx-auto">
+            <svg className="w-16 h-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="text-lg font-semibold text-foreground mb-2">暂无内容</h3>
+            <p className="text-muted-foreground">成为第一个发布内容的人吧！</p>
         </div>
       </div>
     );
@@ -218,19 +218,19 @@ export default function PostList({
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <article key={post._id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+        <article key={post._id} className="bg-card rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow duration-200">
           <div className="p-6">
             <div className="flex space-x-6">
               {/* 左侧统计信息 */}
-              <div className="flex flex-col items-center space-y-2 text-sm text-gray-500 min-w-[80px]">
+              <div className="flex flex-col items-center space-y-2 text-sm text-muted-foreground min-w-[80px]">
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">{post.likes}</div>
+                  <div className="text-lg font-semibold text-foreground">{post.likes}</div>
                   <div>点赞</div>
                 </div>
                 
                 {post.type === 'question' && (
                   <div className="text-center">
-                    <div className={`text-lg font-semibold ${post.acceptedAnswer ? 'text-green-600' : 'text-gray-900'}`}>
+                    <div className={`text-lg font-semibold ${post.acceptedAnswer ? 'text-green-600' : 'text-foreground'}`}>
                       {post.answers}
                     </div>
                     <div>回答</div>
@@ -238,7 +238,7 @@ export default function PostList({
                 )}
                 
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-900">{post.views}</div>
+                  <div className="text-lg font-semibold text-foreground">{post.views}</div>
                   <div>浏览</div>
                 </div>
               </div>
@@ -270,12 +270,12 @@ export default function PostList({
                 </div>
 
                 <Link href={`/posts/${post._id}`}>
-                  <h2 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors duration-200 cursor-pointer mb-2 line-clamp-2">
+                  <h2 className="text-lg font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer mb-2 line-clamp-2">
                     {post.title}
                   </h2>
                 </Link>
 
-                <p className="text-gray-600 mb-4 line-clamp-2 text-sm leading-relaxed">
+                <p className="text-muted-foreground mb-4 line-clamp-2 text-sm leading-relaxed">
                   {truncateText(post.summary || post.content, 150)}
                 </p>
 
@@ -286,17 +286,17 @@ export default function PostList({
                       <Link
                         key={index}
                         href={`/?tag=${tag}`}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors duration-200"
+                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
                       >
                         {tag}
                       </Link>
                     ))}
                     {post.tags.length > 3 && (
-                      <span className="text-xs text-gray-500">+{post.tags.length - 3}</span>
+                      <span className="text-xs text-muted-foreground">+{post.tags.length - 3}</span>
                     )}
                   </div>
 
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <Avatar className="w-5 h-5">
                         <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />

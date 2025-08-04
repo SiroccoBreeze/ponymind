@@ -95,8 +95,7 @@ function ImagePreviewModal({ src, alt, open, onClose }: { src: string; alt?: str
         <img
           src={src}
           alt={alt || '图片'}
-          className="rounded-lg transition-opacity duration-300 max-w-[80vw] max-h-[80vh] object-contain"
-          style={{ background: '#fff' }}
+          className="rounded-lg transition-opacity duration-300 max-w-[80vw] max-h-[80vh] object-contain bg-background"
         />
         {alt && (
           <span className="mt-4 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded max-w-md text-center">
@@ -290,7 +289,7 @@ export default function PostDetailPage() {
     const isExpanded = expandedReplies.has(comment._id);
 
     return (
-      <div key={comment._id} className={`border-b border-gray-200 pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-4 border border-green-200' : ''}`}>
+      <div key={comment._id} className={`border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-4 border border-green-200' : ''}`}>
         <div className="flex items-start space-x-3">
           <Avatar className="w-10 h-10 text-base">
             <AvatarImage src={comment.author.avatar || undefined} alt={comment.author.name} />
@@ -299,8 +298,8 @@ export default function PostDetailPage() {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
-              <h3 className="text-sm font-medium text-gray-900">{comment.author.name}</h3>
-              <time className="text-xs text-gray-500">
+              <h3 className="text-sm font-medium text-foreground">{comment.author.name}</h3>
+              <time className="text-xs text-muted-foreground">
                 {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
               </time>
               {comment.isAccepted && (
@@ -313,7 +312,7 @@ export default function PostDetailPage() {
               )}
             </div>
             
-            <div className="prose prose-sm max-w-none mb-3">
+            <div className="mb-3">
               <MarkdownPreview content={comment.content} />
             </div>
             
@@ -326,7 +325,7 @@ export default function PostDetailPage() {
                       key={index}
                       src={imageUrl}
                       alt={`评论图片 ${index + 1}`}
-                      className="rounded border border-gray-200 max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                      className="rounded border border-border max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => {
                         setPreviewImage(imageUrl);
                         setPreviewAlt(`评论图片 ${index + 1}`);
@@ -339,20 +338,20 @@ export default function PostDetailPage() {
             
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-4">
-                <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                   <span>{comment.likes}</span>
                 </button>
-                <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
                   </svg>
                 </button>
                 <button 
                   onClick={() => setReplyingTo(comment._id)}
-                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   回复
                 </button>
@@ -366,7 +365,7 @@ export default function PostDetailPage() {
                   className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                     comment.isAccepted
                       ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-muted text-muted-foreground hover:bg-accent'
                   } disabled:opacity-50`}
                 >
                   {processingAnswer === comment._id ? '处理中...' : (comment.isAccepted ? '取消最佳答案' : '标记为最佳答案')}
@@ -378,7 +377,7 @@ export default function PostDetailPage() {
             {allReplies.length > 0 && (
               <button
                 onClick={() => toggleReplies(comment._id)}
-                className="flex items-center space-x-1 text-blue-600 text-sm hover:text-blue-700 transition-colors mb-3"
+                className="flex items-center space-x-1 text-primary text-sm hover:text-primary/80 transition-colors mb-3"
               >
                 <svg 
                   className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
@@ -431,14 +430,14 @@ export default function PostDetailPage() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="text-sm font-medium text-gray-900">{reply.author.name}</h4>
-                          <time className="text-xs text-gray-500">
+                          <h4 className="text-sm font-medium text-foreground">{reply.author.name}</h4>
+                          <time className="text-xs text-muted-foreground">
                             {new Date(reply.createdAt).toLocaleDateString('zh-CN')}
                           </time>
                         </div>
-                        <div className="text-sm text-gray-700">
+                        <div className="text-sm text-foreground">
                           {parentAuthor && parentAuthor !== comment.author.name && (
-                            <span className="text-blue-600 font-medium">@{parentAuthor}：</span>
+                            <span className="text-primary font-medium">@{parentAuthor}：</span>
                           )}
                           <MarkdownPreview content={reply.content} />
                         </div>
@@ -452,7 +451,7 @@ export default function PostDetailPage() {
                                   key={imgIndex}
                                   src={imageUrl}
                                   alt={`回复图片 ${imgIndex + 1}`}
-                                  className="rounded border border-gray-200 max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                                  className="rounded border border-border max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
                                   onClick={() => {
                                     setPreviewImage(imageUrl);
                                     setPreviewAlt(`回复图片 ${imgIndex + 1}`);
@@ -464,20 +463,20 @@ export default function PostDetailPage() {
                         )}
 
                         <div className="flex items-center space-x-3 mt-2">
-                          <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                          <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                             </svg>
                             <span>{reply.likes || 0}</span>
                           </button>
-                          <button className="inline-flex items-center space-x-1 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                          <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
                             </svg>
                           </button>
                           <button 
                             onClick={() => setReplyingTo(reply._id)}
-                            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                           >
                             回复
                           </button>
@@ -552,7 +551,7 @@ export default function PostDetailPage() {
     const config = {
       'open': { label: '待解决', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
       'answered': { label: '已解决', color: 'bg-green-100 text-green-800 border-green-200' },
-      'closed': { label: '已关闭', color: 'bg-gray-100 text-gray-800 border-gray-200' }
+      'closed': { label: '已关闭', color: 'bg-muted text-muted-foreground border-border' }
     };
     const statusConfig = config[status as keyof typeof config];
     if (!statusConfig) return null;
@@ -566,10 +565,10 @@ export default function PostDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">加载中...</p>
         </div>
       </div>
     );
@@ -580,17 +579,17 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 面包屑导航 */}
-        <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-gray-900 transition-colors">
+        <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-8">
+          <Link href="/" className="hover:text-foreground transition-colors">
             首页
           </Link>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <span className="text-gray-900">{post.title}</span>
+          <span className="text-foreground">{post.title}</span>
         </nav>
 
         <div className="flex gap-8">
@@ -599,7 +598,7 @@ export default function PostDetailPage() {
             <header className="mb-8">
               {/* 标题和状态标签 */}
               <div className="flex items-start justify-between mb-4">
-                <h1 className="text-3xl font-bold text-gray-900 leading-tight flex-1 mr-4">
+                <h1 className="text-3xl font-bold text-foreground leading-tight flex-1 mr-4">
                   {post.title}
                 </h1>
                 <div className="flex items-center space-x-2">
@@ -615,8 +614,8 @@ export default function PostDetailPage() {
                     <AvatarFallback>{post.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{post.author.name}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm font-medium text-foreground">{post.author.name}</p>
+                    <p className="text-sm text-muted-foreground">
                       {new Date(post.createdAt).toLocaleDateString('zh-CN', {
                         year: 'numeric',
                         month: 'long',
@@ -627,7 +626,7 @@ export default function PostDetailPage() {
                 </div>
 
                 {/* 统计信息 */}
-                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                   <div className="flex items-center space-x-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -658,7 +657,7 @@ export default function PostDetailPage() {
                   {post.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border"
                     >
                       #{tag}
                     </span>
@@ -673,13 +672,13 @@ export default function PostDetailPage() {
             </article>
 
             {/* 操作按钮 */}
-            <div className="flex items-center space-x-3 mb-12 pb-6 border-b border-gray-200">
+            <div className="flex items-center space-x-3 mb-12 pb-6 border-b border-border">
               <button
                 onClick={handleLike}
                 className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
                   liked 
                     ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
-                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    : 'bg-background text-muted-foreground border-border hover:bg-accent'
                 }`}
               >
                 <svg className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
@@ -688,7 +687,7 @@ export default function PostDetailPage() {
                 <span>{liked ? '已点赞' : '点赞'}</span>
               </button>
 
-              <button className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+              <button className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg border border-border bg-background text-muted-foreground hover:bg-accent transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
@@ -698,7 +697,7 @@ export default function PostDetailPage() {
 
             {/* 评论区域 */}
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-6">
                 {post.type === 'question' ? `${comments.length} 个回答` : `${comments.length} 条评论`}
               </h2>
 
@@ -709,14 +708,14 @@ export default function PostDetailPage() {
 
               {/* 添加评论 */}
               <div className="mt-8">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                <h3 className="text-lg font-medium text-foreground mb-4">
                   {post.type === 'question' ? '你的回答' : '添加评论'}
                 </h3>
                 
                 {!showCommentInput ? (
                   <button
                     onClick={() => setShowCommentInput(true)}
-                    className="w-full px-4 py-3 text-left text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                    className="w-full px-4 py-3 text-left text-muted-foreground bg-muted border border-border rounded-lg hover:bg-accent hover:border-border transition-colors"
                   >
                     {post.type === 'question' ? '写下你的回答...' : '写下你的想法...'}
                   </button>

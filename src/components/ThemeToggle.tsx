@@ -25,10 +25,15 @@ const colorThemes = [
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
+  const [currentColorTheme, setCurrentColorTheme] = useState('default');
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
+    // 从localStorage读取保存的颜色主题
+    const savedColorTheme = localStorage.getItem('color-theme') || 'default';
+    setCurrentColorTheme(savedColorTheme);
+    document.documentElement.setAttribute('data-theme', savedColorTheme);
   }, []);
 
   if (!mounted) {
@@ -49,6 +54,9 @@ export function ThemeToggle() {
   const handleColorThemeChange = (colorTheme: string) => {
     // 设置data-theme属性到html元素
     document.documentElement.setAttribute('data-theme', colorTheme);
+    // 保存到localStorage以实现持久化
+    localStorage.setItem('color-theme', colorTheme);
+    setCurrentColorTheme(colorTheme);
   };
 
   return (
@@ -84,9 +92,9 @@ export function ThemeToggle() {
           {colorThemes.map((colorTheme) => (
             <Button
               key={colorTheme.name}
-              variant="ghost"
+              variant={currentColorTheme === colorTheme.name ? "default" : "ghost"}
               size="sm"
-              className="h-8 w-8 p-0"
+              className={`h-8 w-8 p-0 ${currentColorTheme === colorTheme.name ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
               onClick={() => handleColorThemeChange(colorTheme.name)}
               title={colorTheme.label}
             >
@@ -95,6 +103,11 @@ export function ThemeToggle() {
                 style={{ color: colorTheme.color }}
                 fill={colorTheme.color}
               />
+              {currentColorTheme === colorTheme.name && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 bg-primary-foreground rounded-full"></div>
+                </div>
+              )}
             </Button>
           ))}
         </div>

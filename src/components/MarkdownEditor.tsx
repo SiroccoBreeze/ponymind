@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo } from 'react';
+import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { commands } from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -29,6 +30,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   preview = 'live',
   className = ''
 }) => {
+  const { theme } = useTheme();
+
   // 处理内容变化
   const handleChange = useCallback((val?: string) => {
     onChange?.(val || '');
@@ -61,7 +64,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         value={value || ''}
         onChange={handleChange}
         height={height}
-        data-color-mode="light"
+        data-color-mode={theme === 'dark' ? 'dark' : 'light'}
         preview={preview}
         visibleDragbar={true}
         extraCommands={extraCommands}
