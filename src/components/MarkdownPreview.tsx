@@ -3,7 +3,7 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
@@ -17,6 +17,34 @@ interface MarkdownPreviewProps {
 // 代码块组件
 const CodeBlock = memo(({ language, children, ...props }: any) => {
   const [copied, setCopied] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // 检测当前主题
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark') || 
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setIsDarkMode(isDark);
+    };
+    
+    checkDarkMode();
+    
+    // 监听主题变化
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    // 监听系统主题变化
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+    
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
   
   const handleCopy = async () => {
     try {
@@ -31,7 +59,7 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
   return (
     <div className="relative group">
       <SyntaxHighlighter
-        style={oneLight}
+        style={isDarkMode ? oneDark : oneLight}
         language={language}
         PreTag="div"
         showLineNumbers
@@ -41,26 +69,54 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
           fontSize: '14px',
           margin: '20px 0',
           padding: '20px',
-                  backgroundColor: 'hsl(var(--muted))',
-        border: '1px solid hsl(var(--border))',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          border: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+          boxShadow: isDarkMode 
+            ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' 
+            : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+          lineHeight: '1.6',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+        }}
+        lineNumberStyle={{
+          color: isDarkMode ? '#64748b' : '#94a3b8',
+          fontSize: '12px',
+          paddingRight: '16px',
+          minWidth: '2.5em',
+          borderRight: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+          marginRight: '16px',
         }}
         {...props}
       >
         {String(children).replace(/\n$/, '')}
       </SyntaxHighlighter>
       
+      {/* 语言标签 */}
+      {language && (
+        <div className="absolute top-0 left-4 transform -translate-y-1/2">
+          <span className={`px-3 py-1 text-xs font-medium rounded-full border ${
+            isDarkMode 
+              ? 'bg-slate-800 text-slate-200 border-slate-600' 
+              : 'bg-slate-100 text-slate-700 border-slate-300'
+          }`}>
+            {language}
+          </span>
+        </div>
+      )}
+      
       {/* 复制按钮 */}
-              <button
-          onClick={handleCopy}
-          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-background hover:bg-muted border border-border rounded-lg px-3 py-2 text-sm font-medium text-foreground shadow-sm"
-        >
+      <button
+        onClick={handleCopy}
+        className={`absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg px-3 py-2 text-sm font-medium shadow-sm border ${
+          isDarkMode
+            ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 hover:text-white'
+            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900'
+        }`}
+      >
         {copied ? (
           <div className="flex items-center space-x-2">
-            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span className="text-green-600">已复制</span>
+            <span className="text-green-500">已复制</span>
           </div>
         ) : (
           <div className="flex items-center space-x-2">
@@ -256,7 +312,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
           {children}
         </CodeBlock>
       ) : (
-        <code className="bg-muted px-2 py-1 rounded-md text-sm font-mono text-foreground border border-border" {...props}>
+        <code className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md text-sm font-mono text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-medium" {...props}>
           {children}
         </code>
       );

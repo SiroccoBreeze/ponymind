@@ -45,7 +45,8 @@ import {
   Shield,
   Bell,
   ChevronRight,
-  Crown
+  Crown,
+  MessageSquare
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -128,6 +129,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/posts', 
       label: '内容管理', 
       icon: FileText,
+      description: ''
+    },
+    { 
+      href: '/admin/comments', 
+      label: '评论管理', 
+      icon: MessageSquare,
       description: ''
     },
     { 
