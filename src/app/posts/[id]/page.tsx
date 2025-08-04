@@ -289,7 +289,7 @@ export default function PostDetailPage() {
     const isExpanded = expandedReplies.has(comment._id);
 
     return (
-      <div key={comment._id} className={`border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 rounded-lg p-4 border border-green-200' : ''}`}>
+      <div key={comment._id} className={`border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-800' : ''}`}>
         <div className="flex items-start space-x-3">
           <Avatar className="w-10 h-10 text-base">
             <AvatarImage src={comment.author.avatar || undefined} alt={comment.author.name} />
@@ -303,7 +303,7 @@ export default function PostDetailPage() {
                 {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
               </time>
               {comment.isAccepted && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700">
                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -364,7 +364,7 @@ export default function PostDetailPage() {
                   disabled={!!processingAnswer}
                   className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                     comment.isAccepted
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
                       : 'bg-muted text-muted-foreground hover:bg-accent'
                   } disabled:opacity-50`}
                 >

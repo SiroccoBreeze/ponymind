@@ -94,12 +94,12 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
   if (error) {
     return (
       <span className="inline-block bg-muted border border-border rounded-lg p-6 text-center my-4 w-full max-w-md mx-auto">
-        <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-12 h-12 mx-auto mb-2 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
-        <span className="block text-sm text-gray-500">图片加载失败</span>
-        {alt && <span className="block text-xs text-gray-400 mt-1">{alt}</span>}
-        <span className="block text-xs text-gray-400 mt-1 break-all">{src}</span>
+        <span className="block text-sm text-muted-foreground">图片加载失败</span>
+        {alt && <span className="block text-xs text-muted-foreground mt-1">{alt}</span>}
+        <span className="block text-xs text-muted-foreground mt-1 break-all">{src}</span>
       </span>
     );
   }
@@ -154,7 +154,7 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
         
         {/* 图片描述 */}
         {alt && loaded && (
-          <span className="block text-center text-sm text-gray-500 mt-2 italic">{alt}</span>
+          <span className="block text-center text-sm text-muted-foreground mt-2 italic">{alt}</span>
         )}
       </span>
 

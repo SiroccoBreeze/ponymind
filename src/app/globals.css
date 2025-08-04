@@ -239,23 +239,28 @@
 
 .wmde-markdown th,
 .wmde-markdown td {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid hsl(var(--border)) !important;
   padding: 0.5rem !important;
   text-align: left !important;
 }
 
 .wmde-markdown th {
-  background-color: #f9fafb !important;
+  background-color: hsl(var(--muted)) !important;
   font-weight: 600 !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.wmde-markdown td {
+  color: hsl(var(--foreground)) !important;
 }
 
 .wmde-markdown a {
-  color: #3b82f6 !important;
+  color: hsl(var(--primary)) !important;
   text-decoration: underline !important;
 }
 
 .wmde-markdown a:hover {
-  color: #1d4ed8 !important;
+  color: hsl(var(--primary) / 0.8) !important;
 }
 
 .wmde-markdown img {
@@ -402,7 +407,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* 标题临时高亮效果 */
 .heading-highlight {
-  background-color: #fef3c7 !important;
+  background-color: hsl(var(--accent)) !important;
   transition: background-color 0.3s ease-in-out;
   border-radius: 4px;
   padding: 2px 4px;
@@ -426,9 +431,9 @@ h1, h2, h3, h4, h5, h6 {
 
 /* 目录高亮动画 */
 .toc-item-active {
-  background-color: #dbeafe;
-  border-left: 3px solid #3b82f6;
-  color: #1d4ed8;
+  background-color: hsl(var(--accent));
+  border-left: 3px solid hsl(var(--primary));
+  color: hsl(var(--primary));
   animation: slideIn 0.3s ease-out;
 }
 
@@ -1092,7 +1097,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 1rem auto;
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+  border: 1px solid hsl(var(--border));
   object-fit: contain;
   transition: all 0.3s ease;
   cursor: zoom-in;
@@ -1111,14 +1116,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* 加载中的图片占位符 */
 .markdown-preview .image-placeholder {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
   font-size: 0.875rem;
 }
 

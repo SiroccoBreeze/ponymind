@@ -151,11 +151,11 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
   if (!session?.user) {
     return (
-      <div className="bg-gray-50 rounded-xl p-4 text-center">
-        <p className="text-gray-600 mb-3">登录后可以发表评论</p>
+      <div className="bg-muted rounded-xl p-4 text-center">
+        <p className="text-muted-foreground mb-3">登录后可以发表评论</p>
         <a
           href="/auth/signin"
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
         >
           立即登录
         </a>
@@ -164,7 +164,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl border-2 border-gray-200 hover:border-gray-300 focus-within:border-blue-500 transition-all duration-200 shadow-sm">
+    <div className="bg-card rounded-xl border-2 border-border hover:border-primary/50 focus-within:border-primary transition-all duration-200 shadow-sm">
       <form onSubmit={handleSubmit}>
         {/* 图片预览区域 */}
         {cachedImages.length > 0 && (
@@ -175,7 +175,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
                   <img
                     src={cachedImage.previewUrl}
                     alt={`预览图片 ${index + 1}`}
-                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    className="w-16 h-16 object-cover rounded-lg border border-border"
                   />
                   <button
                     type="button"
@@ -183,7 +183,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
                       removeCachedImage(cachedImage.id);
                       setCachedImages(prev => prev.filter(img => img.id !== cachedImage.id));
                     }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     ×
                   </button>
@@ -200,13 +200,13 @@ const CommentInput: React.FC<CommentInputProps> = ({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder={placeholder}
-            className="w-full resize-none border-none outline-none text-gray-900 placeholder-gray-500 text-base leading-relaxed min-h-[3rem] max-h-[8rem] overflow-y-auto"
+            className="w-full resize-none border-none outline-none text-foreground placeholder-muted-foreground text-base leading-relaxed min-h-[3rem] max-h-[8rem] overflow-y-auto bg-transparent"
             style={{ fontSize: '16px' }}
           />
         </div>
 
         {/* 工具栏 */}
-        <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between">
+        <div className="border-t border-border px-4 py-3 flex items-center justify-between">
           {/* 左侧工具按钮 */}
           <div className="flex items-center space-x-3">
             {/* 表情按钮 */}
@@ -214,7 +214,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-accent transition-colors"
                 title="表情"
               >
                 <span className="text-lg">😊</span>
@@ -222,9 +222,9 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
               {/* 表情选择器 */}
               {showEmojiPicker && (
-                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="absolute bottom-full left-0 mb-2 w-80 bg-popover rounded-lg shadow-lg border border-border z-50">
                   {/* 表情分类标签 */}
-                  <div className="flex border-b border-gray-200">
+                  <div className="flex border-b border-border">
                     {Object.keys(EMOJI_CATEGORIES).map((category) => (
                       <button
                         key={category}
@@ -232,8 +232,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
                         onClick={() => setSelectedEmojiCategory(category)}
                         className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                           selectedEmojiCategory === category
-                            ? 'text-blue-600 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'text-primary border-b-2 border-primary'
+                            : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
                         {category}
@@ -249,7 +249,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
                           key={index}
                           type="button"
                           onClick={() => handleEmojiClick(emoji)}
-                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 transition-colors text-lg"
+                          className="w-8 h-8 flex items-center justify-center rounded hover:bg-accent transition-colors text-lg"
                         >
                           {emoji}
                         </button>
@@ -265,10 +265,10 @@ const CommentInput: React.FC<CommentInputProps> = ({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-accent transition-colors disabled:opacity-50"
               title="添加图片"
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" />
               </svg>
             </button>
@@ -284,7 +284,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
 
             {/* 上传状态提示 */}
             {isUploading && (
-              <div className="flex items-center text-sm text-gray-500">
+              <div className="flex items-center text-sm text-muted-foreground">
                 <svg className="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -308,7 +308,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
                   setContent('');
                   onCancel();
                 }}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 取消
               </button>
@@ -318,8 +318,8 @@ const CommentInput: React.FC<CommentInputProps> = ({
               disabled={isSubmitting || !content.trim() || isUploading}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
                 content.trim() && !isSubmitting && !isUploading
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed'
               }`}
             >
               {isSubmitting ? '发送中...' : '发送'}
