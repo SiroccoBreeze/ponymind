@@ -402,6 +402,7 @@ export default function PostDetailPage() {
                     setReplyingTo(null);
                   }}
                   isSubmitting={submittingReply}
+                  postId={postId}
                 />
               </div>
             )}
@@ -493,6 +494,7 @@ export default function PostDetailPage() {
                                 setReplyingTo(null);
                               }}
                               isSubmitting={submittingReply}
+                              postId={postId}
                             />
                           </div>
                         )}
@@ -756,6 +758,7 @@ export default function PostDetailPage() {
                     onCancel={() => setShowCommentInput(false)}
                     placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
                     isSubmitting={submittingComment}
+                    postId={postId}
                   />
                 )}
               </div>

@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import Comment from '@/models/Comment';
 import User from '@/models/User';
+import Image from '@/models/Image';
+import { deleteFromMinio } from '@/lib/minio';
 
 // 更新评论
 export async function PUT(
@@ -26,7 +28,7 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
-    const { content, images } = await request.json();
+    const { content, images, imagesToDelete } = await request.json();
 
     if (!content || !content.trim()) {
       return NextResponse.json({ error: '评论内容不能为空' }, { status: 400 });
@@ -35,6 +37,37 @@ export async function PUT(
     const comment = await Comment.findById(id);
     if (!comment) {
       return NextResponse.json({ error: '评论不存在' }, { status: 404 });
+    }
+
+    // 删除需要删除的图片文件
+    if (imagesToDelete && imagesToDelete.length > 0) {
+      try {
+        // 查找相关的图片记录
+        const imageRecords = await Image.find({
+          url: { $in: imagesToDelete }
+        });
+
+        // 删除MinIO中的文件
+        for (const imageRecord of imageRecords) {
+          if (imageRecord.storageType === 'minio' && imageRecord.objectName) {
+            try {
+              await deleteFromMinio(imageRecord.objectName);
+              console.log(`✅ 已删除MinIO文件: ${imageRecord.objectName}`);
+            } catch (error) {
+              console.error(`❌ 删除MinIO文件失败: ${imageRecord.objectName}`, error);
+            }
+          }
+        }
+
+        // 删除数据库中的图片记录
+        await Image.deleteMany({
+          url: { $in: imagesToDelete }
+        });
+        console.log(`✅ 已删除 ${imageRecords.length} 张图片记录`);
+      } catch (error) {
+        console.error('删除评论图片失败:', error);
+        // 图片删除失败不影响评论更新
+      }
     }
 
     // 更新评论内容和图片
@@ -92,6 +125,37 @@ export async function DELETE(
         { acceptedAnswer: comment._id },
         { $unset: { acceptedAnswer: 1 } }
       );
+    }
+
+    // 删除评论相关的图片文件
+    if (comment.images && comment.images.length > 0) {
+      try {
+        // 查找相关的图片记录
+        const imageRecords = await Image.find({
+          url: { $in: comment.images }
+        });
+
+        // 删除MinIO中的文件
+        for (const imageRecord of imageRecords) {
+          if (imageRecord.storageType === 'minio' && imageRecord.objectName) {
+            try {
+              await deleteFromMinio(imageRecord.objectName);
+              console.log(`✅ 已删除MinIO文件: ${imageRecord.objectName}`);
+            } catch (error) {
+              console.error(`❌ 删除MinIO文件失败: ${imageRecord.objectName}`, error);
+            }
+          }
+        }
+
+        // 删除数据库中的图片记录
+        await Image.deleteMany({
+          url: { $in: comment.images }
+        });
+        console.log(`✅ 已删除 ${imageRecords.length} 张图片记录`);
+      } catch (error) {
+        console.error('删除评论图片失败:', error);
+        // 图片删除失败不影响评论删除
+      }
     }
 
     // 删除评论及其所有回复

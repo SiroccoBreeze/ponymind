@@ -69,10 +69,16 @@ export function getAllCachedImages(): CachedImage[] {
 }
 
 // 上传缓存的图片到服务器
-export async function uploadCachedImages(cachedImages: CachedImage[]): Promise<string[]> {
+export async function uploadCachedImages(cachedImages: CachedImage[], postId?: string): Promise<string[]> {
   const uploadPromises = cachedImages.map(async (cachedImage) => {
     const formData = new FormData();
     formData.append('images', cachedImage.file);
+    
+    // 如果有postId，添加到表单数据中
+    if (postId) {
+      formData.append('postId', postId);
+      formData.append('isComment', 'true'); // 标记为评论图片
+    }
     
     try {
       const response = await fetch('/api/images/upload', {

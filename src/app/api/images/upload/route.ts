@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const files = formData.getAll('images') as File[];
     const postId = formData.get('postId') as string; // 获取帖子ID（可选）
+    const isComment = formData.get('isComment') === 'true'; // 获取是否为评论图片
+    const originalAuthorId = formData.get('originalAuthorId') as string; // 获取原评论作者ID（管理端编辑时使用）
 
     if (!files || files.length === 0) {
       return NextResponse.json(
@@ -78,14 +80,19 @@ export async function POST(request: NextRequest) {
         // 保存文件到MinIO，传递用户ID和帖子ID
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const fileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), postId);
+        
+        // 如果是管理端编辑评论，使用原评论作者的ID
+        const uploadUserId = originalAuthorId || user._id.toString();
+        const fileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, uploadUserId, postId, false, isComment);
 
         // 生成对象名称
         let objectName: string;
-        if (postId) {
-          objectName = `images/${user._id}/${postId}/${fileName}`;
+        if (postId && isComment) {
+          objectName = `images/${uploadUserId}/${postId}/comments/${fileName}`;
+        } else if (postId) {
+          objectName = `images/${uploadUserId}/${postId}/${fileName}`;
         } else {
-          objectName = `images/${user._id}/temp/${fileName}`;
+          objectName = `images/${uploadUserId}/temp/${fileName}`;
         }
 
         // 保存到数据库，但标记为未确认
@@ -97,7 +104,7 @@ export async function POST(request: NextRequest) {
           url: fileUrl,
           objectName: objectName,
           storageType: 'minio',
-          uploader: user._id,
+          uploader: originalAuthorId || user._id, // 使用原评论作者ID或当前用户ID
           associatedPost: postId || null,
           isUsed: false, // 标记为未确认使用
         });

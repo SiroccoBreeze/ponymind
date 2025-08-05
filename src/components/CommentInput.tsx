@@ -10,6 +10,7 @@ interface CommentInputProps {
   onCancel?: () => void;
   placeholder?: string;
   isSubmitting?: boolean;
+  postId?: string; // 添加帖子ID参数
 }
 
 // 表情数据
@@ -24,6 +25,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
   onCancel,
   placeholder = "写下你的想法...",
   isSubmitting = false,
+  postId,
 }) => {
   const [content, setContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -70,7 +72,7 @@ const CommentInput: React.FC<CommentInputProps> = ({
     
     try {
       // 上传缓存的图片
-      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages) : [];
+      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages, postId) : [];
       
       // 提交评论
       await onSubmit(content.trim(), imageUrls);

@@ -138,19 +138,19 @@ export default function PostList({
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'beginner': return 'bg-green-100 text-green-800';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'beginner': return 'bg-green-500/10 text-green-600 border-green-500/20';
+      case 'intermediate': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+      case 'advanced': return 'bg-red-500/10 text-red-600 border-red-500/20';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getStatusColor = (status: string, hasAcceptedAnswer: boolean) => {
-    if (hasAcceptedAnswer) return 'bg-green-100 text-green-800 border-green-200';
+    if (hasAcceptedAnswer) return 'bg-green-500/10 text-green-600 border-green-500/20';
     switch (status) {
-      case 'answered': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'closed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'answered': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'closed': return 'bg-muted text-muted-foreground border-border';
+      default: return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
     }
   };
 
@@ -185,11 +185,11 @@ export default function PostList({
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-          <svg className="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-6 max-w-md mx-auto">
+          <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
-          <p className="text-red-700 font-medium">{error}</p>
+          <p className="text-red-600 font-medium">{error}</p>
           <button
             onClick={() => fetchPosts(page)}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
@@ -249,7 +249,7 @@ export default function PostList({
                   <div className="flex items-center space-x-2">
                     {/* 内容类型标识 */}
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      post.type === 'question' ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'
+                      post.type === 'question' ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'
                     }`}>
                       {post.type === 'question' ? '问题' : '文章'}
                     </span>
@@ -319,7 +319,7 @@ export default function PostList({
           <button
             onClick={() => fetchPosts(page - 1)}
             disabled={page <= 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors duration-200 text-sm"
+            className="px-4 py-2 border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent transition-colors duration-200 text-sm bg-background text-foreground"
           >
             上一页
           </button>
@@ -343,8 +343,8 @@ export default function PostList({
                   onClick={() => fetchPosts(pageNum)}
                   className={`px-3 py-2 rounded-lg transition-colors duration-200 text-sm ${
                     page === pageNum
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-gray-300 hover:bg-gray-50'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'border border-border hover:bg-accent bg-background text-foreground'
                   }`}
                 >
                   {pageNum}
@@ -356,7 +356,7 @@ export default function PostList({
           <button
             onClick={() => fetchPosts(page + 1)}
             disabled={page >= totalPages}
-            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors duration-200 text-sm"
+            className="px-4 py-2 border border-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent transition-colors duration-200 text-sm bg-background text-foreground"
           >
             下一页
           </button>

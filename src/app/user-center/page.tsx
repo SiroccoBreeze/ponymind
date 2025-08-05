@@ -312,8 +312,8 @@ export default function UserCenterPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -323,12 +323,12 @@ export default function UserCenterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-8">
           {/* 左侧导航 */}
           <div className="w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <div className="bg-card rounded-lg shadow-sm border border-border p-6 mb-6">
               <div className="flex items-center space-x-4 mb-6">
                 <UserAvatar 
                   avatar={userProfile?.avatar}
@@ -336,8 +336,8 @@ export default function UserCenterPage() {
                   size="lg"
                 />
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">{session?.user?.name}</h1>
-                  <p className="text-sm text-gray-600">{session?.user?.email}</p>
+                  <h1 className="text-lg font-bold text-foreground">{session?.user?.name}</h1>
+                  <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
                 </div>
               </div>
               
@@ -346,8 +346,8 @@ export default function UserCenterPage() {
                   onClick={() => setActiveSection('profile')}
                   className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
                     activeSection === 'profile'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,8 +360,8 @@ export default function UserCenterPage() {
                   onClick={() => setActiveSection('content')}
                   className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
                     activeSection === 'content'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,8 +379,8 @@ export default function UserCenterPage() {
                   onClick={() => setActiveSection('messages')}
                   className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
                     activeSection === 'messages'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,8 +402,8 @@ export default function UserCenterPage() {
             {/* 个人资料 */}
             {activeSection === 'profile' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">个人资料</h2>
+                <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+                  <h2 className="text-xl font-bold text-foreground mb-6">个人资料</h2>
                   
                   {/* 头像上传区域 */}
                   <div className="mb-8">
@@ -417,108 +417,108 @@ export default function UserCenterPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">用户名</label>
                       <input
                         type="text"
                         value={userProfile?.name || session?.user?.name || ''}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         readOnly
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">邮箱</label>
                       <input
                         type="email"
                         value={userProfile?.email || session?.user?.email || ''}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                         readOnly
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">加入时间</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">加入时间</label>
                       <input
                         type="text"
                         value={userProfile?.createdAt 
                           ? new Date(userProfile.createdAt).toLocaleDateString('zh-CN')
                           : new Date().toLocaleDateString('zh-CN')
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                         readOnly
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">用户类型</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">用户类型</label>
                       <input
                         type="text"
                         value="普通用户"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                         readOnly
                       />
                     </div>
                   </div>
                   
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">个人简介</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">个人简介</label>
                     <textarea
                       rows={4}
                       value={userProfile?.bio || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                       placeholder="介绍一下你自己..."
                       readOnly
                     />
                   </div>
                   
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">位置</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">位置</label>
                     <input
                       type="text"
                       value={userProfile?.location || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                       placeholder="你的位置"
                       readOnly
                     />
                   </div>
                   
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">个人网站</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">个人网站</label>
                     <input
                       type="url"
                       value={userProfile?.website || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                       placeholder="https://your-website.com"
                       readOnly
                     />
                   </div>
                   
                   <div className="mt-6 flex justify-end">
-                    <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
                       保存更改
                     </button>
                   </div>
                 </div>
                 
                 {/* 统计数据 */}
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">我的统计</h3>
+                <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+                  <h3 className="text-lg font-bold text-foreground mb-4">我的统计</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center p-4 border border-border rounded-lg bg-background">
                       <div className="text-2xl font-bold text-blue-600">{stats.totalPosts}</div>
-                      <div className="text-sm text-gray-600">总发布</div>
+                      <div className="text-sm text-muted-foreground">总发布</div>
                     </div>
-                    <div className="text-center p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center p-4 border border-border rounded-lg bg-background">
                       <div className="text-2xl font-bold text-green-600">{stats.totalArticles}</div>
-                      <div className="text-sm text-gray-600">文章</div>
+                      <div className="text-sm text-muted-foreground">文章</div>
                     </div>
-                    <div className="text-center p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center p-4 border border-border rounded-lg bg-background">
                       <div className="text-2xl font-bold text-orange-600">{stats.totalQuestions}</div>
-                      <div className="text-sm text-gray-600">问题</div>
+                      <div className="text-sm text-muted-foreground">问题</div>
                     </div>
-                    <div className="text-center p-4 border border-gray-200 rounded-lg">
+                    <div className="text-center p-4 border border-border rounded-lg bg-background">
                       <div className="text-2xl font-bold text-purple-600">{stats.totalViews}</div>
-                      <div className="text-sm text-gray-600">浏览量</div>
+                      <div className="text-sm text-muted-foreground">浏览量</div>
                     </div>
                   </div>
                 </div>
@@ -530,40 +530,40 @@ export default function UserCenterPage() {
               <div className="space-y-6">
                 {/* 统计卡片 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
                     <div className="text-2xl font-bold text-blue-600">{stats.totalPosts}</div>
-                    <div className="text-sm text-gray-600">总发布</div>
+                    <div className="text-sm text-muted-foreground">总发布</div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.totalArticles}</div>
-                    <div className="text-sm text-gray-600">文章</div>
+                    <div className="text-sm text-muted-foreground">文章</div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
                     <div className="text-2xl font-bold text-orange-600">{stats.totalQuestions}</div>
-                    <div className="text-sm text-gray-600">问题</div>
+                    <div className="text-sm text-muted-foreground">问题</div>
                   </div>
-                  <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-                    <div className="text-sm text-gray-600">待审核</div>
+                    <div className="text-sm text-muted-foreground">待审核</div>
                   </div>
                 </div>
 
                 {/* 内容管理 */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-card rounded-xl shadow-sm border border-border">
                   {/* 头部 */}
-                  <div className="px-6 py-4 border-b border-gray-100">
+                  <div className="px-6 py-4 border-b border-border">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-gray-900">内容管理</h2>
+                      <h2 className="text-xl font-semibold text-foreground">内容管理</h2>
                       <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="搜索内容..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                          />
-                          <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="搜索内容..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground"
+                            />
+                            <svg className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
                         </div>
@@ -572,7 +572,7 @@ export default function UserCenterPage() {
                   </div>
 
                   {/* 标签页 */}
-                  <div className="border-b border-gray-100">
+                  <div className="border-b border-border">
                     <nav className="flex space-x-8 px-6" aria-label="Tabs">
                       {[
                         { id: 'overview', label: '全部内容', count: stats.totalPosts, icon: '📄' },
@@ -586,16 +586,16 @@ export default function UserCenterPage() {
                           onClick={() => setActiveTab(tab.id)}
                           className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                             activeTab === tab.id
-                              ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              ? 'border-primary text-primary'
+                              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                           }`}
                         >
                           <span>{tab.icon}</span>
                           <span>{tab.label}</span>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             activeTab === tab.id
-                              ? 'bg-blue-100 text-blue-600'
-                              : 'bg-gray-100 text-gray-500'
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground'
                           }`}>
                             {tab.count}
                           </span>
@@ -608,18 +608,18 @@ export default function UserCenterPage() {
                   <div className="p-6">
                     {loading ? (
                       <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="text-gray-500 mt-2">加载中...</p>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-muted-foreground mt-2">加载中...</p>
                       </div>
                     ) : posts.length === 0 ? (
                       <div className="text-center py-12">
-                        <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-16 h-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d={searchQuery.trim() ? "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" : "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"} />
                         </svg>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        <h3 className="text-lg font-medium text-foreground mb-2">
                           {searchQuery.trim() ? '未找到匹配的内容' : '暂无内容'}
                         </h3>
-                        <p className="text-gray-500 mb-4">
+                        <p className="text-muted-foreground mb-4">
                           {searchQuery.trim() 
                             ? `没有找到包含"${searchQuery}"的内容，请尝试其他关键词` 
                             : (activeTab === 'drafts' ? '你还没有保存任何草稿' : 
@@ -632,7 +632,7 @@ export default function UserCenterPage() {
                         {!searchQuery.trim() && (
                           <Link
                             href="/"
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                           >
                             开始创作
                           </Link>
@@ -641,7 +641,7 @@ export default function UserCenterPage() {
                     ) : (
                       <div className="space-y-3">
                         {posts.map((post) => (
-                          <div key={post._id} className="group border border-gray-100 rounded-lg p-5 hover:shadow-md hover:border-gray-200 transition-all duration-200 bg-gradient-to-r from-white to-gray-50/50">
+                          <div key={post._id} className="group border border-border rounded-lg p-5 hover:shadow-md hover:border-border/50 transition-all duration-200 bg-gradient-to-r from-card to-background/50">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-3">
@@ -651,14 +651,14 @@ export default function UserCenterPage() {
                                     {post.type === 'question' ? '🤔 问题' : '📝 文章'}
                                   </span>
                                   {getStatusBadge(post.reviewStatus)}
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-muted-foreground">
                                     {new Date(post.createdAt).toLocaleDateString('zh-CN')}
                                   </span>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-blue-600 cursor-pointer group-hover:text-blue-600 transition-colors">
+                                <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary cursor-pointer group-hover:text-primary transition-colors">
                                   {post.title}
                                 </h3>
-                                <div className="flex items-center space-x-6 text-sm text-gray-500">
+                                <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                                   {post.reviewStatus === 'published' && (
                                     <>
                                       <div className="flex items-center space-x-1">
@@ -690,7 +690,7 @@ export default function UserCenterPage() {
                                 <Link
                                   href={`/posts/${post._id}`}
                                   target="_blank"
-                                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                   title="查看"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -700,7 +700,7 @@ export default function UserCenterPage() {
                                 </Link>
                                 <button 
                                   onClick={() => handleEditPost(post._id)}
-                                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                  className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-500/10 rounded-lg transition-colors"
                                   title="编辑"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -709,7 +709,7 @@ export default function UserCenterPage() {
                                 </button>
                                 <button 
                                   onClick={() => handleDeletePost(post._id)}
-                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
                                   title="删除"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -725,7 +725,7 @@ export default function UserCenterPage() {
                     
                     {/* 分页 */}
                     {totalPages > 1 && (
-                      <div className="flex items-center justify-center mt-6 pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-center mt-6 pt-4 border-t border-border">
                         <Pagination>
                           <PaginationContent>
                             <PaginationItem>
@@ -774,55 +774,55 @@ export default function UserCenterPage() {
             {/* 消息 */}
             {activeSection === 'messages' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">消息中心</h2>
+                    <h2 className="text-xl font-semibold text-foreground">消息中心</h2>
                     {unreadCount > 0 && (
-                      <button 
-                        onClick={async () => {
-                          try {
-                            const response = await fetch('/api/users/messages', {
-                              method: 'PATCH',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({ markAllAsRead: true }),
-                            });
-                            
-                            if (response.ok) {
-                              setUnreadCount(0);
-                              // 重新获取消息列表
-                              fetchMessages();
+                                              <button 
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/users/messages', {
+                                method: 'PATCH',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ markAllAsRead: true }),
+                              });
+                              
+                              if (response.ok) {
+                                setUnreadCount(0);
+                                // 重新获取消息列表
+                                fetchMessages();
+                              }
+                            } catch (error) {
+                              console.error('标记已读失败:', error);
                             }
-                          } catch (error) {
-                            console.error('标记已读失败:', error);
-                          }
-                        }}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        标记全部已读
-                      </button>
+                          }}
+                          className="text-sm text-primary hover:text-primary/80"
+                        >
+                          标记全部已读
+                        </button>
                     )}
                   </div>
                   
                   {messagesLoading ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                      <p className="text-gray-500 mt-2">加载中...</p>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-muted-foreground mt-2">加载中...</p>
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="text-center py-12">
-                      <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-16 h-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">暂无消息</h3>
-                      <p className="text-gray-500">您还没有收到任何消息</p>
+                      <h3 className="text-lg font-medium text-foreground mb-2">暂无消息</h3>
+                      <p className="text-muted-foreground">您还没有收到任何消息</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {messages.map((message) => (
                         <div key={message._id || message.id} className={`border rounded-lg p-4 transition-all duration-200 ${
-                          message.isRead ? 'border-gray-200 bg-gray-50/50' : 'border-blue-200 bg-blue-50/50'
+                          message.isRead ? 'border-border bg-muted/50' : 'border-primary/20 bg-primary/5'
                         }`}>
                           <div className="flex items-start space-x-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -851,55 +851,55 @@ export default function UserCenterPage() {
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <h3 className="font-medium text-gray-900">{message.title}</h3>
+                                <h3 className="font-medium text-foreground">{message.title}</h3>
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-muted-foreground">
                                     {new Date(message.createdAt).toLocaleDateString('zh-CN')}
                                   </span>
                                   {!message.isRead && (
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <div className="w-2 h-2 bg-primary rounded-full"></div>
                                   )}
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 {message.content}
                               </p>
                               {message.relatedId && (
                                 <div className="mt-2">
-                                  <Link
-                                    href={`/posts/${message.relatedId}`}
-                                    onClick={async () => {
-                                      // 如果消息未读，标记为已读
-                                      if (!message.isRead) {
-                                        try {
-                                          const response = await fetch('/api/users/messages', {
-                                            method: 'PATCH',
-                                            headers: {
-                                              'Content-Type': 'application/json',
-                                            },
-                                            body: JSON.stringify({ 
-                                              messageIds: [message._id || message.id] 
-                                            }),
-                                          });
-                                          
-                                          if (response.ok) {
-                                            // 更新本地状态
-                                            setMessages(prev => prev.map(msg => 
-                                              msg._id === message._id || msg.id === message.id 
-                                                ? { ...msg, isRead: true }
-                                                : msg
-                                            ));
-                                            setUnreadCount(prev => Math.max(0, prev - 1));
+                                                                      <Link
+                                      href={`/posts/${message.relatedId}`}
+                                      onClick={async () => {
+                                        // 如果消息未读，标记为已读
+                                        if (!message.isRead) {
+                                          try {
+                                            const response = await fetch('/api/users/messages', {
+                                              method: 'PATCH',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                              },
+                                              body: JSON.stringify({ 
+                                                messageIds: [message._id || message.id] 
+                                              }),
+                                            });
+                                            
+                                            if (response.ok) {
+                                              // 更新本地状态
+                                              setMessages(prev => prev.map(msg => 
+                                                msg._id === message._id || msg.id === message.id 
+                                                  ? { ...msg, isRead: true }
+                                                  : msg
+                                              ));
+                                              setUnreadCount(prev => Math.max(0, prev - 1));
+                                            }
+                                          } catch (error) {
+                                            console.error('标记消息已读失败:', error);
                                           }
-                                        } catch (error) {
-                                          console.error('标记消息已读失败:', error);
                                         }
-                                      }
-                                    }}
-                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                  >
-                                    查看相关内容 →
-                                  </Link>
+                                      }}
+                                      className="text-sm text-primary hover:text-primary/80"
+                                    >
+                                      查看相关内容 →
+                                    </Link>
                                 </div>
                               )}
                             </div>

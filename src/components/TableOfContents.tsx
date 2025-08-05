@@ -93,19 +93,19 @@ export default function TableOfContents({ content, className = '' }: TableOfCont
 
   return (
     <nav className={`toc-navigation ${className}`}>
-      <div className="text-sm font-medium text-gray-900 mb-4">目录</div>
+      <div className="text-sm font-medium text-foreground mb-4">目录</div>
       <div className="space-y-0">
         {toc.map((item, index) => (
           <button
             key={index}
             onClick={() => scrollToHeading(item.id)}
-            className={`block w-full text-left py-1.5 text-sm transition-colors duration-150 hover:text-gray-900 cursor-pointer ${
+            className={`block w-full text-left py-1.5 text-sm transition-colors duration-150 hover:text-foreground hover:bg-accent/50 rounded px-2 cursor-pointer ${
               activeId === item.id 
-                ? 'text-blue-600 font-medium' 
-                : 'text-gray-600'
+                ? 'text-primary font-medium bg-accent/30' 
+                : 'text-muted-foreground'
             }`}
             style={{
-              paddingLeft: `${(item.level - 1) * 16}px`
+              paddingLeft: `${(item.level - 1) * 16 + 8}px`
             }}
             title={item.text}
           >

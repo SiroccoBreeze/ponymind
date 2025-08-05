@@ -198,6 +198,18 @@ export default function CommentsPage() {
 
     setIsEditing(true);
     try {
+      // 获取原始图片URLs和新上传的图片URLs
+      const originalImages = editingComment.images || [];
+      const newImages = uploadedImages
+        .filter(img => !img.id.startsWith('existing-'))
+        .map(img => img.url);
+      const keptImages = uploadedImages
+        .filter(img => img.id.startsWith('existing-'))
+        .map(img => img.url);
+      
+      // 计算需要删除的图片
+      const imagesToDelete = originalImages.filter(img => !keptImages.includes(img));
+      
       const response = await fetch(`/api/admin/comments/${editingComment._id}`, {
         method: 'PUT',
         headers: {
@@ -205,7 +217,8 @@ export default function CommentsPage() {
         },
         body: JSON.stringify({
           content: editContent.trim(),
-          images: uploadedImages.map(img => img.url)
+          images: [...keptImages, ...newImages],
+          imagesToDelete: imagesToDelete // 传递需要删除的图片URLs
         }),
       });
 
@@ -273,6 +286,14 @@ export default function CommentsPage() {
         formData.append('images', file);
       });
 
+      // 如果是编辑模式，添加postId和isComment参数
+      if (editingComment) {
+        formData.append('postId', editingComment.post._id);
+        formData.append('isComment', 'true');
+        // 添加原评论作者的ID，确保图片存储到正确的路径
+        formData.append('originalAuthorId', editingComment.author._id);
+      }
+
       console.log('开始上传图片，文件数量:', selectedFiles.length);
 
       const response = await fetch('/api/images/upload', {
@@ -314,6 +335,10 @@ export default function CommentsPage() {
           toast.error('删除图片失败');
           return;
         }
+      } else {
+        // 如果是现有图片，需要从评论的images数组中移除
+        // 这里不需要立即删除文件，因为文件会在评论保存时更新
+        console.log('移除现有图片:', imageId);
       }
 
       // 从本地状态中移除

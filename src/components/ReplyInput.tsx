@@ -9,6 +9,7 @@ interface ReplyInputProps {
   onCancel: () => void;
   isSubmitting?: boolean;
   placeholder?: string;
+  postId?: string; // 添加帖子ID参数
 }
 
 // 表情数据
@@ -23,6 +24,7 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
   onCancel,
   isSubmitting = false,
   placeholder = "写下你的回复...",
+  postId,
 }) => {
   const [content, setContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -75,7 +77,7 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
     
     try {
       // 上传缓存的图片
-      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages) : [];
+      const imageUrls = cachedImages.length > 0 ? await uploadCachedImages(cachedImages, postId) : [];
       
       // 提交回复
       await onSubmit(content.trim(), imageUrls);

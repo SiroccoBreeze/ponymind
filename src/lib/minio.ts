@@ -38,7 +38,8 @@ export async function uploadToMinio(
   bucketName: string = DEFAULT_BUCKET,
   userId?: string,
   postId?: string,
-  isAvatar: boolean = false
+  isAvatar: boolean = false,
+  isComment: boolean = false
 ): Promise<string> {
   try {
     await ensureBucketExists(bucketName);
@@ -48,6 +49,9 @@ export async function uploadToMinio(
     if (isAvatar && userId) {
       // 头像文件: images/userId/avatar/filename
       objectName = `images/${userId}/avatar/${fileName}`;
+    } else if (userId && postId && isComment) {
+      // 评论图片: images/userId/postId/comments/filename
+      objectName = `images/${userId}/${postId}/comments/${fileName}`;
     } else if (userId && postId) {
       // 用户ID/帖子ID/图片名称
       objectName = `images/${userId}/${postId}/${fileName}`;

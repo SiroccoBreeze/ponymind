@@ -27,6 +27,12 @@ export async function GET() {
     ]) as TagAggregateResult[];
     
     const tags = tagsResult.map(item => item._id);
+    
+    // 构建标签计数映射
+    const tagCounts: Record<string, number> = {};
+    tagsResult.forEach(item => {
+      tagCounts[item._id] = item.count;
+    });
 
     // 获取活跃作者（有发布内容的用户）
     const authorsResult = await Post.aggregate([
@@ -54,6 +60,7 @@ export async function GET() {
 
     return NextResponse.json({
       tags,
+      tagCounts,
       authors: authorsWithCount
     });
   } catch (error) {
