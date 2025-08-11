@@ -110,7 +110,7 @@ export default function AdminEventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
@@ -214,8 +214,8 @@ export default function AdminEventsPage() {
   };
 
   const openViewDialog = (event: Event) => {
-    setSelectedEvent(event);
-    setIsViewDialogOpen(true);
+    // 跳转到用户端的事件详情页面
+    window.open(`/events/${event._id}`, '_blank');
   };
 
   const handleSave = async () => {
@@ -865,182 +865,7 @@ export default function AdminEventsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 查看事件详情对话框 */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader className="pb-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Calendar className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <DialogTitle className="text-2xl font-bold">事件详情</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  查看事件的完整信息和相关附件
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
-          
-          {selectedEvent && (
-            <div className="space-y-6">
-              {/* 事件标题和分类 - 突出显示 */}
-              <div className="text-center pb-6 border-b">
-                <h2 className="text-3xl font-bold text-foreground mb-3">{selectedEvent.title}</h2>
-                <div className="flex items-center justify-center space-x-4">
-                  <Badge className={`${categoryColors[selectedEvent.category]} px-4 py-2 text-sm font-medium`}>
-                    {categoryLabels[selectedEvent.category]}
-                  </Badge>
-                  <div className="flex items-center space-x-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>发生时间: {formatDate(selectedEvent.occurredAt)}</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* 基本信息卡片 */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">基本信息</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">事件标题</Label>
-                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
-                      {selectedEvent.title}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">分类</Label>
-                    <div className="px-3 py-2">
-                      <Badge className={`${categoryColors[selectedEvent.category]} px-3 py-1 text-sm font-medium`}>
-                        {categoryLabels[selectedEvent.category]}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">发生时间</Label>
-                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
-                      {formatDate(selectedEvent.occurredAt)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">创建时间</Label>
-                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
-                      {formatDate(selectedEvent.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 创建者信息卡片 */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-6 rounded-xl border border-green-200/50 dark:border-green-800/50">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                    <User className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">创建者信息</h3>
-                </div>
-                <div className="flex items-center space-x-4 p-4 bg-white/50 dark:bg-green-950/30 rounded-xl">
-                  <Avatar className="h-16 w-16 ring-4 ring-white dark:ring-green-950/50 shadow-lg">
-                    <AvatarImage src={selectedEvent.creator.avatar} />
-                    <AvatarFallback className="text-xl font-bold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
-                      {selectedEvent.creator.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="space-y-2">
-                    <p className="text-xl font-bold text-green-900 dark:text-green-100">
-                      {selectedEvent.creator.name}
-                    </p>
-                    <p className="text-sm text-green-700 dark:text-green-300 bg-white/70 dark:bg-green-950/50 px-3 py-1 rounded-full">
-                      {selectedEvent.creator.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 事件描述卡片 */}
-              <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 p-6 rounded-xl border border-purple-200/50 dark:border-purple-800/50">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
-                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">事件描述</h3>
-                </div>
-                <div className="bg-white/50 dark:bg-purple-950/30 p-4 rounded-xl">
-                  <div className="prose prose-sm max-w-none text-purple-900 dark:text-purple-100">
-                    {selectedEvent.description || (
-                      <span className="text-purple-600 dark:text-purple-400 italic">暂无描述</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* 附件卡片 */}
-              {selectedEvent.attachments && selectedEvent.attachments.length > 0 && (
-                <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 p-6 rounded-xl border border-orange-200/50 dark:border-orange-800/50">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
-                      <ImageIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100">
-                      附件 ({selectedEvent.attachments.length}个)
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedEvent.attachments.map((attachment) => (
-                      <div key={attachment._id} className="group relative bg-white/70 dark:bg-orange-950/30 rounded-xl p-4 border border-orange-200/50 dark:border-orange-800/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
-                        <div className="space-y-3">
-                          {attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                            <div className="relative overflow-hidden rounded-lg">
-                              <ImagePreview
-                                src={attachment.url}
-                                alt={attachment.originalName}
-                                size="md"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
-                            </div>
-                          ) : (
-                            <div className="w-full h-32 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/50 dark:to-amber-900/50 rounded-lg border-2 border-dashed border-orange-300 dark:border-orange-700 flex items-center justify-center">
-                              <FileText className="h-12 w-12 text-orange-500 dark:text-orange-400" />
-                            </div>
-                          )}
-                          <div className="text-center space-y-2">
-                            <p className="text-sm font-medium text-orange-900 dark:text-orange-100 truncate px-2">
-                              {attachment.originalName}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full bg-white/80 dark:bg-orange-950/50 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/70 transition-colors duration-200"
-                              onClick={() => window.open(attachment.url, '_blank')}
-                            >
-                              <Download className="h-3 w-3 mr-2" />
-                              下载附件
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          
-          <DialogFooter className="pt-6 border-t">
-            <Button 
-              onClick={() => setIsViewDialogOpen(false)}
-              className="px-6 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              关闭详情
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 
