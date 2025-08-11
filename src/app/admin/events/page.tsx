@@ -199,16 +199,16 @@ export default function AdminEventsPage() {
       description: event.description,
       category: event.category,
       occurredAt: new Date(event.occurredAt).toISOString().slice(0, 16),
-      attachmentIds: event.attachments.map(a => a._id)
+      attachmentIds: event.attachments?.map(a => a._id) || []
     });
-    setUploadedAttachments(event.attachments.map(a => ({
+    setUploadedAttachments(event.attachments?.map(a => ({
       id: a._id,
       filename: a.filename,
       originalName: a.originalName,
       url: a.url,
       size: a.size,
       isConfirmed: true
-    })));
+    })) || []);
     setSelectedEvent(event);
     setIsEditDialogOpen(true);
   };
@@ -312,22 +312,26 @@ export default function AdminEventsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        const newAttachments = data.uploadedAttachments.map((att: { _id: string; filename: string; originalName: string; url: string; size: number }) => ({
-          id: att._id,
+        const newAttachments = data.attachments?.map((att: { id: string; filename: string; originalName: string; url: string; size: number }) => ({
+          id: att.id,
           filename: att.filename,
           originalName: att.originalName,
           url: att.url,
           size: att.size,
           isConfirmed: false
-        }));
+        })) || [];
         
-        setUploadedAttachments(prev => [...prev, ...newAttachments]);
-        setFormData(prev => ({
-          ...prev,
-          attachmentIds: [...prev.attachmentIds, ...newAttachments.map((a: UploadedAttachment) => a.id)]
-        }));
-        setSelectedFiles([]);
-        toast.success('附件上传成功');
+        if (newAttachments.length > 0) {
+          setUploadedAttachments(prev => [...prev, ...newAttachments]);
+          setFormData(prev => ({
+            ...prev,
+            attachmentIds: [...prev.attachmentIds, ...newAttachments.map((a: UploadedAttachment) => a.id)]
+          }));
+          setSelectedFiles([]);
+          toast.success('附件上传成功');
+        } else {
+          toast.error('没有附件上传成功');
+        }
       } else {
         toast.error('附件上传失败');
       }
@@ -378,75 +382,89 @@ export default function AdminEventsPage() {
   };
 
   const renderEventsTable = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {events.map((event) => (
-        <div key={event._id} className="border rounded-lg p-4 space-y-3">
+        <div key={event._id} className="group relative bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 space-y-4 hover:shadow-xl hover:border-primary/30 dark:hover:border-primary/50 transition-all duration-300 hover:scale-[1.02]">
           {/* 事件头部信息 */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Calendar className="h-5 w-5 text-primary" />
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300">
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-medium text-lg">{event.title}</h3>
-                  <Badge className={categoryColors[event.category]}>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-3">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors duration-300">
+                    {event.title}
+                  </h3>
+                  <Badge className={`${categoryColors[event.category]} px-3 py-1 text-sm font-medium shadow-sm`}>
                     {categoryLabels[event.category]}
                   </Badge>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatDate(event.occurredAt)}
+                <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+                  <Clock className="h-4 w-4" />
+                  <span>发生时间: {formatDate(event.occurredAt)}</span>
                 </div>
               </div>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-primary/10">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>操作</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => openViewDialog(event)}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  查看详情
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="font-medium">操作菜单</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => openViewDialog(event)} className="cursor-pointer">
+                  <Eye className="h-4 w-4 mr-3 text-blue-600" />
+                  <span>查看详情</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openEditDialog(event)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  编辑
+                <DropdownMenuItem onClick={() => openEditDialog(event)} className="cursor-pointer">
+                  <Edit className="h-4 w-4 mr-3 text-green-600" />
+                  <span>编辑事件</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => handleDelete(event._id)}
-                  className="text-destructive"
+                  className="text-destructive cursor-pointer"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  删除
+                  <Trash2 className="h-4 w-4 mr-3" />
+                  <span>删除事件</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
           {/* 事件描述 */}
-          <div className="text-sm text-foreground">
-            {truncateText(event.description)}
-          </div>
+          {event.description && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                {truncateText(event.description)}
+              </p>
+            </div>
+          )}
 
           {/* 事件元信息 */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <User className="h-3 w-3" />
-                <span>{event.creator.name}</span>
+          <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+                <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <User className="h-3 w-3" />
+                </div>
+                <span className="font-medium">{event.creator.name}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Clock className="h-3 w-3" />
+              <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
+                <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
+                  <Clock className="h-3 w-3" />
+                </div>
                 <span>创建于 {formatDate(event.createdAt)}</span>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {event.attachments.length > 0 && (
-                <span>📎 {event.attachments.length}个附件</span>
+              {event.attachments && event.attachments.length > 0 && (
+                <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-700 dark:text-orange-300 rounded-full text-sm font-medium shadow-sm border border-orange-200 dark:border-orange-700">
+                  <ImageIcon className="h-4 w-4" />
+                  <span>{event.attachments.length}个附件</span>
+                </div>
               )}
             </div>
           </div>
@@ -458,82 +476,111 @@ export default function AdminEventsPage() {
   return (
     <div className="space-y-6">
       {/* 页面标题和操作按钮 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">事件管理</h1>
-          <p className="text-muted-foreground">
-            管理系统中的所有事件，包括创建、编辑、删除和查看详情
-          </p>
+      <div className="flex items-center justify-between pb-6">
+        <div className="space-y-2">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Calendar className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                事件管理
+              </h1>
+              <p className="text-lg text-muted-foreground mt-1">
+                管理系统中的所有事件，包括创建、编辑、删除和查看详情
+              </p>
+            </div>
+          </div>
         </div>
-        <Button onClick={openCreateDialog} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
+        <Button 
+          onClick={openCreateDialog} 
+          className="flex items-center gap-2 px-6 py-3 text-lg font-medium bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        >
+          <Plus className="h-5 w-5" />
           新建事件
         </Button>
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">总事件数</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50 dark:border-blue-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">总事件数</CardTitle>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+              <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalEvents}</div>
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalEvents}</div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">系统中的所有事件</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">变更事件</CardTitle>
-            <Badge variant="secondary" className="h-4 w-4 bg-blue-100 text-blue-800">变</Badge>
+        
+        <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200/50 dark:border-blue-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">变更事件</CardTitle>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+              <Badge className="h-4 w-4 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs font-bold">变</Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
               {events.filter(e => e.category === 'change').length}
             </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">系统变更相关事件</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">上线事件</CardTitle>
-            <Badge variant="secondary" className="h-4 w-4 bg-green-100 text-green-800">上</Badge>
+        
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50 dark:border-green-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">上线事件</CardTitle>
+            <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+              <Badge className="h-4 w-4 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs font-bold">上</Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold text-green-900 dark:text-green-100">
               {events.filter(e => e.category === 'release').length}
             </div>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">新功能上线事件</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">其他事件</CardTitle>
-            <Badge variant="secondary" className="h-4 w-4 bg-gray-100 text-gray-800">他</Badge>
+        
+        <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">其他事件</CardTitle>
+            <div className="p-2 bg-gray-100 dark:bg-gray-900/50 rounded-lg">
+              <Badge className="h-4 w-4 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 text-xs font-bold">他</Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {events.filter(e => e.category === 'other').length}
             </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">其他类型事件</p>
           </CardContent>
         </Card>
       </div>
 
       {/* 筛选和搜索 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+      <Card className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20 border-slate-200/50 dark:border-slate-800/50 shadow-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-3 text-lg font-semibold text-slate-800 dark:text-slate-200">
+            <div className="p-2 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+              <Filter className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+            </div>
             筛选和搜索
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-slate-400" />
               <Input
                 placeholder="搜索事件标题或描述..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-white/80 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600"
               />
             </div>
             <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
@@ -603,29 +650,36 @@ export default function AdminEventsPage() {
 
       {/* 分页 */}
       {totalPages > 1 && (
-        <Card>
-          <CardContent className="flex items-center justify-between py-4">
-            <div className="text-sm text-muted-foreground">
-              共 {totalEvents} 个事件，第 {currentPage} 页，共 {totalPages} 页
+        <Card className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20 border-slate-200/50 dark:border-slate-800/50 shadow-lg">
+          <CardContent className="flex items-center justify-between py-6">
+            <div className="text-sm text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="font-medium">共 {totalEvents} 个事件</span>
+              <span className="mx-2">•</span>
+              <span>第 {currentPage} 页，共 {totalPages} 页</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
+                className="px-4 py-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 mr-2" />
                 上一页
               </Button>
+              <div className="px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm">
+                {currentPage}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
+                className="px-4 py-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 下一页
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
           </CardContent>
@@ -813,101 +867,161 @@ export default function AdminEventsPage() {
 
       {/* 查看事件详情对话框 */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>事件详情</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">事件详情</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  查看事件的完整信息和相关附件
+                </p>
+              </div>
+            </div>
           </DialogHeader>
+          
           {selectedEvent && (
-            <div className="space-y-4">
-              {/* 基本信息 */}
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center space-x-3 mb-3">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <span className="font-medium">基本信息</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm text-muted-foreground">事件标题</Label>
-                    <p className="font-medium">{selectedEvent.title}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">分类</Label>
-                    <Badge className={categoryColors[selectedEvent.category]}>
-                      {categoryLabels[selectedEvent.category]}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">发生时间</Label>
-                    <p>{formatDate(selectedEvent.occurredAt)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">创建时间</Label>
-                    <p>{formatDate(selectedEvent.createdAt)}</p>
+            <div className="space-y-6">
+              {/* 事件标题和分类 - 突出显示 */}
+              <div className="text-center pb-6 border-b">
+                <h2 className="text-3xl font-bold text-foreground mb-3">{selectedEvent.title}</h2>
+                <div className="flex items-center justify-center space-x-4">
+                  <Badge className={`${categoryColors[selectedEvent.category]} px-4 py-2 text-sm font-medium`}>
+                    {categoryLabels[selectedEvent.category]}
+                  </Badge>
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>发生时间: {formatDate(selectedEvent.occurredAt)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* 创建者信息 */}
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center space-x-2 mb-3">
-                  <User className="h-4 w-4" />
-                  <span className="font-medium">创建者</span>
+              {/* 基本信息卡片 */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">基本信息</h3>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">事件标题</Label>
+                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
+                      {selectedEvent.title}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">分类</Label>
+                    <div className="px-3 py-2">
+                      <Badge className={`${categoryColors[selectedEvent.category]} px-3 py-1 text-sm font-medium`}>
+                        {categoryLabels[selectedEvent.category]}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">发生时间</Label>
+                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
+                      {formatDate(selectedEvent.occurredAt)}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-blue-700 dark:text-blue-300">创建时间</Label>
+                    <p className="text-lg font-semibold text-blue-900 dark:text-blue-100 bg-white/50 dark:bg-blue-950/30 px-3 py-2 rounded-lg">
+                      {formatDate(selectedEvent.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 创建者信息卡片 */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 p-6 rounded-xl border border-green-200/50 dark:border-green-800/50">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                    <User className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100">创建者信息</h3>
+                </div>
+                <div className="flex items-center space-x-4 p-4 bg-white/50 dark:bg-green-950/30 rounded-xl">
+                  <Avatar className="h-16 w-16 ring-4 ring-white dark:ring-green-950/50 shadow-lg">
                     <AvatarImage src={selectedEvent.creator.avatar} />
-                    <AvatarFallback>{selectedEvent.creator.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="text-xl font-bold bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                      {selectedEvent.creator.name.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-medium">{selectedEvent.creator.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedEvent.creator.email}</p>
+                  <div className="space-y-2">
+                    <p className="text-xl font-bold text-green-900 dark:text-green-100">
+                      {selectedEvent.creator.name}
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300 bg-white/70 dark:bg-green-950/50 px-3 py-1 rounded-full">
+                      {selectedEvent.creator.email}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* 事件描述 */}
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center space-x-2 mb-3">
-                  <FileText className="h-4 w-4" />
-                  <span className="font-medium">事件描述</span>
+              {/* 事件描述卡片 */}
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20 p-6 rounded-xl border border-purple-200/50 dark:border-purple-800/50">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">事件描述</h3>
                 </div>
-                <div className="prose prose-sm max-w-none">
-                  {selectedEvent.description || '暂无描述'}
+                <div className="bg-white/50 dark:bg-purple-950/30 p-4 rounded-xl">
+                  <div className="prose prose-sm max-w-none text-purple-900 dark:text-purple-100">
+                    {selectedEvent.description || (
+                      <span className="text-purple-600 dark:text-purple-400 italic">暂无描述</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* 附件 */}
-              {selectedEvent.attachments.length > 0 && (
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <ImageIcon className="h-4 w-4" />
-                    <span className="font-medium">附件 ({selectedEvent.attachments.length}个)</span>
+              {/* 附件卡片 */}
+              {selectedEvent.attachments && selectedEvent.attachments.length > 0 && (
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 p-6 rounded-xl border border-orange-200/50 dark:border-orange-800/50">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg">
+                      <ImageIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-orange-900 dark:text-orange-100">
+                      附件 ({selectedEvent.attachments.length}个)
+                    </h3>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {selectedEvent.attachments.map((attachment) => (
-                      <div key={attachment._id} className="space-y-2">
-                        {attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <ImagePreview
-                            src={attachment.url}
-                            alt={attachment.originalName}
-                            size="md"
-                          />
-                        ) : (
-                          <div className="w-full h-24 bg-muted rounded border flex items-center justify-center">
-                            <FileText className="h-8 w-8 text-muted-foreground" />
+                      <div key={attachment._id} className="group relative bg-white/70 dark:bg-orange-950/30 rounded-xl p-4 border border-orange-200/50 dark:border-orange-800/50 hover:shadow-lg transition-all duration-200 hover:scale-105">
+                        <div className="space-y-3">
+                          {attachment.url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                            <div className="relative overflow-hidden rounded-lg">
+                              <ImagePreview
+                                src={attachment.url}
+                                alt={attachment.originalName}
+                                size="md"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
+                            </div>
+                          ) : (
+                            <div className="w-full h-32 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/50 dark:to-amber-900/50 rounded-lg border-2 border-dashed border-orange-300 dark:border-orange-700 flex items-center justify-center">
+                              <FileText className="h-12 w-12 text-orange-500 dark:text-orange-400" />
+                            </div>
+                          )}
+                          <div className="text-center space-y-2">
+                            <p className="text-sm font-medium text-orange-900 dark:text-orange-100 truncate px-2">
+                              {attachment.originalName}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full bg-white/80 dark:bg-orange-950/50 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/70 transition-colors duration-200"
+                              onClick={() => window.open(attachment.url, '_blank')}
+                            >
+                              <Download className="h-3 w-3 mr-2" />
+                              下载附件
+                            </Button>
                           </div>
-                        )}
-                        <div className="text-center">
-                          <p className="text-xs truncate">{attachment.originalName}</p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-1"
-                            onClick={() => window.open(attachment.url, '_blank')}
-                          >
-                            <Download className="h-3 w-3 mr-1" />
-                            下载
-                          </Button>
                         </div>
                       </div>
                     ))}
@@ -916,8 +1030,14 @@ export default function AdminEventsPage() {
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button onClick={() => setIsViewDialogOpen(false)}>关闭</Button>
+          
+          <DialogFooter className="pt-6 border-t">
+            <Button 
+              onClick={() => setIsViewDialogOpen(false)}
+              className="px-6 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              关闭详情
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

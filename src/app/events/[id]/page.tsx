@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { ArrowLeft, Calendar, User, FileText, Download } from 'lucide-react'
+import { ArrowLeft, Calendar, User, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,9 +90,9 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-6">
       {/* 返回按钮 */}
-      <div className="mb-6">
+      <div className="mb-4">
         <Button 
           variant="ghost" 
           onClick={() => router.push('/events')}
@@ -126,10 +126,10 @@ export default function EventDetailPage() {
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* 创建人信息 */}
           {event.creator && (
-            <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
               <UserAvatar 
                 avatar={event.creator.avatar} 
                 userName={event.creator.name || event.creator.email || '用户'} 
@@ -150,7 +150,7 @@ export default function EventDetailPage() {
             <>
               <Separator />
               <div>
-                <h3 className="text-lg font-semibold mb-3">事件描述</h3>
+                <h3 className="text-lg font-semibold mb-2">事件描述</h3>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </p>
@@ -163,47 +163,34 @@ export default function EventDetailPage() {
             <>
               <Separator />
               <div>
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
                   <FileText className="w-5 h-5" />
                   附件 ({event.attachments.length})
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-wrap gap-3">
                   {event.attachments.map((att) => (
-                    <div key={att._id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-start gap-3">
-                        {att.mimetype?.startsWith('image/') ? (
-                          <div className="flex-shrink-0">
-                            <ImagePreview 
-                              src={att.url} 
-                              alt={att.originalName} 
-                              size="lg"
-                              className="cursor-pointer"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex-shrink-0 w-16 h-16 bg-muted rounded border flex items-center justify-center">
-                            <FileText className="w-8 h-8 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate" title={att.originalName}>
+                    <div key={att._id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors bg-card">
+                      {att.mimetype?.startsWith('image/') ? (
+                        <ImagePreview 
+                          src={att.url} 
+                          alt={att.originalName} 
+                          size="sm"
+                          className="cursor-pointer flex-shrink-0"
+                        />
+                      ) : (
+                        <a href={att.url} target="_blank" rel="noreferrer" title={att.originalName} className="flex-shrink-0">
+                          <span className="inline-flex items-center rounded-full border px-2 py-1 text-xs hover:bg-accent bg-muted">
                             {att.originalName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(att.size)}
-                          </p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {att.mimetype}
-                          </p>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="mt-2"
-                            onClick={() => window.open(att.url, '_blank')}
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            下载
-                          </Button>
+                          </span>
+                        </a>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate" title={att.originalName}>
+                          {att.originalName}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                          <span>{formatFileSize(att.size)}</span>
+                          <span className="capitalize">{att.mimetype}</span>
                         </div>
                       </div>
                     </div>
