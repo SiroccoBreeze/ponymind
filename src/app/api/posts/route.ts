@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
             );
 
             // 更新数据库记录
-            const newObjectName = `images/${user._id}/${post._id}/${image.filename}`;
+            const newObjectName = `images/${user._id}/post/${post._id}/${image.filename}`;
             await Image.findByIdAndUpdate(image._id, {
               associatedPost: post._id,
               isUsed: true,

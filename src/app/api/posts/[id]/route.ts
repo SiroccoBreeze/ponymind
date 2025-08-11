@@ -278,7 +278,7 @@ export async function PUT(
           );
 
           // 更新数据库记录
-          const newObjectName = `images/${user._id}/${id}/${usedImage.filename}`;
+          const newObjectName = `images/${user._id}/post/${id}/${usedImage.filename}`;
           await Image.findByIdAndUpdate(usedImage._id, {
             associatedPost: id,
             isUsed: true,

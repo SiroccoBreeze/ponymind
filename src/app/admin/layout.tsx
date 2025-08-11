@@ -46,7 +46,8 @@ import {
   Bell,
   ChevronRight,
   Crown,
-  MessageSquare
+  MessageSquare,
+  Calendar
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -129,6 +130,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/posts', 
       label: '内容管理', 
       icon: FileText,
+      description: ''
+    },
+    { 
+      href: '/admin/events', 
+      label: '事件管理', 
+      icon: Calendar,
       description: ''
     },
     { 

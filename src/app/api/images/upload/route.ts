@@ -88,9 +88,9 @@ export async function POST(request: NextRequest) {
         // 生成对象名称
         let objectName: string;
         if (postId && isComment) {
-          objectName = `images/${uploadUserId}/${postId}/comments/${fileName}`;
+          objectName = `images/${uploadUserId}/post/${postId}/comments/${fileName}`;
         } else if (postId) {
-          objectName = `images/${uploadUserId}/${postId}/${fileName}`;
+          objectName = `images/${uploadUserId}/post/${postId}/${fileName}`;
         } else {
           objectName = `images/${uploadUserId}/temp/${fileName}`;
         }

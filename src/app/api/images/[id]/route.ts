@@ -215,7 +215,7 @@ export async function PATCH(
       );
 
       // 更新数据库记录
-      const newObjectName = `images/${user._id}/${postId}/${imageRecord.filename}`;
+      const newObjectName = `images/${user._id}/post/${postId}/${imageRecord.filename}`;
       const updatedImage = await Image.findByIdAndUpdate(
         id,
         {

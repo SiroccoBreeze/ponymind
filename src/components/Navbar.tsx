@@ -191,6 +191,7 @@ export default function Navbar() {
     { href: '/', label: '首页', icon: Home },
     { href: '/faq', label: 'FAQ', icon: HelpCircle },
     { href: '/services', label: '服务', icon: Settings },
+    { href: '/events', label: '事件', icon: FileText },
   ];
 
   const isActiveLink = (href: string) => {

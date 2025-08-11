@@ -149,7 +149,7 @@ export function updateImageLinksInContent(
   
   for (const image of tempImages) {
     const oldImageUrl = `/api/images/${image.objectName}`;
-    const newImageUrl = `/api/images/images/${userId}/${postId}/${image.filename}`;
+    const newImageUrl = `/api/images/images/${userId}/post/${postId}/${image.filename}`;
     
     // 使用正则表达式安全地替换图片链接
     const escapedOldUrl = oldImageUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

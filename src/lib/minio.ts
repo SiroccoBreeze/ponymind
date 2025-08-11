@@ -39,7 +39,9 @@ export async function uploadToMinio(
   userId?: string,
   postId?: string,
   isAvatar: boolean = false,
-  isComment: boolean = false
+  isComment: boolean = false,
+  isEvent: boolean = false,
+  eventId?: string
 ): Promise<string> {
   try {
     await ensureBucketExists(bucketName);
@@ -49,12 +51,15 @@ export async function uploadToMinio(
     if (isAvatar && userId) {
       // 头像文件: images/userId/avatar/filename
       objectName = `images/${userId}/avatar/${fileName}`;
+    } else if (isEvent && userId && eventId) {
+      // 事件附件: images/userId/event/eventId/filename
+      objectName = `images/${userId}/event/${eventId}/${fileName}`;
     } else if (userId && postId && isComment) {
-      // 评论图片: images/userId/postId/comments/filename
-      objectName = `images/${userId}/${postId}/comments/${fileName}`;
+      // 评论图片: images/uploadUserId/post/postId/comments/filename
+      objectName = `images/${userId}/post/${postId}/comments/${fileName}`;
     } else if (userId && postId) {
-      // 用户ID/帖子ID/图片名称
-      objectName = `images/${userId}/${postId}/${fileName}`;
+      // 文章图片: images/uploadUserId/post/postId/filename
+      objectName = `images/${userId}/post/${postId}/${fileName}`;
     } else if (userId) {
       // 用户ID/临时文件夹/图片名称（用于上传时还没有帖子ID的情况）
       objectName = `images/${userId}/temp/${fileName}`;
@@ -84,7 +89,7 @@ export async function moveImageToPost(
   bucketName: string = DEFAULT_BUCKET
 ): Promise<string> {
   try {
-    const newObjectName = `images/${userId}/${postId}/${fileName}`;
+    const newObjectName = `images/${userId}/post/${postId}/${fileName}`;
     
     // 复制文件到新位置
     await minioClient.copyObject(
@@ -100,6 +105,35 @@ export async function moveImageToPost(
     return `/api/images/${newObjectName}`;
   } catch (error) {
     console.error('❌ 移动文件失败:', error);
+    throw error;
+  }
+}
+
+// 移动临时附件到事件位置
+export async function moveAttachmentToEvent(
+  oldObjectName: string,
+  userId: string,
+  eventId: string,
+  fileName: string,
+  bucketName: string = DEFAULT_BUCKET
+): Promise<string> {
+  try {
+    const newObjectName = `images/${userId}/event/${eventId}/${fileName}`;
+    
+    // 复制文件到新位置
+    await minioClient.copyObject(
+      bucketName,
+      newObjectName,
+      `/${bucketName}/${oldObjectName}`
+    );
+    
+    // 删除旧文件
+    await minioClient.removeObject(bucketName, oldObjectName);
+    
+    // 返回相对路径
+    return `/api/images/${newObjectName}`;
+  } catch (error) {
+    console.error('❌ 移动附件到事件位置失败:', error);
     throw error;
   }
 }
