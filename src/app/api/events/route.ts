@@ -46,15 +46,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description = '', category = 'general', status = 'planned', occurredAt, attachmentIds = [] } = body;
+    const { title, description = '', category = 'other', status = 'planned', occurredAt, attachments = [] } = body;
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
     }
 
     // 过滤并校验附件ID格式
-    const validAttachmentIds = Array.isArray(attachmentIds)
-      ? attachmentIds.filter((id: string) => typeof id === 'string')
+    const validAttachmentIds = Array.isArray(attachments)
+      ? attachments.filter((id: string) => typeof id === 'string')
       : [];
 
     const created = await Event.create({
@@ -68,12 +68,16 @@ export async function POST(req: NextRequest) {
     });
 
     if (validAttachmentIds.length > 0) {
+      console.log(`🔍 开始处理 ${validAttachmentIds.length} 个附件...`);
       try {
         // 获取附件信息并移动到事件目录
-        const attachments = await Image.find({ _id: { $in: validAttachmentIds } });
+        const attachmentRecords = await Image.find({ _id: { $in: validAttachmentIds } });
+        console.log(`📁 找到 ${attachmentRecords.length} 个附件记录:`, attachmentRecords.map(a => ({ id: a._id, filename: a.filename, objectName: a.objectName })));
         
-        for (const attachment of attachments) {
+        for (const attachment of attachmentRecords) {
           try {
+            console.log(`🔄 开始移动附件: ${attachment.filename} (${attachment.objectName})`);
+            
             // 移动附件到事件目录
             const newUrl = await moveAttachmentToEvent(
               attachment.objectName,
@@ -82,18 +86,23 @@ export async function POST(req: NextRequest) {
               attachment.filename
             );
             
+            console.log(`✅ 附件移动成功: ${attachment.filename} -> ${newUrl}`);
+            
             // 更新数据库中的URL和objectName
+            const newObjectName = `images/${user._id}/event/${created._id}/${attachment.filename}`;
             await Image.findByIdAndUpdate(attachment._id, {
               $set: {
                 url: newUrl,
-                objectName: `images/${user._id}/event/${created._id}/${attachment.filename}`,
+                objectName: newObjectName,
                 isUsed: true,
                 associatedPost: created._id,
                 updatedAt: new Date()
               }
             });
+            
+            console.log(`💾 数据库更新成功: ${attachment._id} -> ${newObjectName}`);
           } catch (moveError) {
-            console.error(`移动附件 ${attachment._id} 失败:`, moveError);
+            console.error(`❌ 移动附件 ${attachment._id} 失败:`, moveError);
             // 即使移动失败，也要标记为已使用
             await Image.findByIdAndUpdate(attachment._id, {
               $set: {
@@ -105,7 +114,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (e) {
-        console.error('处理附件失败', e);
+        console.error('❌ 处理附件失败', e);
       }
     }
 

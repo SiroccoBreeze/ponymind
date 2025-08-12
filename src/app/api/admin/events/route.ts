@@ -5,6 +5,8 @@ import Event from '@/models/Event';
 import User from '@/models/User';
 // 确保 Image 模型被注册
 import '@/models/Image';
+import { moveAttachmentToEvent } from '@/lib/minio';
+import Image from '@/models/Image';
 
 // 获取事件列表
 export async function GET(request: NextRequest) {
@@ -128,6 +130,49 @@ export async function POST(request: NextRequest) {
     });
 
     await event.save();
+    
+    // 处理附件：将临时附件移动到事件目录
+    if (attachmentIds && attachmentIds.length > 0) {
+      try {
+        // 获取附件信息并移动到事件目录
+        const attachments = await Image.find({ _id: { $in: attachmentIds } });
+        
+        for (const attachment of attachments) {
+          try {
+            // 移动附件到事件目录
+            const newUrl = await moveAttachmentToEvent(
+              attachment.objectName,
+              user._id.toString(),
+              event._id.toString(),
+              attachment.filename
+            );
+            
+            // 更新数据库中的URL和objectName
+            await Image.findByIdAndUpdate(attachment._id, {
+              $set: {
+                url: newUrl,
+                objectName: `images/${user._id}/event/${event._id}/${attachment.filename}`,
+                isUsed: true,
+                associatedPost: event._id,
+                updatedAt: new Date()
+              }
+            });
+          } catch (moveError) {
+            console.error(`移动附件 ${attachment._id} 失败:`, moveError);
+            // 即使移动失败，也要标记为已使用
+            await Image.findByIdAndUpdate(attachment._id, {
+              $set: {
+                isUsed: true,
+                associatedPost: event._id,
+                updatedAt: new Date()
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.error('处理附件失败', e);
+      }
+    }
     
     // 返回创建的事件
     const createdEvent = await Event.findById(event._id)

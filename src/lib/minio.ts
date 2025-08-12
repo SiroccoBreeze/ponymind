@@ -119,16 +119,21 @@ export async function moveAttachmentToEvent(
 ): Promise<string> {
   try {
     const newObjectName = `images/${userId}/event/${eventId}/${fileName}`;
+    console.log(`🔄 MinIO: 复制文件 ${bucketName}/${oldObjectName} -> ${bucketName}/${newObjectName}`);
     
     // 复制文件到新位置
     await minioClient.copyObject(
       bucketName,
       newObjectName,
-      `/${bucketName}/${oldObjectName}`
+      `${bucketName}/${oldObjectName}`
     );
+    
+    console.log(`✅ MinIO: 文件复制成功，开始删除旧文件 ${bucketName}/${oldObjectName}`);
     
     // 删除旧文件
     await minioClient.removeObject(bucketName, oldObjectName);
+    
+    console.log(`🗑️ MinIO: 旧文件删除成功`);
     
     // 返回相对路径
     return `/api/images/${newObjectName}`;

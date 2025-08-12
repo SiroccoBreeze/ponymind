@@ -77,6 +77,10 @@ interface EventFormData {
   attachmentIds: string[];
 }
 
+interface EventUpdateData extends EventFormData {
+  deletedAttachmentIds?: string[];
+}
+
 interface EventFilters {
   search: string;
   category: string;
@@ -127,6 +131,7 @@ export default function AdminEventsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deletingAttachment, setDeletingAttachment] = useState<string | null>(null);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
 
   const categoryLabels = {
     change: '变更',
@@ -186,6 +191,7 @@ export default function AdminEventsPage() {
     setSelectedFiles([]);
     setUploadedAttachments([]);
     setUploadProgress(0);
+    setDeletedAttachmentIds([]); // 重置删除标记
   };
 
   const openCreateDialog = () => {
@@ -210,6 +216,7 @@ export default function AdminEventsPage() {
       isConfirmed: true
     })) || []);
     setSelectedEvent(event);
+    setDeletedAttachmentIds([]); // 重置删除标记
     setIsEditDialogOpen(true);
   };
 
@@ -232,10 +239,20 @@ export default function AdminEventsPage() {
       
       const method = isEditDialogOpen ? 'PUT' : 'POST';
       
+      // 在编辑模式下，需要处理已删除的附件
+      let requestBody: EventFormData | EventUpdateData = formData;
+      if (isEditDialogOpen && deletedAttachmentIds.length > 0) {
+        // 将删除的附件ID也发送到后端，让后端处理删除
+        requestBody = {
+          ...formData,
+          deletedAttachmentIds: deletedAttachmentIds
+        };
+      }
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -243,6 +260,7 @@ export default function AdminEventsPage() {
         setIsCreateDialogOpen(false);
         setIsEditDialogOpen(false);
         resetForm();
+        setDeletedAttachmentIds([]); // 重置删除标记
         fetchEvents();
       } else {
         const error = await response.json();
@@ -345,6 +363,19 @@ export default function AdminEventsPage() {
   };
 
   const handleDeleteAttachment = async (attachmentId: string) => {
+    // 在编辑模式下，只标记为待删除，不立即删除文件
+    if (isEditDialogOpen) {
+      setDeletedAttachmentIds(prev => [...prev, attachmentId]);
+      setUploadedAttachments(prev => prev.filter(a => a.id !== attachmentId));
+      setFormData(prev => ({
+        ...prev,
+        attachmentIds: prev.attachmentIds.filter(id => id !== attachmentId)
+      }));
+      toast.success('附件已标记为删除');
+      return;
+    }
+
+    // 在创建模式下，直接删除文件
     try {
       setDeletingAttachment(attachmentId);
       const response = await fetch(`/api/images/${attachmentId}`, {

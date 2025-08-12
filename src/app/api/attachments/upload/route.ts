@@ -58,7 +58,11 @@ export async function POST(request: NextRequest) {
 
     // 解析表单数据
     const formData = await request.formData();
-    const files = formData.getAll('files') as File[];
+    // 支持两种字段名：'file' 和 'files'，与管理端保持一致
+    let files = formData.getAll('files') as File[];
+    if (files.length === 0) {
+      files = formData.getAll('file') as File[]; // 向后兼容
+    }
     const eventId = formData.get('eventId') as string; // 获取事件ID（可选）
 
     if (!files || files.length === 0) {
