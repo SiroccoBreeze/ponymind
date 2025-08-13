@@ -46,15 +46,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description = '', category = 'other', status = 'planned', occurredAt, attachments = [] } = body;
+    const { title, description = '', category = 'other', status = 'planned', occurredAt, attachmentIds = [] } = body;
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
     }
 
     // 过滤并校验附件ID格式
-    const validAttachmentIds = Array.isArray(attachments)
-      ? attachments.filter((id: string) => typeof id === 'string')
+    const validAttachmentIds = Array.isArray(attachmentIds)
+      ? attachmentIds.filter((id: string) => typeof id === 'string')
       : [];
 
     const created = await Event.create({
