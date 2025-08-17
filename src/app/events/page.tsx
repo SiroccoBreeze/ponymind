@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
@@ -16,29 +15,41 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import UserAvatar from '@/components/UserAvatar'
 import ImagePreview from '@/components/ui/ImagePreview'
+import TagSelectionModal from '@/components/TagSelectionModal'
 import { 
   RefreshCw,
   Upload,
   X,
-  FileText
+  FileText,
+  Tag,
+  Calendar
 } from 'lucide-react'
+import CustomTimeline from '@/components/CustomTimeline'
 import { toast } from 'sonner'
 
 type EventItem = {
   _id: string
   title: string
   description?: string
-  category?: string
+  tags?: string[]
   status?: 'planned' | 'in-progress' | 'done' | 'canceled'
   occurredAt: string
   attachments?: Array<{ _id: string; originalName: string; url: string; size: number; mimetype: string }>
   creator?: { _id: string; name: string; avatar?: string; email?: string }
 }
 
+interface Tag {
+  _id: string;
+  name: string;
+  description: string;
+  color: string;
+  usageCount: number;
+}
+
 interface EventFormData {
   title: string;
   description: string;
-  category: 'change' | 'release' | 'other';
+  tags: string[];
   occurredAt: string;
   attachmentIds: string[];
 }
@@ -62,7 +73,7 @@ export default function EventsPage() {
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
-    category: 'other',
+    tags: [],
     occurredAt: '',
     attachmentIds: []
   });
@@ -74,6 +85,28 @@ export default function EventsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deletingAttachment, setDeletingAttachment] = useState<string | null>(null);
+
+  // 标签相关状态
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+
+
+
+  // 获取可用标签
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableTags(data.tags || []);
+        }
+      } catch (error) {
+        console.error('获取标签失败:', error);
+      }
+    };
+    fetchTags();
+  }, []);
 
   async function fetchEvents(signal?: AbortSignal) {
     try {
@@ -112,22 +145,16 @@ export default function EventsPage() {
     }
   }, [])
 
-  const groupedByDate = useMemo(() => {
-    const map = new Map<string, EventItem[]>()
-    for (const e of events) {
-      const key = format(new Date(e.occurredAt), 'yyyy-MM-dd')
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(e)
-    }
-    return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1))
-  }, [events])
+
+
+
 
   // 重置表单 - 完全匹配管理端逻辑
   const resetForm = () => {
     setFormData({
       title: '',
       description: '',
-      category: 'other',
+      tags: [],
       occurredAt: new Date().toISOString().slice(0, 16),
       attachmentIds: []
     });
@@ -307,21 +334,21 @@ export default function EventsPage() {
 
   function StatusBadge({ status }: { status: EventItem['status'] }) {
     const styles: Record<string, string> = {
-      planned: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-      'in-progress': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
-      done: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-      canceled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+      planned: 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30',
+      'in-progress': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/30',
+      done: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/30',
+      canceled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/30',
     }
-    return <Badge className={cn('capitalize', styles[status ?? 'planned'])}>{status}</Badge>
+    return <Badge variant="outline" className={cn('capitalize', styles[status ?? 'planned'])}>{status}</Badge>
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 bg-background">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">事件中心</h1>
+        <h1 className="text-2xl font-bold text-foreground">事件中心</h1>
         <Button 
           onClick={openCreateDialog}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           创建事件
         </Button>
@@ -340,7 +367,7 @@ export default function EventsPage() {
                 <TableRow>
                   <TableHead>时间</TableHead>
                   <TableHead>标题</TableHead>
-                  <TableHead>分类</TableHead>
+                  <TableHead>标签</TableHead>
                   <TableHead>附件</TableHead>
                   <TableHead className="w-[40%]">描述</TableHead>
                 </TableRow>
@@ -360,7 +387,7 @@ export default function EventsPage() {
                   <TableRow key={e._id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="text-nowrap">{format(new Date(e.occurredAt), 'yyyy-MM-dd HH:mm', { locale: zhCN })}</div>
+                        <div className="text-nowrap">{e.occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3')}</div>
                         {e.creator && (
                           <div className="flex items-center gap-2">
                             <UserAvatar avatar={e.creator.avatar} userName={e.creator.name || e.creator.email || '用户'} size="sm" />
@@ -372,13 +399,21 @@ export default function EventsPage() {
                     <TableCell className="font-medium">
                       <button
                         onClick={() => window.open(`/events/${e._id}`, '_blank')}
-                        className="text-left hover:text-primary hover:underline cursor-pointer transition-colors"
+                        className="text-left text-foreground hover:text-primary hover:underline cursor-pointer transition-colors"
                       >
                         {e.title}
                       </button>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{e.category}</Badge>
+                      {e.tags && e.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {e.tags.map(tag => (
+                            <Badge key={tag} variant="outline" className="capitalize">{tag}</Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {e.attachments && e.attachments.length > 0 ? (
@@ -394,7 +429,7 @@ export default function EventsPage() {
                                 />
                               ) : (
                                 <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.originalName}>
-                                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] hover:bg-accent">
+                                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs hover:bg-accent">
                                     {att.originalName}
                                   </span>
                                 </a>
@@ -418,78 +453,39 @@ export default function EventsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="timeline" className="mt-4">
-          <div className="space-y-6">
-            {loading && (
-              <div className="text-center py-8 text-sm text-muted-foreground">加载中...</div>
-            )}
-            {!loading && events.length === 0 && (
-              <div className="text-center py-8 text-sm text-muted-foreground">暂无事件</div>
-            )}
-            {groupedByDate.map(([date, dayEvents]) => (
-              <div key={date} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="text-lg font-semibold">{format(new Date(date), 'yyyy年MM月dd日', { locale: zhCN })}</div>
-                  <Badge variant="secondary">{dayEvents.length} 个事件</Badge>
-                </div>
-                <div className="space-y-3">
-                  {dayEvents.map((e) => (
-                    <div key={e._id} className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                      <div className="flex-shrink-0">
-                        <div className="w-3 h-3 rounded-full bg-primary mt-2"></div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <button
-                            onClick={() => window.open(`/events/${e._id}`, '_blank')}
-                            className="text-lg font-semibold hover:text-primary hover:underline cursor-pointer transition-colors"
-                          >
-                            {e.title}
-                          </button>
-                          <StatusBadge status={e.status} />
-                          <Badge variant="outline" className="capitalize">{e.category}</Badge>
-                        </div>
-                        {e.description && (
-                          <p className="text-muted-foreground mb-3">{e.description}</p>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{format(new Date(e.occurredAt), 'HH:mm', { locale: zhCN })}</span>
-                          {e.creator && (
-                            <div className="flex items-center gap-2">
-                              <UserAvatar avatar={e.creator.avatar} userName={e.creator.name || e.creator.email || '用户'} size="sm" />
-                              <span>{e.creator.name || e.creator.email}</span>
-                            </div>
-                          )}
-                        </div>
-                        {e.attachments && e.attachments.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {e.attachments.map(att => (
-                              <div key={att._id}>
-                                {att.mimetype?.startsWith('image/') ? (
-                                  <ImagePreview 
-                                    src={att.url} 
-                                    alt={att.originalName} 
-                                    size="sm"
-                                    className="cursor-pointer"
-                                  />
-                                ) : (
-                                  <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.originalName}>
-                                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] hover:bg-accent">
-                                      {att.originalName}
-                                    </span>
-                                  </a>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <TabsContent value="timeline" className="mt-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">加载中...</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto">
+              <CustomTimeline 
+                items={events
+                  .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+                  .map(event => ({
+                    id: event._id,
+                    title: event.title,
+                    description: event.description,
+                    date: new Date(event.occurredAt).toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                    tags: event.tags,
+                    creator: event.creator,
+                    attachments: event.attachments,
+                    onClick: () => window.open(`/events/${event._id}`, '_blank')
+                  }))}
+                className="w-full"
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -516,19 +512,37 @@ export default function EventsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="category">分类</Label>
-                <Select value={formData.category} onValueChange={(value: 'change' | 'release' | 'other') => 
-                  setFormData(prev => ({ ...prev, category: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="change">变更</SelectItem>
-                    <SelectItem value="release">上线</SelectItem>
-                    <SelectItem value="other">其他</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>标签</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsTagModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Tag className="h-4 w-4" />
+                    {formData.tags.length > 0 ? `${formData.tags.length} 个标签` : '选择标签'}
+                  </Button>
+                  {formData.tags.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, tags: [] }))}
+                    >
+                      清空
+                    </Button>
+                  )}
+                </div>
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="capitalize">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -663,6 +677,18 @@ export default function EventsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 标签选择弹框 */}
+      <TagSelectionModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        availableTags={availableTags}
+        selectedTags={formData.tags}
+        onTagsChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+        maxTags={5}
+        title="选择标签"
+        themeColor="blue"
+      />
     </div>
   )
 }

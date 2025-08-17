@@ -38,9 +38,11 @@ import {
   Image as ImageIcon,
   FileText,
   User,
-  Clock
+  Clock,
+  Tag
 } from 'lucide-react';
 import ImagePreview from '@/components/ui/ImagePreview';
+import TagSelectionModal from '@/components/TagSelectionModal';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -49,7 +51,7 @@ interface Event {
   _id: string;
   title: string;
   description: string;
-  category: 'change' | 'release' | 'other';
+  tags: string[];
   occurredAt: string;
   creator: {
     _id: string;
@@ -72,7 +74,7 @@ interface Event {
 interface EventFormData {
   title: string;
   description: string;
-  category: 'change' | 'release' | 'other';
+  tags: string[];
   occurredAt: string;
   attachmentIds: string[];
 }
@@ -83,7 +85,7 @@ interface EventUpdateData extends EventFormData {
 
 interface EventFilters {
   search: string;
-  category: string;
+  tags: string;
   status: string;
   sortBy: 'occurredAt' | 'createdAt' | 'creator';
   sortOrder: 'asc' | 'desc';
@@ -103,7 +105,7 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<EventFilters>({
     search: '',
-    category: 'all',
+    tags: 'all',
     status: 'all',
     sortBy: 'occurredAt',
     sortOrder: 'desc'
@@ -118,7 +120,7 @@ export default function AdminEventsPage() {
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
-    category: 'other',
+    tags: [],
     occurredAt: '',
     attachmentIds: []
   });
@@ -133,17 +135,9 @@ export default function AdminEventsPage() {
   const [deletingAttachment, setDeletingAttachment] = useState<string | null>(null);
   const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
 
-  const categoryLabels = {
-    change: '变更',
-    release: '上线',
-    other: '其他'
-  };
-
-  const categoryColors = {
-    change: 'bg-blue-100 text-blue-800',
-    release: 'bg-green-100 text-green-800',
-    other: 'bg-gray-100 text-gray-800'
-  };
+  // 标签选择对话框状态
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   // 获取事件列表
   const fetchEvents = useCallback(async () => {
@@ -153,7 +147,7 @@ export default function AdminEventsPage() {
         page: currentPage.toString(),
         limit: '20',
         ...(filters.search && { search: filters.search }),
-        ...(filters.category !== 'all' && { category: filters.category }),
+        ...(filters.tags !== 'all' && { tags: filters.tags }),
         ...(filters.status !== 'all' && { status: filters.status }),
         ...(filters.sortBy && { sortBy: filters.sortBy }),
         ...(filters.sortOrder && { sortOrder: filters.sortOrder })
@@ -180,11 +174,27 @@ export default function AdminEventsPage() {
     fetchEvents();
   }, [fetchEvents]);
 
+  // 获取可用标签
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableTags(data.tags?.map((tag: any) => tag.name) || []);
+        }
+      } catch (error) {
+        console.error('获取标签失败:', error);
+      }
+    };
+    fetchTags();
+  }, []);
+
   const resetForm = () => {
     setFormData({
       title: '',
       description: '',
-      category: 'other',
+      tags: [],
       occurredAt: new Date().toISOString().slice(0, 16),
       attachmentIds: []
     });
@@ -203,7 +213,7 @@ export default function AdminEventsPage() {
     setFormData({
       title: event.title,
       description: event.description,
-      category: event.category,
+      tags: event.tags,
       occurredAt: new Date(event.occurredAt).toISOString().slice(0, 16),
       attachmentIds: event.attachments?.map(a => a._id) || []
     });
@@ -405,7 +415,7 @@ export default function AdminEventsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'yyyy-MM-dd HH:mm', { locale: zhCN });
+    return dateString.replace('T', ' ').replace('.000Z', '');
   };
 
   const truncateText = (text: string, maxLength: number = 100) => {
@@ -427,9 +437,15 @@ export default function AdminEventsPage() {
                   <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors duration-300">
                     {event.title}
                   </h3>
-                  <Badge className={`${categoryColors[event.category]} px-3 py-1 text-sm font-medium shadow-sm`}>
-                    {categoryLabels[event.category]}
-                  </Badge>
+                  {event.tags && event.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {event.tags.map(tag => (
+                        <Badge key={tag} className="bg-blue-100 text-blue-800 px-3 py-1 text-sm font-medium shadow-sm">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-400">
                   <Clock className="h-4 w-4" />
@@ -549,46 +565,46 @@ export default function AdminEventsPage() {
         
         <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200/50 dark:border-blue-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">变更事件</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">标签事件</CardTitle>
             <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-              <Badge className="h-4 w-4 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs font-bold">变</Badge>
+              <Badge className="h-4 w-4 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs font-bold">标</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              {events.filter(e => e.category === 'change').length}
+              {events.filter(e => e.tags && e.tags.length > 0).length}
             </div>
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">系统变更相关事件</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">已添加标签的事件</p>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200/50 dark:border-green-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">上线事件</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">无标签事件</CardTitle>
             <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
-              <Badge className="h-4 w-4 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs font-bold">上</Badge>
+              <Badge className="h-4 w-4 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs font-bold">无</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              {events.filter(e => e.category === 'release').length}
+              {events.filter(e => !e.tags || e.tags.length === 0).length}
             </div>
-            <p className="text-xs text-green-600 dark:text-green-400 mt-1">新功能上线事件</p>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">未添加标签的事件</p>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">其他事件</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">总标签数</CardTitle>
             <div className="p-2 bg-gray-100 dark:bg-gray-900/50 rounded-lg">
-              <Badge className="h-4 w-4 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 text-xs font-bold">他</Badge>
+              <Badge className="h-4 w-4 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 text-xs font-bold">总</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {events.filter(e => e.category === 'other').length}
+              {events.reduce((total, e) => total + (e.tags?.length || 0), 0)}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">其他类型事件</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">所有事件标签总数</p>
           </CardContent>
         </Card>
       </div>
@@ -614,15 +630,14 @@ export default function AdminEventsPage() {
                 className="pl-10 bg-white/80 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-600"
               />
             </div>
-            <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+            <Select value={filters.tags} onValueChange={(value) => handleFilterChange('tags', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="分类" />
+                <SelectValue placeholder="标签" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部分类</SelectItem>
-                <SelectItem value="change">变更</SelectItem>
-                <SelectItem value="release">上线</SelectItem>
-                <SelectItem value="other">其他</SelectItem>
+                <SelectItem value="all">全部标签</SelectItem>
+                <SelectItem value="has_tags">有标签</SelectItem>
+                <SelectItem value="no_tags">无标签</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
@@ -744,19 +759,37 @@ export default function AdminEventsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="category">分类</Label>
-                <Select value={formData.category} onValueChange={(value: 'change' | 'release' | 'other') => 
-                  setFormData(prev => ({ ...prev, category: value }))
-                }>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="change">变更</SelectItem>
-                    <SelectItem value="release">上线</SelectItem>
-                    <SelectItem value="other">其他</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>标签</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsTagModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Tag className="h-4 w-4" />
+                    {formData.tags.length > 0 ? `${formData.tags.length} 个标签` : '选择标签'}
+                  </Button>
+                  {formData.tags.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, tags: [] }))}
+                    >
+                      清空
+                    </Button>
+                  )}
+                </div>
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="capitalize">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -896,7 +929,23 @@ export default function AdminEventsPage() {
         </DialogContent>
       </Dialog>
 
-
+      {/* 标签选择弹框 */}
+      <TagSelectionModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        availableTags={availableTags.map(tag => ({
+          _id: tag,
+          name: tag,
+          description: '',
+          color: '#3b82f6',
+          usageCount: 0
+        }))}
+        selectedTags={formData.tags}
+        onTagsChange={(tags: string[]) => setFormData(prev => ({ ...prev, tags }))}
+        maxTags={5}
+        title="选择标签"
+        themeColor="blue"
+      />
     </div>
   );
 } 

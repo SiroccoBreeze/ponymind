@@ -10,12 +10,11 @@ const eventSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
-  category: {
+  tags: [{
     type: String,
-    enum: ['change', 'release', 'other'],
-    default: 'other',
+    default: [],
     index: true,
-  },
+  }],
   status: {
     type: String,
     enum: ['planned', 'in-progress', 'done', 'canceled'],

@@ -9,12 +9,12 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get('category') || undefined;
+    const tags = searchParams.get('tags') || undefined;
     const status = searchParams.get('status') || undefined;
     const limit = Number(searchParams.get('limit') || '200');
 
     const query: Record<string, unknown> = {};
-    if (category) query.category = category;
+    if (tags) query.tags = { $in: tags.split(',') };
     if (status) query.status = status;
 
     const events = await Event.find(query)
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description = '', category = 'other', status = 'planned', occurredAt, attachmentIds = [] } = body;
+    const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [] } = body;
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
@@ -57,10 +57,15 @@ export async function POST(req: NextRequest) {
       ? attachmentIds.filter((id: string) => typeof id === 'string')
       : [];
 
+    // 过滤并校验标签格式
+    const validTags = Array.isArray(tags)
+      ? tags.filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0)
+      : [];
+
     const created = await Event.create({
       title,
       description,
-      category,
+      tags: validTags,
       status,
       occurredAt: new Date(occurredAt),
       creator: user._id,

@@ -11,6 +11,12 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Search, Tag, X, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import pinyin from 'pinyin';
 
 interface Tag {
   _id: string;
@@ -46,34 +52,6 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // 主题颜色配置
-  const colorConfig = {
-    blue: {
-      primary: 'blue-600',
-      primaryHover: 'blue-700',
-      light: 'blue-50',
-      lightHover: 'blue-100',
-      border: 'blue-200',
-      borderHover: 'blue-300',
-      text: 'blue-700',
-      gradient: 'from-blue-500 to-blue-600',
-      gradientHover: 'from-blue-600 to-blue-700'
-    },
-    orange: {
-      primary: 'orange-600',
-      primaryHover: 'orange-700',
-      light: 'orange-50',
-      lightHover: 'orange-100',
-      border: 'orange-200',
-      borderHover: 'orange-300',
-      text: 'orange-700',
-      gradient: 'from-orange-500 to-orange-600',
-      gradientHover: 'from-orange-600 to-orange-700'
-    }
-  };
-
-  const colors = colorConfig[themeColor];
-
   useEffect(() => {
     setLocalSelectedTags(selectedTags);
   }, [selectedTags]);
@@ -84,35 +62,6 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen]);
-
-  // 点击外部关闭弹窗
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        handleClose();
-      }
-    };
-
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        handleClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
-      // 移除动态修改body overflow的代码，避免影响页面滚动条
-      // document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
-      // 移除动态修改body overflow的代码，避免影响页面滚动条
-      // document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
   const handleClose = () => {
@@ -133,12 +82,44 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
     }
   };
 
+  // 生成标签的拼音和首字母
+  const getTagPinyin = (text: string) => {
+    const pinyinResult = pinyin(text, { style: pinyin.STYLE_NORMAL });
+    const fullPinyin = pinyinResult.flat().join('');
+    const firstLetters = pinyinResult.map(item => item[0]?.[0] || '').join('');
+    return { fullPinyin, firstLetters };
+  };
 
-
-  const filteredTags = availableTags.filter(tag =>
-    tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tag.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTags = availableTags.filter(tag => {
+    const searchLower = searchTerm.toLowerCase();
+    const nameLower = tag.name.toLowerCase();
+    const descLower = tag.description?.toLowerCase() || '';
+    
+    // 直接文本匹配
+    if (nameLower.includes(searchLower) || descLower.includes(searchLower)) {
+      return true;
+    }
+    
+    // 中文首拼匹配
+    if (searchTerm.length > 0) {
+      const { fullPinyin, firstLetters } = getTagPinyin(tag.name);
+      const descPinyin = tag.description ? getTagPinyin(tag.description) : { fullPinyin: '', firstLetters: '' };
+      
+      // 匹配全拼
+      if (fullPinyin.toLowerCase().includes(searchLower) || 
+          descPinyin.fullPinyin.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+      
+      // 匹配首字母
+      if (firstLetters.toLowerCase().includes(searchLower) || 
+          descPinyin.firstLetters.toLowerCase().includes(searchLower)) {
+        return true;
+      }
+    }
+    
+    return false;
+  });
 
   const isTagSelected = (tagName: string) => localSelectedTags.includes(tagName);
   const canSelectMore = localSelectedTags.length < maxTags;
@@ -148,128 +129,115 @@ const TagSelectionModal: React.FC<TagSelectionModalProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-2xl w-full max-h-[80vh] flex flex-col">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>
+      <AlertDialogContent className="w-[95vw] max-w-6xl max-h-[85vh] flex flex-col p-0">
+        <AlertDialogHeader className="px-6 py-4 border-b">
+          <AlertDialogTitle className="text-xl font-semibold">{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-sm text-muted-foreground">
             已选择 {localSelectedTags.length}/{maxTags} 个标签
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {/* 搜索框 */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="px-6 py-4 border-b">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="搜索标签..."
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                         <Input
+               ref={searchInputRef}
+               type="text"
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+               placeholder="搜索标签名称、描述或拼音..."
+               className="pl-10 h-10"
+             />
           </div>
         </div>
 
         {/* 已选择的标签 */}
         {localSelectedTags.length > 0 && (
-          <div className="p-6 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center mb-3">
-              <svg className="w-4 h-4 text-gray-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">已选择的标签</span>
+          <div className="px-6 py-4 border-b bg-muted/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">已选择的标签</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {localSelectedTags.map((tag) => (
-                <span
+                <Badge
                   key={tag}
-                  className={`inline-flex items-center px-3 py-2 bg-gradient-to-r from-${colors.light} to-${colors.lightHover} text-${colors.text} rounded-lg text-sm font-medium border border-${colors.border} shadow-sm`}
+                  variant="secondary"
+                  className="gap-1 pr-1"
                 >
-                  <svg className="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
                   {tag}
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 hover:bg-transparent"
                     onClick={() => handleTagToggle(tag)}
-                    className={`ml-2 p-0.5 text-${colors.primary} hover:text-${colors.primaryHover} hover:bg-${colors.lightHover} rounded-full transition-colors`}
-                    title="移除标签"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
               ))}
             </div>
           </div>
         )}
 
         {/* 标签列表 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {filteredTags.length === 0 && searchTerm ? (
-            <div className="text-center py-8">
-              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <p className="text-gray-500">未找到匹配的标签</p>
+            <div className="text-center py-12">
+              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-muted-foreground">未找到匹配的标签</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {filteredTags.map((tag) => {
-                const selected = isTagSelected(tag.name);
-                const disabled = !selected && !canSelectMore;
-                
-                return (
-                  <button
-                    key={tag._id}
-                    onClick={() => !disabled && handleTagToggle(tag.name)}
-                    disabled={disabled}
-                    className={`text-left p-4 rounded-lg border-2 transition-all duration-200 ${
-                      selected
-                        ? `border-${colors.border} bg-${colors.light} text-${colors.text}`
-                        : disabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : `border-gray-200 hover:border-${colors.border} hover:bg-${colors.light} text-gray-700`
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <svg className={`w-4 h-4 mr-2 ${selected ? `text-${colors.primary}` : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-medium">{tag.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-xs px-2 py-1 rounded-full ${selected ? `bg-${colors.primary} text-white` : 'bg-gray-100 text-gray-500'}`}>
-                          {tag.usageCount}
-                        </span>
-                        {selected && (
-                          <svg className={`w-4 h-4 text-${colors.primary}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                    {tag.description && (
-                      <p className="text-xs text-gray-500 mt-1">{tag.description}</p>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                                      <div className="flex flex-wrap gap-3">
+               {filteredTags.map((tag) => {
+                 const selected = isTagSelected(tag.name);
+                 const disabled = !selected && !canSelectMore;
+                 
+                 return (
+                   <Button
+                     key={tag._id}
+                     variant="outline"
+                     onClick={() => !disabled && handleTagToggle(tag.name)}
+                     disabled={disabled}
+                     className={cn(
+                       "h-auto p-2.5 justify-start text-left min-w-fit max-w-full",
+                       selected && "border-primary bg-primary/5 text-primary",
+                       disabled && "opacity-50 cursor-not-allowed"
+                     )}
+                     style={{ width: 'fit-content' }}
+                   >
+                     <div className="flex items-center gap-1.5">
+                       <div className={cn(
+                         "h-1.5 w-1.5 rounded-full flex-shrink-0",
+                         selected ? "bg-primary" : "bg-muted-foreground/30"
+                       )} />
+                       <div className="flex items-center gap-1.5">
+                         <span className="font-medium text-xs whitespace-nowrap">{tag.name}</span>
+                         <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                           {tag.usageCount}
+                         </Badge>
+                       </div>
+                       {selected && (
+                         <Check className="h-3.5 w-3.5 text-primary ml-1" />
+                       )}
+                     </div>
+                   </Button>
+                 );
+               })}
+             </div>
           )}
         </div>
 
         {/* 底部按钮 */}
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={handleClose}>取消</AlertDialogCancel>
-          <AlertDialogAction onClick={handleConfirm} disabled={!hasChanges}>确认选择</AlertDialogAction>
+        <AlertDialogFooter className="px-6 py-4 border-t">
+          <AlertDialogCancel onClick={handleClose}>
+            取消
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm} disabled={!hasChanges}>
+            确认选择
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

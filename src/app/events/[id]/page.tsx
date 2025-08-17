@@ -16,7 +16,7 @@ type EventDetail = {
   _id: string
   title: string
   description?: string
-  category?: string
+  tags?: string[]
   occurredAt: string
   createdAt: string
   attachments?: Array<{ _id: string; originalName: string; url: string; size: number; mimetype: string }>
@@ -112,17 +112,24 @@ export default function EventDetailPage() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  {format(new Date(event.occurredAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}
+                                     {event.occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1年$2月$3日')}
                 </div>
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4" />
                   {event.creator?.name || event.creator?.email || '未知用户'}
                 </div>
               </div>
+              {/* 标签显示 */}
+              {event.tags && event.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="capitalize">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-            <Badge variant="outline" className="capitalize text-base px-3 py-1">
-              {event.category}
-            </Badge>
           </div>
         </CardHeader>
         

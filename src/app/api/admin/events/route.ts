@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
-    const category = searchParams.get('category') || '';
+    const tags = searchParams.get('tags') || '';
     const status = searchParams.get('status') || '';
 
     // 构建查询条件
@@ -41,8 +41,16 @@ export async function GET(request: NextRequest) {
       ];
     }
     
-    if (category && category !== 'all') {
-      query.category = category;
+    if (tags && tags !== 'all') {
+      if (tags === 'has_tags') {
+        query.tags = { $exists: true, $ne: [], $not: { $size: 0 } };
+      } else if (tags === 'no_tags') {
+        query.$or = [
+          { tags: { $exists: false } },
+          { tags: [] },
+          { tags: { $size: 0 } }
+        ];
+      }
     }
     
     if (status && status !== 'all') {
@@ -109,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, occurredAt, attachmentIds } = body;
+    const { title, description, tags, occurredAt, attachmentIds } = body;
 
     // 验证必填字段
     if (!title || !occurredAt) {
@@ -119,11 +127,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 过滤并校验标签格式
+    const validTags = Array.isArray(tags)
+      ? tags.filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0)
+      : [];
+
     // 创建事件
     const event = new Event({
       title,
       description: description || '',
-      category: category || 'other',
+      tags: validTags,
       occurredAt: new Date(occurredAt),
       creator: user._id,
       attachments: attachmentIds || []

@@ -80,7 +80,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description, category, occurredAt, attachmentIds, deletedAttachmentIds } = body;
+    const { title, description, tags, occurredAt, attachmentIds, deletedAttachmentIds } = body;
 
     // 验证必填字段
     if (!title || !occurredAt) {
@@ -90,30 +90,32 @@ export async function PUT(
       );
     }
 
+    // 过滤并校验标签格式
+    const validTags = Array.isArray(tags)
+      ? tags.filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0)
+      : [];
+
     // 查找并更新事件
     const event = await Event.findById(id);
     if (!event) {
       return NextResponse.json({ error: '事件不存在' }, { status: 404 });
     }
 
-    // 获取新的附件列表
-    const newAttachmentIds = attachmentIds || [];
-
-    // 更新事件字段
+    // 更新事件基本信息
     event.title = title;
     event.description = description || '';
-    event.category = category || 'other';
+    event.tags = validTags;
     event.occurredAt = new Date(occurredAt);
-    event.attachments = newAttachmentIds;
+    event.attachments = attachmentIds || [];
     event.updatedAt = new Date();
 
     await event.save();
     
     // 处理附件变化：将临时附件移动到事件目录
-    if (newAttachmentIds.length > 0) {
+    if (attachmentIds && attachmentIds.length > 0) {
       try {
         // 获取附件信息
-        const attachments = await Image.find({ _id: { $in: newAttachmentIds } });
+        const attachments = await Image.find({ _id: { $in: attachmentIds } });
         
         for (const attachment of attachments) {
           try {
