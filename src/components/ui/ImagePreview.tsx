@@ -88,12 +88,7 @@ const ImagePreview = memo(({
           loading="lazy"
         />
         
-        {/* 图片描述提示 */}
-        {alt && loaded && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b truncate opacity-0 group-hover:opacity-100 transition-opacity">
-            {alt}
-          </div>
-        )}
+        {/* 图片描述提示 - 已移除悬浮显示文件名 */}
       </div>
 
       {/* 图片预览模态框 */}
