@@ -24,7 +24,7 @@ import {
   Tag,
   Calendar
 } from 'lucide-react'
-import CustomTimeline from '@/components/CustomTimeline'
+import CustomTimeline, { TimelineMode } from '@/components/CustomTimeline'
 import { toast } from 'sonner'
 
 type EventItem = {
@@ -67,6 +67,35 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [isMounted, setIsMounted] = useState<boolean>(true)
+  const [timelineMode, setTimelineMode] = useState<TimelineMode>('day')
+  
+  // 根据时间轴模式格式化日期
+  const formatDateForMode = (date: string, mode: TimelineMode) => {
+    const dateObj = new Date(date)
+    switch (mode) {
+      case 'year':
+        return dateObj.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: 'short'
+        })
+      case 'month':
+        return dateObj.toLocaleString('zh-CN', {
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      case 'day':
+      default:
+        return dateObj.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+    }
+  }
   
   // 创建事件弹框状态 - 完全匹配管理端
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -470,18 +499,16 @@ export default function EventsPage() {
                     id: event._id,
                     title: event.title,
                     description: event.description,
-                    date: new Date(event.occurredAt).toLocaleString('zh-CN', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }),
+                    date: formatDateForMode(event.occurredAt, timelineMode),
+                    originalDate: event.occurredAt, // 传递原始日期用于分组
                     tags: event.tags,
                     creator: event.creator,
                     attachments: event.attachments,
                     onClick: () => window.open(`/events/${event._id}`, '_blank')
                   }))}
+                mode={timelineMode}
+                onModeChange={setTimelineMode}
+                showModeSelector={true}
                 className="w-full"
               />
             </div>
