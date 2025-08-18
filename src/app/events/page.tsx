@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,9 +12,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import UserAvatar from '@/components/UserAvatar'
 import ImagePreview from '@/components/ui/ImagePreview'
 import TagSelectionModal from '@/components/TagSelectionModal'
+import { EventsDataTable } from '@/components/events/EventsDataTable'
 import { 
   RefreshCw,
   Upload,
@@ -390,96 +389,7 @@ export default function EventsPage() {
         </TabsList>
 
         <TabsContent value="table" className="mt-4">
-          <div className="rounded-md border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>时间</TableHead>
-                  <TableHead>标题</TableHead>
-                  <TableHead>标签</TableHead>
-                  <TableHead>附件</TableHead>
-                  <TableHead className="w-[40%]">描述</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">加载中...</TableCell>
-                  </TableRow>
-                )}
-                {!loading && events.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">暂无事件</TableCell>
-                  </TableRow>
-                )}
-                {events.map((e) => (
-                  <TableRow key={e._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="text-nowrap">{e.occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3')}</div>
-                        {e.creator && (
-                          <div className="flex items-center gap-2">
-                            <UserAvatar avatar={e.creator.avatar} userName={e.creator.name || e.creator.email || '用户'} size="sm" />
-                            <span className="text-xs text-muted-foreground">{e.creator.name || e.creator.email}</span>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <button
-                        onClick={() => window.open(`/events/${e._id}`, '_blank')}
-                        className="text-left text-foreground hover:text-primary hover:underline cursor-pointer transition-colors"
-                      >
-                        {e.title}
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      {e.tags && e.tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {e.tags.map(tag => (
-                            <Badge key={tag} variant="outline" className="capitalize">{tag}</Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {e.attachments && e.attachments.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {e.attachments.map(att => (
-                            <div key={att._id}>
-                              {att.mimetype?.startsWith('image/') ? (
-                                <ImagePreview 
-                                  src={att.url} 
-                                  alt={att.originalName} 
-                                  size="sm"
-                                  className="cursor-pointer"
-                                />
-                              ) : (
-                                <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.originalName}>
-                                  <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs hover:bg-accent">
-                                    {att.originalName}
-                                  </span>
-                                </a>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <div className="space-y-1">
-                        {e.description}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <EventsDataTable events={events} loading={loading} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
