@@ -47,11 +47,24 @@ import {
   ChevronRight,
   Crown,
   MessageSquare,
-  Calendar
+  Calendar,
+  Database,
+  FolderOpen,
+  ChevronDown
 } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
+}
+
+interface NavItem {
+  href?: string;
+  key?: string;
+  label: string;
+  icon: any;
+  exact?: boolean;
+  description: string;
+  children?: NavItem[];
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -60,6 +73,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -89,6 +103,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     checkPermission();
   }, [session, status, router]);
 
+  // 自动展开当前页面对应的菜单
+  useEffect(() => {
+    if (pathname.startsWith('/admin/resources') || pathname.startsWith('/admin/resource-categories')) {
+      setExpandedMenus(prev => new Set([...prev, 'resources']));
+    }
+  }, [pathname]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -112,7 +133,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null;
   }
 
-  const navItems = [
+  const toggleMenu = (menuKey: string) => {
+    setExpandedMenus(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(menuKey)) {
+        newSet.delete(menuKey);
+      } else {
+        newSet.add(menuKey);
+      }
+      return newSet;
+    });
+  };
+
+  const navItems: NavItem[] = [
     { 
       href: '/admin', 
       label: '仪表板', 
@@ -137,6 +170,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: '事件管理', 
       icon: Calendar,
       description: ''
+    },
+    {
+      key: 'resources',
+      label: '资源管理',
+      icon: Database,
+      description: '',
+      children: [
+        {
+          href: '/admin/resources',
+          label: '资源列表',
+          icon: Database,
+          description: ''
+        },
+        {
+          href: '/admin/resource-categories',
+          label: '资源分类',
+          icon: FolderOpen,
+          description: ''
+        }
+      ]
     },
     { 
       href: '/admin/comments', 
@@ -189,14 +242,73 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <SidebarMenu>
                   {navItems.map((item) => {
                     const Icon = item.icon;
+                    
+                    // 如果有子菜单
+                    if ('children' in item && item.children) {
+                      const isExpanded = expandedMenus.has(item.key || '');
+                      const hasActiveChild = item.children.some(child => isActive(child.href || ''));
+                      
+                      return (
+                        <div key={item.key || 'menu'}>
+                          {/* 父菜单项 */}
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              onClick={() => toggleMenu(item.key || '')}
+                              isActive={hasActiveChild}
+                              className="group w-full flex items-center gap-3 px-6 py-3"
+                            >
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-primary/10 group-data-[active=true]:bg-primary/20 transition-colors">
+                                <Icon className="h-4 w-4 group-data-[active=true]:text-primary" />
+                              </div>
+                              <div className="flex-1 text-left">
+                                <div className="font-medium group-data-[active=true]:text-primary">
+                                  {item.label}
+                                </div>
+                                <div className="text-xs text-muted-foreground hidden group-hover:block group-data-[active=true]:block">
+                                  {item.description}
+                                </div>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-data-[active=true]:text-primary transition-transform group-hover:translate-x-1" />
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          
+                          {/* 子菜单项 */}
+                          {isExpanded && item.children.map((child) => {
+                            const ChildIcon = child.icon;
+                            return (
+                              <SidebarMenuItem key={child.href || 'child'}>
+                                <SidebarMenuButton
+                                  asChild
+                                  isActive={isActive(child.href || '')}
+                                  className="group"
+                                >
+                                  <Link href={child.href || '#'} className="flex items-center gap-3 px-6 py-2 ml-6">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-muted/30 group-hover:bg-primary/10 group-data-[active=true]:bg-primary/20 transition-colors">
+                                      <ChildIcon className="h-3 w-3 group-data-[active=true]:text-primary" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                      <div className="text-sm font-medium group-data-[active=true]:text-primary">
+                                        {child.label}
+                                      </div>
+                                    </div>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    
+                    // 普通菜单项
                     return (
-                      <SidebarMenuItem key={item.href}>
+                      <SidebarMenuItem key={item.href || 'item'}>
                         <SidebarMenuButton
                           asChild
-                          isActive={isActive(item.href, item.exact)}
+                          isActive={isActive(item.href || '', item.exact)}
                           className="group"
                         >
-                          <Link href={item.href} className="flex items-center gap-3 px-6 py-3">
+                          <Link href={item.href || '#'} className="flex items-center gap-3 px-6 py-3">
                             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 group-hover:bg-primary/10 group-data-[active=true]:bg-primary/20 transition-colors">
                               <Icon className="h-4 w-4 group-data-[active=true]:text-primary" />
                             </div>

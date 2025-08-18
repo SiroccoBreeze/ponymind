@@ -21,7 +21,10 @@ import {
   Shield, 
   Menu, 
   MessageSquare,
-  FileText
+  FileText,
+  Database,
+  BarChart3,
+  ChevronDown
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -190,8 +193,12 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: '首页', icon: Home },
     { href: '/faq', label: 'FAQ', icon: HelpCircle },
-    { href: '/services', label: '服务', icon: Settings },
     { href: '/events', label: '事件', icon: FileText },
+  ];
+
+  const serviceLinks = [
+    { href: '/resources', label: '资源', icon: Database },
+    { href: '/reports', label: '报表', icon: BarChart3 },
   ];
 
   const isActiveLink = (href: string) => {
@@ -239,6 +246,40 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
+                
+                {/* 服务下拉菜单 */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        isActiveLink('/resources') || isActiveLink('/reports')
+                          ? 'bg-accent text-accent-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                      }`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>服务</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {serviceLinks.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <DropdownMenuItem key={link.href} asChild>
+                          <Link
+                            href={link.href}
+                            className="flex items-center space-x-2 w-full"
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span>{link.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
@@ -281,6 +322,30 @@ export default function Navbar() {
                           </Link>
                         );
                       })}
+                      
+                      {/* 移动端服务菜单 */}
+                      <div className="space-y-1">
+                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          服务
+                        </div>
+                        {serviceLinks.map((link) => {
+                          const Icon = link.icon;
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                                isActiveLink(link.href)
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                              <span>{link.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
                     
                     <Separator className="my-4" />
