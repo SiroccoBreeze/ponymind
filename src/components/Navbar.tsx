@@ -13,7 +13,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { 
   Home, 
-  HelpCircle, 
   Settings, 
   Bell, 
   User, 
@@ -192,7 +191,6 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: '首页', icon: Home },
-    { href: '/faq', label: 'FAQ', icon: HelpCircle },
     { href: '/events', label: '事件', icon: FileText },
   ];
 
