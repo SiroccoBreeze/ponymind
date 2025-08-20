@@ -450,6 +450,31 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 表格内容优化 */
+.table-content {
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.table-cell {
+  vertical-align: top;
+  padding: 1rem 0.75rem;
+}
+
+/* 响应式表格优化 */
+@media (max-width: 768px) {
+  .table-cell {
+    padding: 0.75rem 0.5rem;
+  }
+}
+
 /* 目录高亮动画 */
 .toc-item-active {
   background-color: hsl(var(--accent));
