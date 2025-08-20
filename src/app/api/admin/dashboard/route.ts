@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import Message from '@/models/Message';
 
 // 检查管理员权限
 async function checkAdminPermission() {
@@ -216,6 +217,42 @@ export async function GET() {
       { $limit: 20 }
     ]);
 
+    // 获取消息统计
+    const messageStats = await Message.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalMessages: { $sum: 1 },
+          unreadMessages: {
+            $sum: { $cond: [{ $eq: ['$isRead', false] }, 1, 0] }
+          },
+          rejectionMessages: {
+            $sum: { $cond: [{ $eq: ['$type', 'rejection'] }, 1, 0] }
+          },
+          successMessages: {
+            $sum: { $cond: [{ $eq: ['$type', 'success'] }, 1, 0] }
+          },
+          warningMessages: {
+            $sum: { $cond: [{ $eq: ['$type', 'warning'] }, 1, 0] }
+          },
+          messagesThisMonth: {
+            $sum: {
+              $cond: [
+                {
+                  $gte: [
+                    '$createdAt',
+                    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
     return NextResponse.json({
       overview: {
         users: userStats[0] || {
@@ -239,6 +276,14 @@ export async function GET() {
           totalLikes: 0,
           newPostsThisMonth: 0,
           publishedThisMonth: 0
+        },
+        messages: messageStats[0] || {
+          totalMessages: 0,
+          unreadMessages: 0,
+          rejectionMessages: 0,
+          successMessages: 0,
+          warningMessages: 0,
+          messagesThisMonth: 0
         }
       },
       recentActivity: {

@@ -39,6 +39,8 @@ export default function Navbar() {
     content: string;
     isRead: boolean;
     createdAt: string;
+    relatedId?: string; // 关联的帖子ID
+    relatedType?: 'post'; // 关联的类型
   }[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState<{
@@ -94,6 +96,62 @@ export default function Navbar() {
     const interval = setInterval(fetchUnreadCount, 30000);
     
     return () => clearInterval(interval);
+  }, [session?.user?.email]);
+
+  // 当用户登录后，立即获取消息通知
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [session?.user?.email]);
+
+  // 监听页面可见性变化，当用户返回页面时刷新消息状态
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && session?.user?.email) {
+        // 用户返回页面时，刷新消息状态
+        fetchNotifications();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [session?.user?.email]);
+
+  // 监听全局消息状态变化事件
+  useEffect(() => {
+    const handleMessageUpdate = () => {
+      if (session?.user?.email) {
+        // 当收到消息更新事件时，刷新消息状态
+        fetchNotifications();
+        // 同时刷新未读消息数量
+        const fetchUnreadCount = async () => {
+          try {
+            const response = await fetch('/api/users/messages?page=1&limit=1');
+            if (response.ok) {
+              const data = await response.json();
+              setUnreadCount(data.unreadCount || 0);
+            }
+          } catch (error) {
+            console.error('获取未读消息数失败:', error);
+          }
+        };
+        fetchUnreadCount();
+      }
+    };
+
+    // 监听自定义事件
+    window.addEventListener('message-updated', handleMessageUpdate);
+    
+    return () => {
+      window.removeEventListener('message-updated', handleMessageUpdate);
+    };
   }, [session?.user?.email]);
 
   // 获取用户资料
@@ -172,10 +230,15 @@ export default function Navbar() {
 
     setLoadingNotifications(true);
     try {
-      const response = await fetch('/api/users/messages?page=1&limit=5');
+      const response = await fetch('/api/users/messages?page=1&limit=10');
       if (response.ok) {
         const data = await response.json();
+        console.log('获取到的消息数据:', data);
+        console.log('消息数量:', data.messages?.length || 0);
+        console.log('未读消息数:', data.unreadCount || 0);
         setNotifications(data.messages || []);
+        // 同步未读消息数量
+        setUnreadCount(data.unreadCount || 0);
       }
     } catch (error) {
       console.error('获取消息通知失败:', error);
@@ -183,6 +246,79 @@ export default function Navbar() {
       setLoadingNotifications(false);
     }
   };
+
+  // 标记消息为已读
+  const markMessageAsRead = async (messageId: string) => {
+    try {
+      const response = await fetch('/api/users/messages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          messageIds: [messageId] 
+        }),
+      });
+      
+      if (response.ok) {
+        // 更新本地状态
+        setNotifications(prev => prev.map(msg => 
+          msg._id === messageId 
+            ? { ...msg, isRead: true }
+            : msg
+        ));
+        // 更新未读消息数量
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // 触发全局消息更新事件，通知其他组件
+        window.dispatchEvent(new CustomEvent('message-updated'));
+        
+        // 延迟关闭下拉菜单，给用户更好的反馈
+        setTimeout(() => {
+          setShowNotifications(false);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('标记消息已读失败:', error);
+    }
+  };
+
+  // 标记所有消息为已读
+  const markAllMessagesAsRead = async () => {
+    try {
+      const response = await fetch('/api/users/messages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          markAllAsRead: true 
+        }),
+      });
+      
+      if (response.ok) {
+        // 更新本地状态
+        setNotifications(prev => prev.map(msg => ({ ...msg, isRead: true })));
+        setUnreadCount(0);
+        
+        // 触发全局消息更新事件，通知其他组件
+        window.dispatchEvent(new CustomEvent('message-updated'));
+      }
+    } catch (error) {
+      console.error('标记所有消息已读失败:', error);
+    }
+  };
+
+  // 同步未读消息数量
+  const syncUnreadCount = () => {
+    const unreadMessages = notifications.filter(msg => !msg.isRead);
+    setUnreadCount(unreadMessages.length);
+  };
+
+  // 当消息列表变化时，同步未读消息数量
+  useEffect(() => {
+    syncUnreadCount();
+  }, [notifications]);
 
   // 如果是认证页面或管理页面，不显示导航栏
   if (pathname?.startsWith('/auth/') || pathname?.startsWith('/admin/')) {
@@ -377,9 +513,8 @@ export default function Navbar() {
                         size="icon" 
                         className="relative"
                         onClick={() => {
-                          if (!showNotifications) {
-                            fetchNotifications();
-                          }
+                          // 每次打开通知时都刷新消息
+                          fetchNotifications();
                         }}
                       >
                         <Bell className="h-5 w-5" />
@@ -396,13 +531,25 @@ export default function Navbar() {
                     <DropdownMenuContent align="end" className="w-80">
                       <div className="flex items-center justify-between p-4 border-b">
                         <h3 className="text-lg font-semibold">消息通知</h3>
-                        <Link
-                          href="/user-center?section=messages"
-                          onClick={() => setShowNotifications(false)}
-                          className="text-sm text-primary hover:text-primary/80"
-                        >
-                          查看全部
-                        </Link>
+                        <div className="flex items-center space-x-2">
+                          {unreadCount > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={markAllMessagesAsRead}
+                              className="text-xs text-muted-foreground hover:text-foreground"
+                            >
+                              全部已读
+                            </Button>
+                          )}
+                          <Link
+                            href="/user-center?section=messages"
+                            onClick={() => setShowNotifications(false)}
+                            className="text-sm text-primary hover:text-primary/80"
+                          >
+                            查看全部
+                          </Link>
+                        </div>
                       </div>
                       <div className="max-h-64 overflow-y-auto">
                         {loadingNotifications ? (
@@ -416,55 +563,52 @@ export default function Navbar() {
                             <p className="text-sm text-muted-foreground">暂无新消息</p>
                           </div>
                         ) : (
-                          notifications.map((notification) => (
-                            <div 
-                              key={notification._id} 
-                              className={`p-4 border-b hover:bg-accent cursor-pointer ${!notification.isRead ? 'bg-accent/50' : ''}`}
-                              onClick={async () => {
-                                // 如果消息未读，标记为已读
-                                if (!notification.isRead) {
-                                  try {
-                                    const response = await fetch('/api/users/messages', {
-                                      method: 'PATCH',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({ 
-                                        messageIds: [notification._id] 
-                                      }),
-                                    });
-                                    
-                                    if (response.ok) {
-                                      // 更新本地状态
-                                      setNotifications(prev => prev.map(msg => 
-                                        msg._id === notification._id 
-                                          ? { ...msg, isRead: true }
-                                          : msg
-                                      ));
-                                      setUnreadCount(prev => Math.max(0, prev - 1));
-                                    }
-                                  } catch (error) {
-                                    console.error('标记消息已读失败:', error);
+                          <>
+                            {notifications.filter(msg => !msg.isRead).length === 0 && (
+                              <div className="p-3 text-center border-b">
+                                <p className="text-xs text-muted-foreground">所有消息已读</p>
+                              </div>
+                            )}
+                            {notifications.map((notification) => (
+                              <div 
+                                key={notification._id} 
+                                className={`p-4 border-b hover:bg-accent cursor-pointer transition-colors ${!notification.isRead ? 'bg-accent/50' : ''}`}
+                                onClick={async () => {
+                                  // 如果消息未读，标记为已读
+                                  if (!notification.isRead) {
+                                    await markMessageAsRead(notification._id);
                                   }
-                                }
-                              }}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 ${!notification.isRead ? 'bg-primary' : 'bg-muted-foreground/30'}`}></div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">
-                                    {notification.title}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                    {notification.content}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground/70 mt-1">
-                                    {new Date(notification.createdAt).toLocaleDateString('zh-CN')}
-                                  </p>
+                                  
+                                  // 如果消息有关联的内容，跳转到相关内容
+                                  if (notification.relatedId && notification.relatedType === 'post') {
+                                    // 关闭消息通知下拉菜单
+                                    setShowNotifications(false);
+                                    // 跳转到相关内容
+                                    window.open(`/posts/${notification.relatedId}`, '_blank');
+                                  } else {
+                                    // 如果没有关联内容，跳转到用户中心的消息页面
+                                    setShowNotifications(false);
+                                    window.location.href = '/user-center?section=messages';
+                                  }
+                                }}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${!notification.isRead ? 'bg-primary' : 'bg-muted-foreground/30'}`}></div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {notification.content}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                      {new Date(notification.createdAt).toLocaleDateString('zh-CN')}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))
+                            ))}
+                          </>
                         )}
                       </div>
                     </DropdownMenuContent>

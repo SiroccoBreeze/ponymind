@@ -793,6 +793,9 @@ export default function UserCenterPage() {
                                 setUnreadCount(0);
                                 // 重新获取消息列表
                                 fetchMessages();
+                                
+                                // 触发全局消息更新事件，通知导航栏更新状态
+                                window.dispatchEvent(new CustomEvent('message-updated'));
                               }
                             } catch (error) {
                               console.error('标记已读失败:', error);
@@ -890,6 +893,9 @@ export default function UserCenterPage() {
                                                   : msg
                                               ));
                                               setUnreadCount(prev => Math.max(0, prev - 1));
+                                              
+                                              // 触发全局消息更新事件，通知导航栏更新状态
+                                              window.dispatchEvent(new CustomEvent('message-updated'));
                                             }
                                           } catch (error) {
                                             console.error('标记消息已读失败:', error);

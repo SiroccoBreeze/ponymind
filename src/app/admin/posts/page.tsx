@@ -122,16 +122,27 @@ export default function PostsManagement() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         await fetchPosts();
         setShowRejectModal(false);
         setRejectPostId(null);
         setRejectReason('');
+        
+        // 显示操作成功和消息发送状态
+        if (result.messageSent) {
+          const actionText = action === 'approve' ? '通过审核' : '拒绝审核';
+          const messageText = result.messageType === 'rejection' 
+            ? '已拒绝内容并发送消息通知作者'
+            : '已通过审核并发送消息通知作者';
+          
+          console.log(`${actionText}成功: ${messageText}`);
+          // 这里可以添加一个toast通知来显示成功消息
+        }
       } else {
-        // alert('操作失败'); // Replaced by AlertDialog
+        console.error('审核操作失败');
       }
     } catch (error) {
       console.error('审核操作失败:', error);
-      // alert('操作失败'); // Replaced by AlertDialog
     } finally {
       setUpdating(null);
     }
@@ -164,12 +175,13 @@ export default function PostsManagement() {
       });
       if (response.ok) {
         await fetchPosts();
+        console.log('内容删除成功，已发送消息通知作者');
+        // 这里可以添加一个toast通知来显示成功消息
       } else {
-        // alert('删除失败'); // Replaced by AlertDialog
+        console.error('删除失败');
       }
     } catch (error) {
       console.error('删除内容失败:', error);
-      // alert('删除失败'); // Replaced by AlertDialog
     } finally {
       setPendingDeletePostId(null);
     }
