@@ -33,7 +33,6 @@ interface ResourcesResponse {
     pages: number;
   };
   filters: {
-    types: string[];
     categories: string[];
   };
 }
@@ -50,6 +49,15 @@ export default function ResourcesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // 定义分类颜色
+  const categoryColors: Record<string, string> = {
+    '学习资料': 'bg-blue-100 text-blue-800',
+    '软件工具': 'bg-green-100 text-green-800',
+    '影视音乐': 'bg-purple-100 text-purple-800',
+    '游戏娱乐': 'bg-orange-100 text-orange-800',
+    '其他': 'bg-gray-100 text-gray-800'
+  };
 
   const fetchResources = async () => {
     setLoading(true);
@@ -108,58 +116,60 @@ export default function ResourcesPage() {
   };
 
   const ResourceCard = ({ resource }: { resource: Resource }) => (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow h-72 flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg font-semibold truncate">
               {resource.name}
             </CardTitle>
-            <CardDescription className="text-sm line-clamp-2 mt-1">
-              {resource.description}
+            <CardDescription className="text-sm line-clamp-2 mt-1 min-h-[1.5rem]">
+              {resource.description || '暂无描述'}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Badge className={`text-xs ${resource.category?.color || 'bg-gray-100 text-gray-800'}`}>
-            {resource.category?.name || '未知分类'}
-          </Badge>
-        </div>
-        
-        {resource.accessCode && (
-          <div className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
-            <span className="text-muted-foreground">提取码:</span>
-            <div className="flex items-center space-x-2">
-              <code className="font-mono text-xs">{resource.accessCode}</code>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => copyToClipboard(resource.accessCode!, resource._id)}
-                className="h-6 w-6 p-0"
-              >
-                {copiedId === resource._id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              </Button>
-            </div>
+      <CardContent className="space-y-2 flex-1 flex flex-col justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Badge className={`text-xs ${resource.category?.color || 'bg-gray-100 text-gray-800'}`}>
+              {resource.category?.name || '未知分类'}
+            </Badge>
           </div>
-        )}
+          
+          {resource.accessCode && (
+            <div className="flex items-center justify-between p-1.5 bg-muted/50 rounded text-sm">
+              <span className="text-muted-foreground">提取码:</span>
+              <div className="flex items-center space-x-2">
+                <code className="font-mono text-xs">{resource.accessCode}</code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(resource.accessCode!, resource._id)}
+                  className="h-6 w-6 p-0"
+                >
+                  {copiedId === resource._id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
 
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 mt-2">
           <Button
-            asChild
+            onClick={() => {
+              // 如果有提取码，自动复制
+              if (resource.accessCode) {
+                copyToClipboard(resource.accessCode, resource._id);
+              }
+              // 打开资源链接
+              window.open(resource.url, '_blank', 'noopener,noreferrer');
+            }}
             className="flex-1"
             size="sm"
           >
-            <a
-              href={resource.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-2"
-            >
-              <ExternalLink className="w-3 h-3" />
-              <span>访问资源</span>
-            </a>
+            <ExternalLink className="w-3 h-3 mr-1" />
+            <span className="text-xs">访问资源</span>
           </Button>
         </div>
       </CardContent>
@@ -176,10 +186,8 @@ export default function ResourcesPage() {
           {resource.description}
         </p>
         <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-          <span>{typeIcons[resource.type]} {resource.type}</span>
-          <span>•</span>
-          <Badge className={`text-xs ${categoryColors[resource.category]}`}>
-            {resource.category}
+          <Badge className={`text-xs ${categoryColors[resource.category.name] || 'bg-gray-100 text-gray-800'}`}>
+            {resource.category.name}
           </Badge>
           {resource.accessCode && (
             <>
@@ -203,11 +211,16 @@ export default function ResourcesPage() {
         <Button
           variant="ghost"
           size="sm"
-          asChild
+          onClick={() => {
+            // 如果有提取码，自动复制
+            if (resource.accessCode) {
+              copyToClipboard(resource.accessCode, resource._id);
+            }
+            // 打开资源链接
+            window.open(resource.url, '_blank', 'noopener,noreferrer');
+          }}
         >
-          <a href={resource.url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4" />
-          </a>
+          <ExternalLink className="w-4 h-4" />
         </Button>
       </div>
     </div>
@@ -311,17 +324,17 @@ export default function ResourcesPage() {
           viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden">
-                  <CardHeader className="pb-3">
+                <Card key={i} className="overflow-hidden h-72 flex flex-col">
+                  <CardHeader className="pb-3 flex-shrink-0">
                     <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-10 w-full mt-1" />
                   </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-20 w-full mb-3" />
-                    <div className="flex gap-2">
+                  <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="space-y-3">
                       <Skeleton className="h-6 w-16" />
-                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-20 w-full" />
                     </div>
+                    <Skeleton className="h-9 w-full" />
                   </CardContent>
                 </Card>
               ))}
