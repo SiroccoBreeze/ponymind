@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { format } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
-import { ArrowLeft, Calendar, User, FileText } from 'lucide-react'
+
+import { ArrowLeft, Calendar, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -115,8 +114,12 @@ export default function EventDetailPage() {
                                      {event.occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1年$2月$3日')}
                 </div>
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  {event.creator?.name || event.creator?.email || '未知用户'}
+                  <UserAvatar 
+                    avatar={event.creator?.avatar} 
+                    userName={event.creator?.name || event.creator?.email || '未知用户'} 
+                    size="sm" 
+                  />
+                  <span>{event.creator?.name || event.creator?.email || '未知用户'}</span>
                 </div>
               </div>
               {/* 标签显示 */}
@@ -134,23 +137,7 @@ export default function EventDetailPage() {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {/* 创建人信息 */}
-          {event.creator && (
-            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-              <UserAvatar 
-                avatar={event.creator.avatar} 
-                userName={event.creator.name || event.creator.email || '用户'} 
-                size="lg" 
-              />
-              <div>
-                <p className="font-medium">{event.creator.name || '未设置昵称'}</p>
-                <p className="text-sm text-muted-foreground">{event.creator.email}</p>
-                <p className="text-xs text-muted-foreground">
-                  创建于 {format(new Date(event.createdAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}
-                </p>
-              </div>
-            </div>
-          )}
+
 
           {/* 描述 */}
           {event.description && (
