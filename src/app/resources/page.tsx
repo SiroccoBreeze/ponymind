@@ -240,7 +240,7 @@ export default function ResourcesPage() {
             </h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            精选各类网盘资源，包括学习资料、软件工具、影视音乐等，为您提供便捷的资源获取渠道
+            精选各类文档资料、软件工具、技术脚本等，为您提供便捷的资源获取渠道
           </p>
         </div>
 
