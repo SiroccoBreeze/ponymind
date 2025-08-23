@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import bcrypt from 'bcryptjs';
 
 // 检查管理员权限
 async function checkAdminPermission() {
@@ -29,6 +30,61 @@ interface UpdateData {
   role?: string;
   status?: string;
   updatedAt: Date;
+}
+
+// 创建新用户
+export async function POST(request: NextRequest) {
+  try {
+    const permissionCheck = await checkAdminPermission();
+    if (permissionCheck.error) {
+      return NextResponse.json({ error: permissionCheck.error }, { status: permissionCheck.status });
+    }
+
+    const { name, email, password, role, status } = await request.json();
+
+    // 验证必填字段
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: '用户名、邮箱和密码不能为空' }, { status: 400 });
+    }
+
+    // 检查邮箱是否已存在
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json({ error: '该邮箱已被注册' }, { status: 400 });
+    }
+
+    // 创建新用户 - 直接传入明文密码，让pre中间件处理加密
+    const newUser = new User({
+      name,
+      email,
+      password: password, // 传入明文密码，让pre中间件加密
+      role: role || 'user',
+      status: status || 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    await newUser.save();
+
+    // 返回用户信息（不包含密码）
+    const userResponse = {
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      status: newUser.status,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt
+    };
+
+    return NextResponse.json(userResponse, { status: 201 });
+  } catch (error) {
+    console.error('创建用户失败:', error);
+    return NextResponse.json(
+      { error: '创建用户失败' },
+      { status: 500 }
+    );
+  }
 }
 
 // 获取用户列表

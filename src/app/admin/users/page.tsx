@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { useEffect, useState } from 'react';
 import { 
@@ -59,6 +62,23 @@ export default function UsersManagement() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [updating, setUpdating] = useState<string | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addingUser, setAddingUser] = useState(false);
+  const [addUserError, setAddUserError] = useState<string | null>(null);
+  const [addUserForm, setAddUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user' as 'user' | 'moderator' | 'admin',
+    status: 'active' as 'active' | 'inactive' | 'banned'
+  });
+
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -113,6 +133,115 @@ export default function UsersManagement() {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!addUserForm.name || !addUserForm.email || !addUserForm.password) {
+      setAddUserError('请填写所有必填字段');
+      return;
+    }
+
+    setAddingUser(true);
+    setAddUserError(null);
+
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(addUserForm),
+      });
+
+      if (response.ok) {
+        // 重置表单并关闭对话框
+        setAddUserForm({
+          name: '',
+          email: '',
+          password: '',
+          role: 'user',
+          status: 'active'
+        });
+        setShowAddDialog(false);
+        // 刷新用户列表
+        await fetchUsers();
+      } else {
+        const errorData = await response.json();
+        setAddUserError(errorData.error || '添加用户失败');
+      }
+    } catch (error) {
+      console.error('添加用户失败:', error);
+      setAddUserError('添加用户失败，请稍后重试');
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
+  const resetAddUserForm = () => {
+    setAddUserForm({
+      name: '',
+      email: '',
+      password: '',
+      role: 'user',
+      status: 'active'
+    });
+    setAddUserError(null);
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedUser || !newPassword.trim()) {
+      setChangePasswordError('请输入新密码');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setChangePasswordError('密码长度至少6位');
+      return;
+    }
+
+    setChangingPassword(true);
+    setChangePasswordError(null);
+    setChangePasswordSuccess(null);
+
+    try {
+      const response = await fetch('/api/admin/users/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUser._id,
+          newPassword: newPassword.trim()
+        }),
+      });
+
+      if (response.ok) {
+        setChangePasswordSuccess('密码修改成功');
+        setNewPassword('');
+        // 延迟关闭对话框
+        setTimeout(() => {
+          setShowChangePasswordDialog(false);
+          setSelectedUser(null);
+          setChangePasswordSuccess(null);
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        setChangePasswordError(errorData.error || '修改密码失败');
+      }
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      setChangePasswordError('修改密码失败，请稍后重试');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const openChangePasswordDialog = (user: User) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setChangePasswordError(null);
+    setChangePasswordSuccess(null);
+    setShowChangePasswordDialog(true);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('zh-CN');
   };
@@ -162,12 +291,204 @@ export default function UsersManagement() {
             <Download className="h-4 w-4 mr-2" />
             导出数据
           </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            添加用户
-          </Button>
-        </div>
-      </div>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                添加用户
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>添加新用户</DialogTitle>
+                <DialogDescription>
+                  创建新的用户账户，设置用户名、邮箱、密码和权限。
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-4 py-4">
+                {addUserError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{addUserError}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    用户名 *
+                  </Label>
+                  <Input
+                    id="name"
+                    value={addUserForm.name}
+                    onChange={(e) => setAddUserForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="请输入用户名"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    邮箱 *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={addUserForm.email}
+                    onChange={(e) => setAddUserForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="请输入邮箱地址"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">
+                    密码 *
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={addUserForm.password}
+                    onChange={(e) => setAddUserForm(prev => ({ ...prev, password: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="请输入密码"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="role" className="text-right">
+                    角色
+                  </Label>
+                  <Select 
+                    value={addUserForm.role} 
+                    onValueChange={(value: 'user' | 'moderator' | 'admin') => 
+                      setAddUserForm(prev => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">用户</SelectItem>
+                      <SelectItem value="moderator">版主</SelectItem>
+                      <SelectItem value="admin">管理员</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    状态
+                  </Label>
+                  <Select 
+                    value={addUserForm.status} 
+                    onValueChange={(value: 'active' | 'inactive' | 'banned') => 
+                      setAddUserForm(prev => ({ ...prev, status: value }))
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">活跃</SelectItem>
+                      <SelectItem value="inactive">非活跃</SelectItem>
+                      <SelectItem value="banned">已封禁</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowAddDialog(false);
+                    resetAddUserForm();
+                  }}
+                >
+                  取消
+                </Button>
+                <Button 
+                  type="submit" 
+                  onClick={handleAddUser}
+                  disabled={addingUser}
+                >
+                  {addingUser ? '添加中...' : '添加用户'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+                     </Dialog>
+         </div>
+       </div>
+
+       {/* 修改密码对话框 */}
+       <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
+         <DialogContent className="sm:max-w-[425px]">
+           <DialogHeader>
+             <DialogTitle>修改用户密码</DialogTitle>
+             <DialogDescription>
+               为用户 {selectedUser?.name} ({selectedUser?.email}) 设置新密码
+             </DialogDescription>
+           </DialogHeader>
+           
+           <div className="grid gap-4 py-4">
+             {changePasswordError && (
+               <Alert variant="destructive">
+                 <AlertDescription>{changePasswordError}</AlertDescription>
+               </Alert>
+             )}
+             
+             {changePasswordSuccess && (
+               <Alert className="border-green-200 bg-green-50 text-green-800">
+                 <AlertDescription>{changePasswordSuccess}</AlertDescription>
+               </Alert>
+             )}
+             
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="newPassword" className="text-right">
+                 新密码 *
+               </Label>
+               <Input
+                 id="newPassword"
+                 type="password"
+                 value={newPassword}
+                 onChange={(e) => setNewPassword(e.target.value)}
+                 className="col-span-3"
+                 placeholder="请输入新密码（至少6位）"
+                 disabled={changingPassword}
+               />
+             </div>
+             
+             <div className="text-xs text-muted-foreground col-span-4">
+               密码长度至少6位，建议包含字母、数字和特殊字符
+             </div>
+           </div>
+           
+           <DialogFooter>
+             <Button 
+               type="button" 
+               variant="outline" 
+               onClick={() => {
+                 setShowChangePasswordDialog(false);
+                 setSelectedUser(null);
+                 setNewPassword('');
+                 setChangePasswordError(null);
+                 setChangePasswordSuccess(null);
+               }}
+               disabled={changingPassword}
+             >
+               取消
+             </Button>
+             <Button 
+               type="submit" 
+               onClick={handleChangePassword}
+               disabled={changingPassword || !newPassword.trim()}
+             >
+               {changingPassword ? '修改中...' : '修改密码'}
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -388,9 +709,19 @@ export default function UsersManagement() {
                       {updating === user._id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Button variant="ghost" size="sm">
-                          <Activity className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openChangePasswordDialog(user)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            修改密码
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Activity className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>

@@ -14,6 +14,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // 注册功能关闭时，不显示任何提示，让用户感觉没有注册功能
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -53,6 +54,8 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
+      {/* 注册功能关闭时，不显示任何提示，让用户感觉没有注册功能 */}
+
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

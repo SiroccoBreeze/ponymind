@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export default function AuthLayout({
   children,
@@ -10,6 +11,28 @@ export default function AuthLayout({
 }) {
   const pathname = usePathname();
   const isSignIn = pathname === '/auth/signin';
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+
+  // 检查用户注册功能是否启用
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      try {
+        const response = await fetch('/api/system-parameters');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setRegistrationEnabled(data.parameters.allowRegistration !== false);
+          }
+        }
+             } catch (error) {
+         console.error('检查注册状态失败:', error);
+         // 如果检查失败，默认允许注册
+         setRegistrationEnabled(true);
+       }
+    };
+
+    checkRegistrationStatus();
+  }, []);
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
@@ -44,30 +67,37 @@ export default function AuthLayout({
             {/* 表单内容 */}
             {children}
 
-            {/* 底部链接 */}
-            <div className="text-center text-sm text-muted-foreground">
-              {isSignIn ? (
-                <>
-                  <span>还没有账户？</span>
-                  <Link
-                    href="/auth/register"
-                    className="underline underline-offset-4 hover:text-primary transition-colors"
-                  >
-                    立即注册
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <span>已有账户？</span>
-                  <Link
-                    href="/auth/signin"
-                    className="underline underline-offset-4 hover:text-primary transition-colors"
-                  >
-                    立即登录
-                  </Link>
-                </>
-              )}
-            </div>
+                         {/* 底部链接 */}
+             <div className="text-center text-sm text-muted-foreground">
+               {isSignIn ? (
+                 <>
+                   {registrationEnabled ? (
+                     <>
+                       <span>还没有账户？</span>
+                       <Link
+                         href="/auth/register"
+                         className="underline underline-offset-4 hover:text-primary transition-colors"
+                       >
+                         立即注册
+                       </Link>
+                     </>
+                   ) : (
+                     // 注册功能关闭时，不显示任何内容，让用户感觉没有注册功能
+                     null
+                   )}
+                 </>
+               ) : (
+                 <>
+                   <span>已有账户？</span>
+                   <Link
+                     href="/auth/signin"
+                     className="underline underline-offset-4 hover:text-primary transition-colors"
+                   >
+                     立即登录
+                   </Link>
+                 </>
+               )}
+             </div>
           </div>
         </div>
       </div>

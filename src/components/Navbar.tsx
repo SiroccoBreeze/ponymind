@@ -52,6 +52,7 @@ export default function Navbar() {
     website?: string;
     createdAt: string;
   } | null>(null);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
 
   const adminCheckCacheRef = useRef<{ [key: string]: boolean }>({});
   const adminCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -70,6 +71,28 @@ export default function Navbar() {
       console.error('获取用户资料失败:', error);
     }
   };
+
+  // 检查用户注册功能是否启用
+  const checkRegistrationStatus = async () => {
+    try {
+      const response = await fetch('/api/system-parameters');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setRegistrationEnabled(data.parameters.allowRegistration !== false);
+        }
+      }
+    } catch (error) {
+      console.error('检查注册状态失败:', error);
+      // 如果检查失败，默认允许注册
+      setRegistrationEnabled(true);
+    }
+  };
+
+  // 检查注册功能状态
+  useEffect(() => {
+    checkRegistrationStatus();
+  }, []);
 
   // 获取未读消息数量
   useEffect(() => {
@@ -492,11 +515,14 @@ export default function Navbar() {
                             登录
                           </Button>
                         </Link>
-                        <Link href="/auth/register" className="w-full">
-                          <Button className="w-full">
-                            注册
-                          </Button>
-                        </Link>
+                        {/* 注册功能关闭时，不显示任何内容，让用户感觉没有注册功能 */}
+                        {registrationEnabled ? (
+                          <Link href="/auth/register" className="w-full">
+                            <Button className="w-full">
+                              注册
+                            </Button>
+                          </Link>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -672,11 +698,14 @@ export default function Navbar() {
                       登录
                     </Button>
                   </Link>
-                  <Link href="/auth/register">
-                    <Button>
-                      注册
-                    </Button>
-                  </Link>
+                  {/* 注册功能关闭时，不显示任何内容，让用户感觉没有注册功能 */}
+                  {registrationEnabled ? (
+                    <Link href="/auth/register">
+                      <Button>
+                        注册
+                      </Button>
+                    </Link>
+                  ) : null}
                 </div>
               )}
             </div>

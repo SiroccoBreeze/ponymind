@@ -203,11 +203,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Tags,
       description: ''
     },
-    { 
-      href: '/admin/settings', 
-      label: '系统设置', 
+    {
+      key: 'settings',
+      label: '系统设置',
       icon: Settings,
-      description: ''
+      description: '',
+      children: [
+        {
+          href: '/admin/settings',
+          label: '参数配置',
+          icon: Settings,
+          description: ''
+        },
+        {
+          href: '/admin/scheduled-tasks',
+          label: '定时任务',
+          icon: Bell,
+          description: ''
+        }
+      ]
     },
   ];
 

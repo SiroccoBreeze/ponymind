@@ -14,6 +14,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // 检查用户注册功能是否启用
+    await connectDB();
+    const SystemParameter = (await import('@/models/SystemParameter')).default;
+    const allowRegistrationParam = await SystemParameter.findOne({ key: 'allowRegistration' });
+    
+    if (allowRegistrationParam && !allowRegistrationParam.value) {
+      return NextResponse.json(
+        { error: '用户注册功能已关闭，请联系管理员' },
+        { status: 403 }
+      );
+    }
+
     // 验证邮箱格式
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {

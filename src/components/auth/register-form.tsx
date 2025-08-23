@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -15,6 +15,38 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
+
+  // 检查用户注册功能是否启用
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      try {
+        const response = await fetch('/api/system-parameters');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setRegistrationEnabled(data.parameters.allowRegistration !== false);
+          }
+        }
+      } catch (error) {
+        console.error('检查注册状态失败:', error);
+        // 如果检查失败，默认允许注册
+        setRegistrationEnabled(true);
+      } finally {
+        setCheckingRegistration(false);
+      }
+    };
+
+    checkRegistrationStatus();
+  }, []);
+
+  // 如果注册功能已关闭，静默重定向到登录页面
+  useEffect(() => {
+    if (!checkingRegistration && !registrationEnabled) {
+      router.replace('/auth/signin');
+    }
+  }, [checkingRegistration, registrationEnabled, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,6 +102,30 @@ export function RegisterForm() {
       setLoading(false);
     }
   };
+
+  // 如果正在检查注册状态，显示加载状态
+  if (checkingRegistration) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">正在检查注册状态...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果注册功能已关闭，显示加载状态
+  if (!registrationEnabled) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">正在加载...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

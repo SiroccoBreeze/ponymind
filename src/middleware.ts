@@ -8,6 +8,7 @@ export default withAuth(
     const isApiAuthRoute = pathname.startsWith('/api/auth/');
     const isAdminPage = pathname.startsWith('/admin');
     const isAdminApiRoute = pathname.startsWith('/api/admin/');
+    const isRegisterPage = pathname === '/auth/register';
 
     // 跳过对 API 认证路由的处理
     if (isApiAuthRoute) {
@@ -18,6 +19,9 @@ export default withAuth(
     if (req.nextauth.token && isAuthPage) {
       return NextResponse.redirect(new URL('/', req.url));
     }
+
+    // 注意：注册页面的访问控制现在在页面组件中动态处理
+    // 这样可以实时响应系统参数的变化
 
     // 如果用户未登录且访问需要保护的页面（非认证页面），重定向到登录页
     if (!req.nextauth.token && !isAuthPage) {
