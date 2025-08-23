@@ -108,6 +108,10 @@ export default function UserCenterPage() {
   
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
+  const [messagesCurrentPage, setMessagesCurrentPage] = useState(1);
+  const [messagesTotalPages, setMessagesTotalPages] = useState(1);
+  const [messagesTotalCount, setMessagesTotalCount] = useState(0);
+  const messagesPerPage = 5;
 
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -134,6 +138,13 @@ export default function UserCenterPage() {
       fetchMessages();
     }
   }, [session, status, router, currentPage, activeTab]);
+
+  // 当消息分页改变时，重新获取消息
+  useEffect(() => {
+    if (session?.user && activeSection === 'messages') {
+      fetchMessages();
+    }
+  }, [messagesCurrentPage, session, activeSection]);
 
   // 处理URL参数中的编辑请求和section参数
   useEffect(() => {
@@ -238,11 +249,13 @@ export default function UserCenterPage() {
   const fetchMessages = async () => {
     try {
       setMessagesLoading(true);
-      const response = await fetch('/api/users/messages?page=1&limit=10');
+      const response = await fetch(`/api/users/messages?page=${messagesCurrentPage}&limit=${messagesPerPage}`);
       if (response.ok) {
         const data = await response.json();
         setMessages(data.messages || []);
         setUnreadCount(data.unreadCount || 0);
+        setMessagesTotalPages(data.pagination?.totalPages || 1);
+        setMessagesTotalCount(data.pagination?.total || 0);
       }
     } catch (error) {
       console.error('获取消息失败:', error);
@@ -273,6 +286,13 @@ export default function UserCenterPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeTab]);
+
+  // 当切换到消息标签时，重置消息分页到第一页
+  useEffect(() => {
+    if (activeSection === 'messages') {
+      setMessagesCurrentPage(1);
+    }
+  }, [activeSection]);
 
   const handleEditPost = (postId: string) => {
     // 从posts数组中找到对应的文章，获取其类型
@@ -912,6 +932,74 @@ export default function UserCenterPage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                    
+
+                  )}
+                  
+                  {/* 消息分页 */}
+                  {messagesTotalPages > 1 && (
+                    <div className="flex items-center justify-center mt-6 pt-4 border-t border-border">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={e => {
+                                e.preventDefault();
+                                setMessagesCurrentPage(prev => Math.max(prev - 1, 1));
+                              }}
+                              aria-disabled={messagesCurrentPage === 1}
+                            />
+                          </PaginationItem>
+                          {Array.from({ length: Math.min(messagesTotalPages, 5) }).map((_, i) => {
+                            // 计算要显示的页码，优先显示当前页附近的页码
+                            let pageNum;
+                            if (messagesTotalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (messagesCurrentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (messagesCurrentPage >= messagesTotalPages - 2) {
+                              pageNum = messagesTotalPages - 4 + i;
+                            } else {
+                              pageNum = messagesCurrentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <PaginationItem key={pageNum}>
+                                <PaginationLink
+                                  href="#"
+                                  isActive={messagesCurrentPage === pageNum}
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    setMessagesCurrentPage(pageNum);
+                                  }}
+                                >
+                                  {pageNum}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={e => {
+                                e.preventDefault();
+                                setMessagesCurrentPage(prev => Math.min(prev + 1, messagesTotalPages));
+                              }}
+                              aria-disabled={messagesCurrentPage === messagesTotalPages}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                  
+                  {/* 分页信息 */}
+                  {messagesTotalPages > 1 && (
+                    <div className="text-center text-sm text-muted-foreground mt-2">
+                      第 {messagesCurrentPage} 页，共 {messagesTotalPages} 页
+                      {messagesTotalCount > 0 && ` (共 ${messagesTotalCount} 条消息)`}
                     </div>
                   )}
                 </div>
