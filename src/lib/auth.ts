@@ -26,6 +26,39 @@ const authOptions = {
             throw new Error('邮箱或密码错误');
           }
 
+          // 添加详细的调试日志
+          console.log('=== 用户登录尝试 ===');
+          console.log('用户信息:', {
+            email: user.email,
+            name: user.name,
+            status: user.status,
+            role: user.role,
+            _id: user._id
+          });
+          console.log('状态类型:', typeof user.status);
+          console.log('状态值:', user.status);
+          console.log('状态比较结果:', {
+            isBanned: user.status === 'banned',
+            isInactive: user.status === 'inactive',
+            isActive: user.status === 'active',
+            strictBanned: user.status === 'banned',
+            includesBanned: String(user.status).includes('banned')
+          });
+
+          // 检查用户状态
+          if (user.status === 'banned') {
+            console.log('✅ 用户被封禁，拒绝登录:', user.email);
+            throw new Error('账户已被封禁，无法登录');
+          }
+
+          // 检查用户状态是否为非活跃
+          if (user.status === 'inactive') {
+            console.log('✅ 用户非活跃，拒绝登录:', user.email);
+            throw new Error('账户处于非活跃状态，请联系管理员');
+          }
+
+          console.log('✅ 用户状态检查通过:', user.email);
+
           // 验证密码
           const isValid = await user.comparePassword(credentials.password);
           if (!isValid) {
@@ -38,6 +71,8 @@ const authOptions = {
             email: user.email,
             name: user.name,
             image: user.avatar, // 添加头像信息
+            role: user.role, // 添加角色信息
+            status: user.status, // 添加状态信息
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -62,12 +97,16 @@ const authOptions = {
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
+        token.role = user.role;
+        token.status = user.status;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session?.user) {
         session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.status = token.status;
       }
       return session;
     },

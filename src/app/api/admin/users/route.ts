@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Post from '@/models/Post';
 import bcrypt from 'bcryptjs';
 
 // 检查管理员权限
@@ -125,8 +126,18 @@ export async function GET(request: NextRequest) {
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('posts', 'title createdAt');
+      .limit(limit);
+
+    // 为每个用户获取文章数量
+    const usersWithPostCount = await Promise.all(
+      users.map(async (user) => {
+        const postCount = await Post.countDocuments({ author: user._id });
+        return {
+          ...user.toObject(),
+          posts: Array(postCount).fill(null) // 只保留数量，不包含文章详情
+        };
+      })
+    );
 
     const total = await User.countDocuments(query);
 
@@ -150,7 +161,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      users,
+      users: usersWithPostCount,
       pagination: {
         page,
         limit,

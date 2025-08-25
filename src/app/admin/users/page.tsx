@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import UserDetailDialog from '@/components/UserDetailDialog';
 
 import { useEffect, useState } from 'react';
 import { 
@@ -24,7 +25,8 @@ import {
   Plus,
   Crown,
   UserCog,
-  Activity
+  Activity,
+  Eye
 } from 'lucide-react';
 
 interface User {
@@ -73,12 +75,9 @@ export default function UsersManagement() {
     status: 'active' as 'active' | 'inactive' | 'banned'
   });
 
-  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [changePasswordError, setChangePasswordError] = useState<string | null>(null);
-  const [changePasswordSuccess, setChangePasswordSuccess] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newPassword, setNewPassword] = useState('');
+
+  const [showUserDetailDialog, setShowUserDetailDialog] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
 
   const fetchUsers = async () => {
     try {
@@ -186,60 +185,11 @@ export default function UsersManagement() {
     setAddUserError(null);
   };
 
-  const handleChangePassword = async () => {
-    if (!selectedUser || !newPassword.trim()) {
-      setChangePasswordError('请输入新密码');
-      return;
-    }
 
-    if (newPassword.length < 6) {
-      setChangePasswordError('密码长度至少6位');
-      return;
-    }
 
-    setChangingPassword(true);
-    setChangePasswordError(null);
-    setChangePasswordSuccess(null);
-
-    try {
-      const response = await fetch('/api/admin/users/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: selectedUser._id,
-          newPassword: newPassword.trim()
-        }),
-      });
-
-      if (response.ok) {
-        setChangePasswordSuccess('密码修改成功');
-        setNewPassword('');
-        // 延迟关闭对话框
-        setTimeout(() => {
-          setShowChangePasswordDialog(false);
-          setSelectedUser(null);
-          setChangePasswordSuccess(null);
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        setChangePasswordError(errorData.error || '修改密码失败');
-      }
-    } catch (error) {
-      console.error('修改密码失败:', error);
-      setChangePasswordError('修改密码失败，请稍后重试');
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
-  const openChangePasswordDialog = (user: User) => {
-    setSelectedUser(user);
-    setNewPassword('');
-    setChangePasswordError(null);
-    setChangePasswordSuccess(null);
-    setShowChangePasswordDialog(true);
+  const openUserDetailDialog = (userId: string) => {
+    setSelectedUserId(userId);
+    setShowUserDetailDialog(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -421,74 +371,7 @@ export default function UsersManagement() {
          </div>
        </div>
 
-       {/* 修改密码对话框 */}
-       <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
-         <DialogContent className="sm:max-w-[425px]">
-           <DialogHeader>
-             <DialogTitle>修改用户密码</DialogTitle>
-             <DialogDescription>
-               为用户 {selectedUser?.name} ({selectedUser?.email}) 设置新密码
-             </DialogDescription>
-           </DialogHeader>
-           
-           <div className="grid gap-4 py-4">
-             {changePasswordError && (
-               <Alert variant="destructive">
-                 <AlertDescription>{changePasswordError}</AlertDescription>
-               </Alert>
-             )}
-             
-             {changePasswordSuccess && (
-               <Alert className="border-green-200 bg-green-50 text-green-800">
-                 <AlertDescription>{changePasswordSuccess}</AlertDescription>
-               </Alert>
-             )}
-             
-             <div className="grid grid-cols-4 items-center gap-4">
-               <Label htmlFor="newPassword" className="text-right">
-                 新密码 *
-               </Label>
-               <Input
-                 id="newPassword"
-                 type="password"
-                 value={newPassword}
-                 onChange={(e) => setNewPassword(e.target.value)}
-                 className="col-span-3"
-                 placeholder="请输入新密码（至少6位）"
-                 disabled={changingPassword}
-               />
-             </div>
-             
-             <div className="text-xs text-muted-foreground col-span-4">
-               密码长度至少6位，建议包含字母、数字和特殊字符
-             </div>
-           </div>
-           
-           <DialogFooter>
-             <Button 
-               type="button" 
-               variant="outline" 
-               onClick={() => {
-                 setShowChangePasswordDialog(false);
-                 setSelectedUser(null);
-                 setNewPassword('');
-                 setChangePasswordError(null);
-                 setChangePasswordSuccess(null);
-               }}
-               disabled={changingPassword}
-             >
-               取消
-             </Button>
-             <Button 
-               type="submit" 
-               onClick={handleChangePassword}
-               disabled={changingPassword || !newPassword.trim()}
-             >
-               {changingPassword ? '修改中...' : '修改密码'}
-             </Button>
-           </DialogFooter>
-         </DialogContent>
-       </Dialog>
+       
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -713,13 +596,11 @@ export default function UsersManagement() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => openChangePasswordDialog(user)}
+                            onClick={() => openUserDetailDialog(user._id)}
                             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           >
-                            修改密码
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Activity className="h-4 w-4" />
+                            <Eye className="h-4 w-4 mr-1" />
+                            查看详情
                           </Button>
                         </div>
                       )}
@@ -764,6 +645,14 @@ export default function UsersManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* 用户详情弹框 */}
+      <UserDetailDialog
+        open={showUserDetailDialog}
+        onOpenChange={setShowUserDetailDialog}
+        userId={selectedUserId}
+        onUserUpdated={fetchUsers}
+      />
     </div>
   );
 } 

@@ -2,6 +2,7 @@
 
 import { SessionProvider as Provider } from 'next-auth/react';
 import { Session } from 'next-auth';
+import UserStatusCheck from './UserStatusCheck';
 
 export default function SessionProvider({
   children,
@@ -10,5 +11,11 @@ export default function SessionProvider({
   children: React.ReactNode;
   session: Session | null;
 }) {
-  return <Provider session={session as any}>{children}</Provider>;
+  return (
+    <Provider session={session as any}>
+      <UserStatusCheck>
+        {children}
+      </UserStatusCheck>
+    </Provider>
+  );
 } 
