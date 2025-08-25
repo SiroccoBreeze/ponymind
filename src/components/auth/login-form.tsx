@@ -69,7 +69,7 @@ export function LoginForm() {
             id="email"
             name="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="请输入邮箱"
             required
             className="h-11"
           />

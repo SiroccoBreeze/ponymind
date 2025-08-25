@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 9899",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 9899",
     "lint": "next lint",
     "create-admin": "node create-admin.js",
     "init-minio": "node scripts/init-minio.js"
