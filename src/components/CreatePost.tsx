@@ -173,8 +173,8 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
         // 如果原来是已发布状态，保持已发布；否则提交审核
         body.reviewStatus = originalPost?.reviewStatus === 'published' ? 'published' : 'pending';
       } else {
-        // 新建模式提交审核
-        body.status = 'pending';
+        // 新建模式：直接发布，不需要审核
+        body.reviewStatus = 'published';
       }
 
       const res = await fetch(url, {

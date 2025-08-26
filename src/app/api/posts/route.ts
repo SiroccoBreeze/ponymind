@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       difficulty, 
       bounty, 
       questionDetails, 
-      status = 'draft',
+      reviewStatus = 'draft', // 修复：使用正确的字段名
       imageIds = [] // 保留但不使用，改为从内容中提取
     } = await request.json();
 
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       type,
       difficulty: type === 'question' ? difficulty : 'intermediate',
       status: type === 'question' ? 'open' : 'answered',
-      reviewStatus: status, // 审核状态：draft, pending, published, rejected
+      reviewStatus, // 修复：直接使用reviewStatus字段
       bounty: type === 'question' ? bounty : 0,
       author: user._id,
     };
