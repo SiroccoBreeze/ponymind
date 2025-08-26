@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 import { 
   Tag, 
   TrendingUp, 
@@ -24,14 +24,14 @@ import {
   FileText, 
   HelpCircle,
   Edit3,
-  Plus,
   Activity,
   Calendar,
   Eye,
   Heart,
   Star
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import FloatingAddButton from '@/components/FloatingAddButton';
+
 
 export default function Home() {
   const { data: session } = useSession();
@@ -83,7 +83,7 @@ export default function Home() {
   });
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+
 
   const handlePostCreated = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -545,28 +545,10 @@ export default function Home() {
 
       {/* 浮动添加按钮 */}
       {session && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <DropdownMenu open={showFloatingMenu} onOpenChange={setShowFloatingMenu}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="lg"
-                className="h-14 w-14 rounded-full shadow-lg"
-              >
-                <Plus className="h-6 w-6" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={handleCreateArticle} className="cursor-pointer">
-                <Edit3 className="mr-2 h-4 w-4" />
-                <span>写文章</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleCreateQuestion} className="cursor-pointer">
-                <HelpCircle className="mr-2 h-4 w-4" />
-                <span>提问题</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <FloatingAddButton
+          onCreateArticle={handleCreateArticle}
+          onCreateQuestion={handleCreateQuestion}
+        />
       )}
 
       {/* 创作模态框 */}

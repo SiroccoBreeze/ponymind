@@ -7,6 +7,7 @@ import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
 import CreateQuestion from '@/components/CreateQuestion';
 import AvatarUpload from '@/components/AvatarUpload';
+import FloatingAddButton from '@/components/FloatingAddButton';
 import {
   Pagination,
   PaginationContent,
@@ -105,6 +106,7 @@ export default function UserCenterPage() {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editingPostType, setEditingPostType] = useState<'article' | 'question'>('article');
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showCreateQuestion, setShowCreateQuestion] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   
   // 分页状态
@@ -168,8 +170,10 @@ export default function UserCenterPage() {
 
   // 点击外部区域关闭下拉菜单
   useEffect(() => {
-    const handleClickOutside = (/* _event: MouseEvent */) => {
-      if (dropdownOpen) {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      // 检查是否点击了添加按钮或其下拉菜单
+      if (dropdownOpen && !target.closest('.add-button-container')) {
         setDropdownOpen(null);
       }
     };
@@ -1161,6 +1165,41 @@ export default function UserCenterPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 浮动添加按钮 - 仅在内容管理页面显示 */}
+      {activeSection === 'content' && (
+        <FloatingAddButton
+          onCreateArticle={() => {
+            setShowCreatePost(true);
+            setEditingPostType('article');
+          }}
+          onCreateQuestion={() => {
+            setShowCreateQuestion(true);
+          }}
+        />
+      )}
+
+      {/* 创建问题模态框 */}
+      {showCreateQuestion && (
+        <CreateQuestion
+          onClose={() => setShowCreateQuestion(false)}
+          onQuestionCreated={() => {
+            setShowCreateQuestion(false);
+            fetchUserData(); // 重新获取数据
+          }}
+        />
+      )}
+
+      {/* 创建新文章模态框 */}
+      {showCreatePost && !editingPost && (
+        <CreatePost
+          onClose={() => setShowCreatePost(false)}
+          onPostCreated={() => {
+            setShowCreatePost(false);
+            fetchUserData(); // 重新获取数据
+          }}
+        />
+      )}
     </div>
   );
 } 
