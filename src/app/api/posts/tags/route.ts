@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Tag from '@/models/Tag';
 
-// 获取公共标签列表（不需要管理员权限）
+// 获取文章标签列表（只显示文章中的使用次数）
 export async function GET() {
   try {
     await connectDB();
 
-    // 获取所有活跃的标签，按使用量排序
+    // 获取所有活跃的标签，按文章使用量排序
     const tags = await Tag.find({ isActive: true })
-      .select('name description color postCount eventCount')
-      .sort({ postCount: -1, eventCount: -1, name: 1 })
+      .select('name description color postCount')
+      .sort({ postCount: -1, name: 1 })
       .limit(100); // 限制返回数量
 
     return NextResponse.json({
@@ -19,11 +19,11 @@ export async function GET() {
         name: tag.name,
         description: tag.description,
         color: tag.color,
-        usageCount: (tag.postCount || 0) + (tag.eventCount || 0) // 显示文章和事件的总计数
+        usageCount: tag.postCount || 0 // 只显示文章计数
       }))
     });
   } catch (error) {
-    console.error('获取标签列表失败:', error);
-    return NextResponse.json({ error: '获取标签列表失败' }, { status: 500 });
+    console.error('获取文章标签列表失败:', error);
+    return NextResponse.json({ error: '获取文章标签列表失败' }, { status: 500 });
   }
-} 
+}

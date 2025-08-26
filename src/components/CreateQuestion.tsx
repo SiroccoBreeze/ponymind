@@ -53,7 +53,7 @@ export default function CreateQuestion({ onQuestionCreated, editQuestionId, onCl
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await fetch('/api/tags');
+        const response = await fetch('/api/posts/tags');
         if (response.ok) {
           const data = await response.json();
           setAvailableTags(data.tags || []);

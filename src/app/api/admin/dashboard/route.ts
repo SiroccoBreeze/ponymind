@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
 import Message from '@/models/Message';
+import Event from '@/models/Event';
 
 // 检查管理员权限
 async function checkAdminPermission() {
@@ -204,18 +205,46 @@ export async function GET() {
       ])
     ]);
 
-    // 获取标签统计
-    const tagStats = await Post.aggregate([
-      { $unwind: '$tags' },
-      {
-        $group: {
-          _id: '$tags',
-          count: { $sum: 1 }
+    // 获取标签统计（文章和事件）
+    const [postTagStats, eventTagStats] = await Promise.all([
+      Post.aggregate([
+        { $unwind: '$tags' },
+        {
+          $group: {
+            _id: '$tags',
+            count: { $sum: 1 }
+          }
         }
-      },
-      { $sort: { count: -1 } },
-      { $limit: 20 }
+      ]),
+      Event.aggregate([
+        { $unwind: '$tags' },
+        {
+          $group: {
+            _id: '$tags',
+            count: { $sum: 1 }
+          }
+        }
+      ])
     ]);
+
+    // 合并文章和事件的标签计数
+    const tagCounts: Record<string, number> = {};
+    
+    // 统计文章标签
+    postTagStats.forEach(tag => {
+      tagCounts[tag._id] = (tagCounts[tag._id] || 0) + tag.count;
+    });
+    
+    // 统计事件标签
+    eventTagStats.forEach(tag => {
+      tagCounts[tag._id] = (tagCounts[tag._id] || 0) + tag.count;
+    });
+    
+    // 转换为数组并排序
+    const tagStats = Object.entries(tagCounts)
+      .map(([name, count]) => ({ _id: name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
 
     // 获取消息统计
     const messageStats = await Message.aggregate([

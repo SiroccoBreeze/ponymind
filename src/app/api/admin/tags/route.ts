@@ -48,31 +48,47 @@ export async function GET(request: Request) {
     const [tags, total] = await Promise.all([
       Tag.find(query)
         .populate('createdBy', 'name email')
-        .sort({ postCount: -1, createdAt: -1 })
+        .sort({ postCount: -1, eventCount: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit),
       Tag.countDocuments(query)
     ]);
 
-    // 更新标签的文章数量（从Post集合中统计）
+    // 更新标签的文章数量和事件数量（分别从Post和Event集合中统计）
     for (const tag of tags) {
-      const postCount = await Post.countDocuments({ 
-        tags: tag.name,
-        status: { $ne: 'deleted' }
-      });
+      const [postCount, eventCount] = await Promise.all([
+        Post.countDocuments({ 
+          tags: tag.name,
+          status: { $ne: 'deleted' }
+        }),
+        Event.countDocuments({ 
+          tags: tag.name
+        })
+      ]);
       
-      // 如果数量不一致，更新标签的postCount
-      if (tag.postCount !== postCount) {
-        await Tag.findByIdAndUpdate(tag._id, { postCount });
+      // 如果数量不一致，更新标签的计数
+      if (tag.postCount !== postCount || tag.eventCount !== eventCount) {
+        await Tag.findByIdAndUpdate(tag._id, { postCount, eventCount });
         tag.postCount = postCount;
+        tag.eventCount = eventCount;
       }
     }
 
     // 统计信息
     const [totalTags, activeTags, unusedTags] = await Promise.all([
       Tag.countDocuments({ isActive: true }),
-      Tag.countDocuments({ isActive: true, postCount: { $gt: 0 } }),
-      Tag.countDocuments({ isActive: true, postCount: 0 })
+      Tag.countDocuments({ 
+        isActive: true, 
+        $or: [
+          { postCount: { $gt: 0 } },
+          { eventCount: { $gt: 0 } }
+        ]
+      }),
+      Tag.countDocuments({ 
+        isActive: true, 
+        postCount: 0,
+        eventCount: 0
+      })
     ]);
 
     return NextResponse.json({
@@ -82,6 +98,7 @@ export async function GET(request: Request) {
         description: tag.description,
         color: tag.color,
         postCount: tag.postCount,
+        eventCount: tag.eventCount,
         isActive: tag.isActive,
         createdAt: tag.createdAt,
         updatedAt: tag.updatedAt,

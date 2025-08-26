@@ -36,6 +36,7 @@ interface Tag {
   description?: string;
   color?: string;
   postCount: number;
+  eventCount: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -346,7 +347,8 @@ export default function TagsManagement() {
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold">标签</TableHead>
                   <TableHead className="font-semibold">描述</TableHead>
-                  <TableHead className="font-semibold">使用次数</TableHead>
+                  <TableHead className="font-semibold">文章数</TableHead>
+                  <TableHead className="font-semibold">事件数</TableHead>
                   <TableHead className="font-semibold">创建时间</TableHead>
                   <TableHead className="font-semibold text-right">操作</TableHead>
                 </TableRow>
@@ -390,6 +392,11 @@ export default function TagsManagement() {
                     <TableCell>
                       <Badge variant="secondary" className="font-medium">
                         {tag.postCount}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-medium">
+                        {tag.eventCount}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

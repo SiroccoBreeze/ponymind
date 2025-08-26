@@ -124,7 +124,7 @@ export default function EventsPage() {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await fetch('/api/tags');
+        const response = await fetch('/api/events/tags');
         if (response.ok) {
           const data = await response.json();
           setAvailableTags(data.tags || []);

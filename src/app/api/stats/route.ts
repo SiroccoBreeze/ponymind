@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
-import Tag from '@/models/Tag';
 import Comment from '@/models/Comment';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     await connectDB();
     
@@ -40,7 +39,7 @@ export async function GET(request: Request) {
       .limit(5)
       .select('_id title type views likes answers createdAt'),
       
-      // 热门标签统计
+      // 热门标签统计（仅文章）
       Post.aggregate([
         { $match: { reviewStatus: 'published' } },
         { $unwind: '$tags' },
@@ -128,7 +127,7 @@ export async function GET(request: Request) {
       count: tag.count
     }));
     
-    const formattedActiveUsers = (activeUsers || []).map((user: any, index: number) => ({
+    const formattedActiveUsers = (activeUsers || []).map((user: { name: string; reputation: number; weekActivity: number }, index: number) => ({
       name: user.name,
       reputation: user.reputation,
       weekActivity: user.weekActivity,

@@ -137,7 +137,13 @@ export default function AdminEventsPage() {
 
   // 标签选择对话框状态
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Array<{
+    _id: string;
+    name: string;
+    description: string;
+    color: string;
+    usageCount: number;
+  }>>([]);
 
   // 获取事件列表
   const fetchEvents = useCallback(async () => {
@@ -178,10 +184,10 @@ export default function AdminEventsPage() {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const response = await fetch('/api/tags');
+        const response = await fetch('/api/events/tags');
         if (response.ok) {
           const data = await response.json();
-          setAvailableTags(data.tags?.map((tag: any) => tag.name) || []);
+          setAvailableTags(data.tags || []);
         }
       } catch (error) {
         console.error('获取标签失败:', error);
@@ -595,16 +601,16 @@ export default function AdminEventsPage() {
         
         <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-950/20 dark:to-slate-950/20 border-gray-200/50 dark:border-gray-800/50 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">总标签数</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">事件标签数</CardTitle>
             <div className="p-2 bg-gray-100 dark:bg-gray-900/50 rounded-lg">
-              <Badge className="h-4 w-4 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 text-xs font-bold">总</Badge>
+              <Badge className="h-4 w-4 bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 text-xs font-bold">事件</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {events.reduce((total, e) => total + (e.tags?.length || 0), 0)}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">所有事件标签总数</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">仅事件标签总数</p>
           </CardContent>
         </Card>
       </div>
@@ -929,23 +935,17 @@ export default function AdminEventsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 标签选择弹框 */}
-      <TagSelectionModal
-        isOpen={isTagModalOpen}
-        onClose={() => setIsTagModalOpen(false)}
-        availableTags={availableTags.map(tag => ({
-          _id: tag,
-          name: tag,
-          description: '',
-          color: '#3b82f6',
-          usageCount: 0
-        }))}
-        selectedTags={formData.tags}
-        onTagsChange={(tags: string[]) => setFormData(prev => ({ ...prev, tags }))}
-        maxTags={5}
-        title="选择标签"
-        themeColor="blue"
-      />
+             {/* 标签选择弹框 */}
+       <TagSelectionModal
+         isOpen={isTagModalOpen}
+         onClose={() => setIsTagModalOpen(false)}
+         availableTags={availableTags}
+         selectedTags={formData.tags}
+         onTagsChange={(tags: string[]) => setFormData(prev => ({ ...prev, tags }))}
+         maxTags={5}
+         title="选择标签"
+         themeColor="blue"
+       />
     </div>
   );
 } 

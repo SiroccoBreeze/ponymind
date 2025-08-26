@@ -8,6 +8,7 @@ import '@/models/Image';
 import { moveAttachmentToEvent } from '@/lib/minio';
 import Image from '@/models/Image';
 import { deleteFromMinio } from '@/lib/minio';
+import { updateTagCounts } from '@/lib/tag-count-utils';
 
 // 获取单个事件详情
 export async function GET(
@@ -197,6 +198,11 @@ export async function PUT(
       }
     }
     
+    // 更新标签计数
+    if (validTags.length > 0) {
+      await updateTagCounts(validTags);
+    }
+
     // 返回更新后的事件
     const updatedEvent = await Event.findById(id)
       .setOptions({ strictPopulate: false })
@@ -276,8 +282,16 @@ export async function DELETE(
       }
     }
 
+    // 删除事件前获取标签信息用于更新计数
+    const eventTags = event.tags || [];
+    
     // 删除事件
     await Event.findByIdAndDelete(id);
+
+    // 更新标签计数
+    if (eventTags.length > 0) {
+      await updateTagCounts(eventTags);
+    }
 
     return NextResponse.json({
       success: true,

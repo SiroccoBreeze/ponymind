@@ -7,6 +7,7 @@ import User from '@/models/User';
 import '@/models/Image';
 import { moveAttachmentToEvent } from '@/lib/minio';
 import Image from '@/models/Image';
+import { updateTagCounts } from '@/lib/tag-count-utils';
 
 // 获取事件列表
 export async function GET(request: NextRequest) {
@@ -187,6 +188,11 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // 更新标签计数
+    if (validTags.length > 0) {
+      await updateTagCounts(validTags);
+    }
+
     // 返回创建的事件
     const createdEvent = await Event.findById(event._id)
       .setOptions({ strictPopulate: false })

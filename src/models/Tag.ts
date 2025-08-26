@@ -21,6 +21,10 @@ const TagSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  eventCount: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -37,6 +41,7 @@ const TagSchema = new mongoose.Schema({
 // 索引
 TagSchema.index({ name: 1 }, { unique: true });
 TagSchema.index({ postCount: -1 });
+TagSchema.index({ eventCount: -1 });
 TagSchema.index({ createdAt: -1 });
 
 const Tag = mongoose.models.Tag || mongoose.model('Tag', TagSchema);
