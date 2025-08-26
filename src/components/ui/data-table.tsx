@@ -181,12 +181,11 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
       {showPagination && (
-        <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex items-center justify-between space-x-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
-            {table.getFilteredSelectedRowModel().rows.length} /{" "}
-            {table.getFilteredRowModel().rows.length} 行被选中
+            共 {table.getFilteredRowModel().rows.length} 条记录
           </div>
-          <div className="space-x-2">
+          <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
@@ -195,6 +194,74 @@ export function DataTable<TData, TValue>({
             >
               上一页
             </Button>
+            
+            {/* 页码显示 */}
+            <div className="flex items-center space-x-1">
+              {(() => {
+                const currentPage = table.getState().pagination.pageIndex + 1;
+                const totalPages = table.getPageCount();
+                const pages: (number | string)[] = [];
+                
+                if (totalPages <= 7) {
+                  // 如果总页数少于等于7页，显示所有页码
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(i);
+                  }
+                } else {
+                  // 如果总页数大于7页，显示智能分页
+                  if (currentPage <= 4) {
+                    // 当前页在前4页
+                    for (let i = 1; i <= 5; i++) {
+                      pages.push(i);
+                    }
+                    pages.push('...');
+                    pages.push(totalPages);
+                  } else if (currentPage >= totalPages - 3) {
+                    // 当前页在后4页
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = totalPages - 4; i <= totalPages; i++) {
+                      pages.push(i);
+                    }
+                  } else {
+                    // 当前页在中间
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                      pages.push(i);
+                    }
+                    pages.push('...');
+                    pages.push(totalPages);
+                  }
+                }
+                
+                return pages.map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  const pageNumber = page as number;
+                  const isCurrentPage = pageNumber === currentPage;
+                  
+                  return (
+                    <Button
+                      key={pageNumber}
+                      variant={isCurrentPage ? "default" : "outline"}
+                      size="sm"
+                      className="w-8 h-8 p-0"
+                      onClick={() => table.setPageIndex(pageNumber - 1)}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                });
+              })()}
+            </div>
+            
             <Button
               variant="outline"
               size="sm"

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import CustomTimeline, { TimelineMode } from '@/components/CustomTimeline'
 import { toast } from 'sonner'
+import { localToUTC, getCurrentLocalDateTime } from '@/lib/time-utils'
 
 type EventItem = {
   _id: string
@@ -183,7 +184,7 @@ export default function EventsPage() {
       title: '',
       description: '',
       tags: [],
-      occurredAt: new Date().toISOString().slice(0, 16),
+      occurredAt: getCurrentLocalDateTime(),
       attachmentIds: []
     });
     setSelectedFiles([]);
@@ -244,10 +245,16 @@ export default function EventsPage() {
     try {
       setSaving(true);
       
+      // 处理时间：将本地时间转换为UTC时间
+      const requestBodyWithUTCTime = {
+        ...formData,
+        occurredAt: localToUTC(formData.occurredAt)
+      };
+      
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBodyWithUTCTime)
       });
 
       if (response.ok) {

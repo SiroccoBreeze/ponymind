@@ -45,7 +45,7 @@ export default function ResourcesPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [filters, setFilters] = useState<{ categories: string[] }>({ categories: [] });
-  const [pagination, setPagination] = useState({ page: 1, limit: 12, total: 0, pages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 8, total: 0, pages: 0 });
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -376,8 +376,11 @@ export default function ResourcesPage() {
             )}
 
             {/* 分页 */}
-            {pagination.pages > 1 && (
-              <div className="flex justify-center mt-8">
+            {(pagination.pages > 1 || pagination.total > pagination.limit) && (
+              <div className="flex justify-between items-center mt-8">
+                <div className="text-sm text-muted-foreground">
+                  共 {pagination.total} 条记录
+                </div>
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
@@ -387,9 +390,73 @@ export default function ResourcesPage() {
                   >
                     上一页
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    第 {pagination.page} 页，共 {pagination.pages} 页
-                  </span>
+                  
+                  {/* 页码显示 */}
+                  <div className="flex items-center space-x-1">
+                    {(() => {
+                      const currentPage = pagination.page;
+                      const totalPages = pagination.pages;
+                      const pages: (number | string)[] = [];
+                      
+                      if (totalPages <= 7) {
+                        // 如果总页数少于等于7页，显示所有页码
+                        for (let i = 1; i <= totalPages; i++) {
+                          pages.push(i);
+                        }
+                      } else {
+                        // 如果总页数大于7页，显示智能分页
+                        if (currentPage <= 4) {
+                          // 当前页在前4页
+                          for (let i = 1; i <= 5; i++) {
+                            pages.push(i);
+                          }
+                          pages.push('...');
+                          pages.push(totalPages);
+                        } else if (currentPage >= totalPages - 3) {
+                          // 当前页在后4页
+                          pages.push(1);
+                          pages.push('...');
+                          for (let i = totalPages - 4; i <= totalPages; i++) {
+                            pages.push(i);
+                          }
+                        } else {
+                          // 当前页在中间
+                          pages.push(1);
+                          pages.push('...');
+                          for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                            pages.push(i);
+                          }
+                          pages.push('...');
+                          pages.push(totalPages);
+                        }
+                      }
+                      
+                      return pages.map((page, index) => {
+                        if (page === '...') {
+                          return (
+                            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        const pageNumber = page as number;
+                        const isCurrentPage = pageNumber === currentPage;
+                        
+                        return (
+                          <Button
+                            key={pageNumber}
+                            variant={isCurrentPage ? "default" : "outline"}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setPagination(prev => ({ ...prev, page: pageNumber }))}
+                          >
+                            {pageNumber}
+                          </Button>
+                        );
+                      });
+                    })()}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"

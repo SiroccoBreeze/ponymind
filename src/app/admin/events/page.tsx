@@ -46,6 +46,7 @@ import TagSelectionModal from '@/components/TagSelectionModal';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { localToUTC, utcToLocal, getCurrentLocalDateTime } from '@/lib/time-utils';
 
 interface Event {
   _id: string;
@@ -201,7 +202,7 @@ export default function AdminEventsPage() {
       title: '',
       description: '',
       tags: [],
-      occurredAt: new Date().toISOString().slice(0, 16),
+      occurredAt: getCurrentLocalDateTime(),
       attachmentIds: []
     });
     setSelectedFiles([]);
@@ -220,7 +221,7 @@ export default function AdminEventsPage() {
       title: event.title,
       description: event.description,
       tags: event.tags,
-      occurredAt: new Date(event.occurredAt).toISOString().slice(0, 16),
+      occurredAt: utcToLocal(event.occurredAt),
       attachmentIds: event.attachments?.map(a => a._id) || []
     });
     setUploadedAttachments(event.attachments?.map(a => ({
@@ -265,10 +266,16 @@ export default function AdminEventsPage() {
         };
       }
       
+      // 处理时间：将本地时间转换为UTC时间
+      const requestBodyWithUTCTime = {
+        ...requestBody,
+        occurredAt: localToUTC(requestBody.occurredAt)
+      };
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBodyWithUTCTime)
       });
 
       if (response.ok) {
