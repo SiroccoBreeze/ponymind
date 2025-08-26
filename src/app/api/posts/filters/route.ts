@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
-import Event from '@/models/Event';
 
 interface TagAggregateResult {
   _id: string;
@@ -19,29 +18,16 @@ export async function GET() {
   try {
     await connectDB();
 
-    // 获取所有不重复的标签（文章和事件）
-    const [postTagsResult, eventTagsResult] = await Promise.all([
-      Post.aggregate([
-        { $unwind: '$tags' },
-        { $group: { _id: '$tags', count: { $sum: 1 } } }
-      ]) as TagAggregateResult[],
-      Event.aggregate([
-        { $unwind: '$tags' },
-        { $group: { _id: '$tags', count: { $sum: 1 } } }
-      ]) as TagAggregateResult[]
-    ]);
-    
-    // 合并文章和事件的标签计数
-    const tagCounts: Record<string, number> = {};
+    // 获取所有不重复的标签（仅文章）
+    const postTagsResult = await Post.aggregate([
+      { $unwind: '$tags' },
+      { $group: { _id: '$tags', count: { $sum: 1 } } }
+    ]) as TagAggregateResult[];
     
     // 统计文章标签
+    const tagCounts: Record<string, number> = {};
     postTagsResult.forEach(item => {
-      tagCounts[item._id] = (tagCounts[item._id] || 0) + item.count;
-    });
-    
-    // 统计事件标签
-    eventTagsResult.forEach(item => {
-      tagCounts[item._id] = (tagCounts[item._id] || 0) + item.count;
+      tagCounts[item._id] = item.count;
     });
     
     // 转换为数组并排序

@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import Tag from '@/models/Tag';
 import Post from '@/models/Post';
 import User from '@/models/User';
+import Event from '@/models/Event';
 
 // 检查管理员权限
 async function checkAdminPermission() {
