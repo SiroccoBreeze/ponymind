@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink, Search, Filter, Database, Copy, Check, Grid, List } from 'lucide-react';
 import { toast } from 'sonner';
+import { copyToClipboard } from '@/lib/utils';
 
 interface Resource {
   _id: string;
@@ -103,14 +104,13 @@ export default function ResourcesPage() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const copyToClipboard = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+  const handleCopyToClipboard = async (text: string, id: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
       setCopiedId(id);
       toast.success('已复制到剪贴板');
       setTimeout(() => setCopiedId(null), 2000);
-    } catch (error) {
-      console.error('复制失败:', error);
+    } else {
       toast.error('复制失败');
     }
   };
@@ -145,7 +145,7 @@ export default function ResourcesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => copyToClipboard(resource.accessCode!, resource._id)}
+                  onClick={() => handleCopyToClipboard(resource.accessCode!, resource._id)}
                   className="h-6 w-6 p-0"
                 >
                   {copiedId === resource._id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -160,7 +160,7 @@ export default function ResourcesPage() {
             onClick={() => {
               // 如果有提取码，自动复制
               if (resource.accessCode) {
-                copyToClipboard(resource.accessCode, resource._id);
+                handleCopyToClipboard(resource.accessCode, resource._id);
               }
               // 打开资源链接
               window.open(resource.url, '_blank', 'noopener,noreferrer');
@@ -202,7 +202,7 @@ export default function ResourcesPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => copyToClipboard(resource.accessCode!, resource._id)}
+            onClick={() => handleCopyToClipboard(resource.accessCode!, resource._id)}
             className="h-8 w-8 p-0"
           >
             {copiedId === resource._id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -214,7 +214,7 @@ export default function ResourcesPage() {
           onClick={() => {
             // 如果有提取码，自动复制
             if (resource.accessCode) {
-              copyToClipboard(resource.accessCode, resource._id);
+              handleCopyToClipboard(resource.accessCode, resource._id);
             }
             // 打开资源链接
             window.open(resource.url, '_blank', 'noopener,noreferrer');

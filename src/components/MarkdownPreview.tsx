@@ -48,7 +48,23 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
   
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(String(children));
+      // 优先使用现代 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(String(children));
+      } else {
+        // 降级到传统方法
+        const textArea = document.createElement('textarea');
+        textArea.value = String(children);
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {

@@ -182,7 +182,28 @@ export const columns: ColumnDef<EventItem>[] = [
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(event._id)}
+              onClick={async () => {
+                try {
+                  // 优先使用现代 Clipboard API
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(event._id);
+                  } else {
+                    // 降级到传统方法
+                    const textArea = document.createElement('textarea');
+                    textArea.value = event._id;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                  }
+                } catch (error) {
+                  console.error('复制失败:', error);
+                }
+              }}
             >
               复制事件ID
             </DropdownMenuItem>

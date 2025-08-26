@@ -11,6 +11,7 @@ import { moveImageToPost } from '@/lib/minio';
 import { updateImageLinksInContent } from '@/lib/image-utils';
 import { updateTagCounts } from '@/lib/tag-count-utils';
 import { viewCountManager } from '@/lib/view-count-manager';
+import { getClientIP } from '@/lib/ip-utils';
 
 // 获取单个文章
 export async function GET(
@@ -58,18 +59,16 @@ export async function GET(
 
     // 增加浏览量（只有已发布的内容才增加浏览量，并防止重复计数）
     if (post.reviewStatus === 'published') {
-      // 获取用户IP地址作为防重复计数的标识
-      const forwarded = request.headers.get('x-forwarded-for');
-      const realIP = request.headers.get('x-real-ip');
-      const userIP = forwarded?.split(',')[0] || realIP || request.headers.get('x-forwarded') || 'unknown';
+      // 使用IP地址获取工具获取真实IP地址
+      const ipInfo = getClientIP(request.headers);
       
       // 使用浏览量管理工具防止重复计数
-      if (viewCountManager.canIncrementView(id, userIP)) {
+      if (viewCountManager.canIncrementView(id, ipInfo.ip)) {
         // 增加浏览量
         await Post.findByIdAndUpdate(id, { $inc: { views: 1 } });
-        console.log(`✅ 文章 ${id} 浏览量+1，IP: ${userIP}`);
+        console.log(`✅ 文章 ${id} 浏览量+1，IP: ${ipInfo.ip} (来源: ${ipInfo.source})`);
       } else {
-        console.log(`⚠️ 文章 ${id} 浏览量未增加（5分钟内已计数），IP: ${userIP}`);
+        console.log(`⚠️ 文章 ${id} 浏览量未增加（60分钟内已计数），IP: ${ipInfo.ip} (来源: ${ipInfo.source})`);
       }
     }
 
