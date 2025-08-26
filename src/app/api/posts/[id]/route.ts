@@ -9,6 +9,7 @@ import { deleteFromMinio } from '@/lib/minio';
 import { extractImagesFromContent } from '@/lib/cascade-delete';
 import { moveImageToPost } from '@/lib/minio';
 import { updateImageLinksInContent } from '@/lib/image-utils';
+import { updateTagCounts } from '@/lib/tag-count-utils';
 
 // 获取单个文章
 export async function GET(
@@ -322,6 +323,17 @@ export async function PUT(
       updateData,
       { new: true }
     ).populate('author', 'name email avatar');
+
+    // 更新标签计数 - 需要处理标签变化
+    if (tags && tags.length > 0) {
+      // 获取原始文章的标签
+      const originalTags = post.tags || [];
+      const newTags = tags;
+      
+      // 合并所有相关标签进行计数更新
+      const allRelatedTags = [...new Set([...originalTags, ...newTags])];
+      await updateTagCounts(allRelatedTags);
+    }
 
     return NextResponse.json(updatedPost);
   } catch (error) {

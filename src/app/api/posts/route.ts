@@ -8,6 +8,7 @@ import { deleteFromMinio } from '@/lib/minio';
 import { extractImagesFromContent } from '@/lib/cascade-delete';
 import { moveImageToPost } from '@/lib/minio';
 import { updateImageLinksInContent } from '@/lib/image-utils';
+import { updateTagCounts } from '@/lib/tag-count-utils';
 
 // 获取文章列表
 export async function GET(request: NextRequest) {
@@ -294,7 +295,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 返回带有作者信息的文章
-          await post.populate('author', 'name email avatar');
+    await post.populate('author', 'name email avatar');
+
+    // 更新标签计数
+    if (tags && tags.length > 0) {
+      await updateTagCounts(tags);
+    }
 
     return NextResponse.json(post, { status: 201 });
   } catch (error) {

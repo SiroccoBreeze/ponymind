@@ -54,7 +54,8 @@ export async function updateSingleTagCount(tagName: string) {
     const [postCount, eventCount] = await Promise.all([
       Post.countDocuments({ 
         tags: tagName,
-        status: { $ne: 'deleted' }
+        // 统计所有存在的文章，包括草稿、待审核、已发布等
+        // Post模型中没有deleted状态，删除的文章已被物理删除
       }),
       Event.countDocuments({ tags: tagName })
     ]);

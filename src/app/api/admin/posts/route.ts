@@ -5,6 +5,7 @@ import Post from '@/models/Post';
 import User from '@/models/User';
 import { deletePostWithCascade } from '@/lib/cascade-delete';
 import { createMessage } from '@/lib/message-utils';
+import { updateTagCounts } from '@/lib/tag-count-utils';
 
 // 检查管理员权限
 async function checkAdminPermission() {
@@ -205,15 +206,10 @@ export async function PUT(request: NextRequest) {
 
     // 如果是拒绝操作，发送消息给作者
     if (action === 'reject' && updatedPost.author) {
-      let messageSent = false;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!messageSent && retryCount < maxRetries) {
-        try {
-          const messageTitle = `您的内容"${updatedPost.title}"未通过审核`;
-          const messageContent = reason 
-            ? `您发布的内容"${updatedPost.title}"未通过审核。
+      try {
+        const messageTitle = `您的内容"${updatedPost.title}"未通过审核`;
+        const messageContent = reason 
+          ? `您发布的内容"${updatedPost.title}"未通过审核。
 
 拒绝原因：${reason}
 
@@ -221,83 +217,63 @@ export async function PUT(request: NextRequest) {
 提交时间：${new Date(updatedPost.createdAt).toLocaleDateString('zh-CN')}
 
 请根据反馈意见修改后重新提交。如有疑问，请联系管理员。`
-            : `您发布的内容"${updatedPost.title}"未通过审核。
+          : `您发布的内容"${updatedPost.title}"未通过审核。
 
 内容类型：${updatedPost.type === 'article' ? '文章' : '问题'}
 提交时间：${new Date(updatedPost.createdAt).toLocaleDateString('zh-CN')}
 
 请检查内容是否符合社区规范后重新提交。如有疑问，请联系管理员。`;
 
-          await createMessage(
-            updatedPost.author._id.toString(),
-            'rejection',
-            messageTitle,
-            messageContent,
-            {
-              relatedId: postId,
-              relatedType: 'post',
-              priority: 'high'
-            }
-          );
-          console.log(`已发送拒绝消息给用户 ${updatedPost.author.email}，内容ID: ${postId}`);
-          messageSent = true;
-        } catch (messageError) {
-          retryCount++;
-          console.error(`发送拒绝消息失败 (尝试 ${retryCount}/${maxRetries}):`, messageError);
-          
-          if (retryCount >= maxRetries) {
-            console.error('发送拒绝消息最终失败，已达到最大重试次数');
-            // 消息发送失败不影响主要操作，只记录日志
-          } else {
-            // 等待一段时间后重试
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        await createMessage(
+          updatedPost.author._id.toString(),
+          'rejection',
+          messageTitle,
+          messageContent,
+          {
+            relatedId: postId,
+            relatedType: 'post',
+            priority: 'high'
           }
-        }
+        );
+        console.log(`已发送拒绝消息给用户 ${updatedPost.author.email}，内容ID: ${postId}`);
+      } catch (messageError) {
+        console.error('发送拒绝消息失败:', messageError);
+        // 消息发送失败不影响主要操作，只记录日志
       }
     }
 
     // 如果是通过审核操作，发送消息给作者
     if (action === 'approve' && updatedPost.author) {
-      let messageSent = false;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!messageSent && retryCount < maxRetries) {
-        try {
-          const messageTitle = `您的内容"${updatedPost.title}"已通过审核`;
-          const messageContent = `恭喜！您发布的内容"${updatedPost.title}"已通过审核并发布。
+      try {
+        const messageTitle = `您的内容"${updatedPost.title}"已通过审核`;
+        const messageContent = `恭喜！您发布的内容"${updatedPost.title}"已通过审核并发布。
 
 内容类型：${updatedPost.type === 'article' ? '文章' : '问题'}
 审核时间：${new Date().toLocaleDateString('zh-CN')}
 
 您的内容现在可以被其他用户查看和互动了。感谢您为社区贡献优质内容！`;
 
-          await createMessage(
-            updatedPost.author._id.toString(),
-            'success',
-            messageTitle,
-            messageContent,
-            {
-              relatedId: postId,
-              relatedType: 'post',
-              priority: 'normal'
-            }
-          );
-          console.log(`已发送通过审核消息给用户 ${updatedPost.author.email}，内容ID: ${postId}`);
-          messageSent = true;
-        } catch (messageError) {
-          retryCount++;
-          console.error(`发送通过审核消息失败 (尝试 ${retryCount}/${maxRetries}):`, messageError);
-          
-          if (retryCount >= maxRetries) {
-            console.error('发送通过审核消息最终失败，已达到最大重试次数');
-            // 消息发送失败不影响主要操作，只记录日志
-          } else {
-            // 等待一段时间后重试
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        await createMessage(
+          updatedPost.author._id.toString(),
+          'success',
+          messageTitle,
+          messageContent,
+          {
+            relatedId: postId,
+            relatedType: 'post',
+            priority: 'normal'
           }
-        }
+        );
+        console.log(`已发送通过审核消息给用户 ${updatedPost.author.email}，内容ID: ${postId}`);
+      } catch (messageError) {
+        console.error('发送通过审核消息失败:', messageError);
+        // 消息发送失败不影响主要操作，只记录日志
       }
+    }
+
+    // 更新相关标签的计数（当文章状态变化时）
+    if (updatedPost.tags && updatedPost.tags.length > 0) {
+      await updateTagCounts(updatedPost.tags);
     }
 
     return NextResponse.json({
@@ -337,45 +313,30 @@ export async function DELETE(request: NextRequest) {
 
     // 在删除前发送消息给作者
     if (post.author) {
-      let messageSent = false;
-      let retryCount = 0;
-      const maxRetries = 3;
-
-      while (!messageSent && retryCount < maxRetries) {
-        try {
-          const messageTitle = `您的内容"${post.title}"已被删除`;
-          const messageContent = `很抱歉，您发布的内容"${post.title}"已被管理员删除。
+      try {
+        const messageTitle = `您的内容"${post.title}"已被删除`;
+        const messageContent = `很抱歉，您发布的内容"${post.title}"已被管理员删除。
 
 内容类型：${post.type === 'article' ? '文章' : '问题'}
 删除时间：${new Date().toLocaleDateString('zh-CN')}
 
 如果对此有疑问，请联系管理员。`;
 
-          await createMessage(
-            post.author._id.toString(),
-            'warning',
-            messageTitle,
-            messageContent,
-            {
-              relatedId: postId,
-              relatedType: 'post',
-              priority: 'high'
-            }
-          );
-          console.log(`已发送删除消息给用户 ${post.author.email}，内容ID: ${postId}`);
-          messageSent = true;
-        } catch (messageError) {
-          retryCount++;
-          console.error(`发送删除消息失败 (尝试 ${retryCount}/${maxRetries}):`, messageError);
-          
-          if (retryCount >= maxRetries) {
-            console.error('发送删除消息最终失败，已达到最大重试次数');
-            // 消息发送失败不影响主要操作，只记录日志
-          } else {
-            // 等待一段时间后重试
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        await createMessage(
+          post.author._id.toString(),
+          'warning',
+          messageTitle,
+          messageContent,
+          {
+            relatedId: postId,
+            relatedType: 'post',
+            priority: 'high'
           }
-        }
+        );
+        console.log(`已发送删除消息给用户 ${post.author.email}，内容ID: ${postId}`);
+      } catch (messageError) {
+        console.error('发送删除消息失败:', messageError);
+        // 消息发送失败不影响主要操作，只记录日志
       }
     }
 

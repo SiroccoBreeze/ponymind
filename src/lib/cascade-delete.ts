@@ -4,6 +4,7 @@ import Comment from '@/models/Comment';
 import Post from '@/models/Post';
 import { deleteFromMinio } from './minio';
 import { extractRelativePath } from './image-utils';
+import { updateTagCounts } from './tag-count-utils';
 
 /**
  * 从markdown内容中提取图片URL
@@ -124,6 +125,10 @@ export async function deletePostWithCascade(postId: string): Promise<void> {
   try {
     await connectDB();
     
+    // 获取文章信息（主要是标签）用于后续更新计数
+    const post = await Post.findById(postId).select('tags');
+    const postTags = post?.tags || [];
+    
     // 删除文章关联的图片
     await deletePostImages(postId);
     
@@ -132,6 +137,11 @@ export async function deletePostWithCascade(postId: string): Promise<void> {
     
     // 删除文章本身
     await Post.findByIdAndDelete(postId);
+    
+    // 更新相关标签的计数
+    if (postTags.length > 0) {
+      await updateTagCounts(postTags);
+    }
     
     console.log(`已级联删除文章: ${postId}`);
   } catch (error) {
