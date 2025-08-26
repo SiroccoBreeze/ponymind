@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
     const status = searchParams.get('status'); // all, published, pending, draft, rejected
     const type = searchParams.get('type'); // all, article, question
+    const search = searchParams.get('search') || ''; // 搜索关键词
 
     // 构建查询条件
-    let query: any = { author: user._id };
+    const query: Record<string, unknown> = { author: user._id };
     
     if (status && status !== 'all') {
       query.reviewStatus = status;
@@ -42,6 +43,22 @@ export async function GET(request: NextRequest) {
     
     if (type && type !== 'all') {
       query.type = type;
+    }
+
+    // 添加搜索功能
+    if (search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i'); // 不区分大小写的搜索
+      query.$or = [
+        { title: searchRegex },           // 标题搜索
+        { content: searchRegex },         // 内容搜索
+        { tags: searchRegex }             // 标签搜索 - 修复后
+      ];
+      
+      // 添加调试日志
+      console.log('🔍 搜索调试信息:');
+      console.log('搜索关键词:', search);
+      console.log('搜索正则:', searchRegex);
+      console.log('构建的查询:', JSON.stringify(query, null, 2));
     }
 
     const posts = await Post.find(query)

@@ -25,7 +25,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import UserAvatar from '@/components/UserAvatar';
 
 interface UserStats {
@@ -100,6 +100,7 @@ export default function UserCenterPage() {
   const itemsPerPage = 5;
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editingPostType, setEditingPostType] = useState<'article' | 'question'>('article');
@@ -117,6 +118,8 @@ export default function UserCenterPage() {
   
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // 搜索输入框的值
+
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
@@ -124,7 +127,6 @@ export default function UserCenterPage() {
 
   // 用户资料状态
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -183,6 +185,11 @@ export default function UserCenterPage() {
 
   const fetchUserData = async () => {
     try {
+      // 如果是搜索操作，显示搜索loading
+      if (searchQuery) {
+        setSearchLoading(true);
+      }
+      
       // 根据 activeTab 组装 status 参数
       let status = '';
       switch (activeTab) {
@@ -220,6 +227,7 @@ export default function UserCenterPage() {
       console.error('获取用户数据失败:', error);
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
   };
 
@@ -227,7 +235,6 @@ export default function UserCenterPage() {
   const fetchUserProfile = async () => {
     if (!session?.user?.email) return;
     
-    setProfileLoading(true);
     try {
       const response = await fetch('/api/users/profile');
       if (response.ok) {
@@ -236,8 +243,6 @@ export default function UserCenterPage() {
       }
     } catch (error) {
       console.error('获取用户资料失败:', error);
-    } finally {
-      setProfileLoading(false);
     }
   };
 
@@ -282,10 +287,22 @@ export default function UserCenterPage() {
   // 计算分页数据
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  // 当搜索或标签页改变时，重置到第一页
+  // 执行搜索
+  const executeSearch = () => {
+    if (searchInput.trim()) {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }
+  };
+
+
+
+  // 当搜索或标签页改变时，重置到第一页并重新获取数据
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, activeTab]);
+    if (session?.user && activeSection === 'content') {
+      fetchUserData();
+    }
+  }, [searchQuery, activeTab, session, activeSection]);
 
   // 当切换到消息标签时，重置消息分页到第一页
   useEffect(() => {
@@ -320,10 +337,10 @@ export default function UserCenterPage() {
         fetchUserData();
         setDeleteResult('删除成功');
       } else {
-        const error = await response.json();
-        setDeleteResult(error.error || '删除失败');
+        const errorData = await response.json();
+        setDeleteResult(errorData.error || '删除失败');
       }
-    } catch (error) {
+    } catch {
       setDeleteResult('删除失败，请重试');
     } finally {
       setPendingDeletePostId(null);
@@ -575,21 +592,81 @@ export default function UserCenterPage() {
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-semibold text-foreground">内容管理</h2>
                       <div className="flex items-center space-x-3">
-                                                  <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="搜索内容..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground"
-                            />
-                            <svg className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="搜索内容..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                executeSearch();
+                              }
+                            }}
+                            className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground"
+                          />
+                          <svg className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
+                          {searchInput && (
+                            <button
+                              onClick={() => setSearchInput('')}
+                              className="absolute right-3 top-2.5 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                              title="清空搜索"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
                         </div>
+                        <button
+                          onClick={executeSearch}
+                          disabled={!searchInput.trim() || searchLoading}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-colors text-sm flex items-center space-x-2"
+                        >
+                          {searchLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>搜索中...</span>
+                            </>
+                          ) : (
+                            <span>搜索</span>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
+
+                  {/* 搜索状态和结果统计 */}
+                  {searchQuery && (
+                    <div className="px-6 py-3 bg-muted/30 border-b border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <span className="text-sm text-muted-foreground">
+                            搜索: <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>
+                          </span>
+                          {totalCount > 0 && (
+                            <span className="text-sm text-muted-foreground">
+                              • 找到 {totalCount} 个结果
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSearchInput('');
+                            setSearchQuery('');
+                          }}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          清除搜索
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* 标签页 */}
                   <div className="border-b border-border">
@@ -641,7 +718,7 @@ export default function UserCenterPage() {
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           {searchQuery.trim() 
-                            ? `没有找到包含"${searchQuery}"的内容，请尝试其他关键词` 
+                            ? `没有找到包含"${searchQuery}"的内容，请尝试其他关键词或检查拼写` 
                             : (activeTab === 'drafts' ? '你还没有保存任何草稿' : 
                                activeTab === 'pending' ? '你还没有待审核的内容' :
                                activeTab === 'published' ? '你还没有已发布的内容' :
@@ -649,7 +726,26 @@ export default function UserCenterPage() {
                                '你还没有发布任何内容')
                           }
                         </p>
-                        {!searchQuery.trim() && (
+                        {searchQuery.trim() ? (
+                          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3">
+                            <button
+                              onClick={() => {
+                                setSearchInput('');
+                                setSearchQuery('');
+                              }}
+                              className="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                            >
+                              清除搜索
+                            </button>
+                            <span className="text-sm text-muted-foreground">或</span>
+                            <Link
+                              href="/"
+                              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                              开始创作新内容
+                            </Link>
+                          </div>
+                        ) : (
                           <Link
                             href="/"
                             className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
