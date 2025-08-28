@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 export interface IUser extends mongoose.Document {
   name: string;
@@ -65,11 +66,11 @@ const userSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   posts: [{
     type: mongoose.Schema.Types.ObjectId,

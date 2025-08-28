@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 const scheduledTaskSchema = new mongoose.Schema({
   name: {
@@ -12,7 +13,7 @@ const scheduledTaskSchema = new mongoose.Schema({
   },
   taskType: {
     type: String,
-    enum: ['cleanupUnusedImages', 'autoCloseQuestions', 'cleanupLogs', 'backupDatabase'],
+    enum: ['cleanupUnusedImages', 'updateInactiveUsers'],
     required: true,
   },
   isEnabled: {
@@ -47,7 +48,7 @@ const scheduledTaskSchema = new mongoose.Schema({
       default: '',
     },
     details: {
-      type: mongoose.Schema.Types.Mixed as any,
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
     duration: {
@@ -61,17 +62,17 @@ const scheduledTaskSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
 });
 
 // 更新updatedAt时间戳
 scheduledTaskSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
+  this.updatedAt = getCurrentUTCTime();
   next();
 });
 

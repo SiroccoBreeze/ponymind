@@ -6,6 +6,7 @@ import Post from '@/models/Post';
 import User from '@/models/User';
 import { createMessage } from '@/lib/message-utils';
 import { Types } from 'mongoose';
+import Message from '@/models/Message';
 
 // 评论数据类型
 interface CommentData {
@@ -252,6 +253,43 @@ export async function POST(
     } catch (error) {
       console.error('发送通知失败:', error);
       // 通知失败不影响评论创建
+    }
+
+    // 如果评论需要审核，创建待审核通知
+    try {
+      // 查找所有管理员用户
+      const adminUsers = await User.find({ 
+        role: { $in: ['admin', 'moderator'] } 
+      });
+
+      // 为每个管理员创建待审核通知
+      for (const admin of adminUsers) {
+        const messageTitle = `新评论待审核`;
+        const messageContent = `用户 ${user.name} 发布了新评论，需要您审核。
+
+评论内容：${content.trim().substring(0, 100)}${content.length > 100 ? '...' : ''}
+评论类型：${parentCommentId ? '回复评论' : '顶级评论'}
+发布时间：${new Date().toLocaleDateString('zh-CN')}
+
+请及时审核此评论。`;
+
+        await Message.create({
+          recipient: admin._id,
+          sender: null, // 系统消息
+          type: 'warning',
+          title: messageTitle,
+          content: messageContent,
+          relatedId: comment._id,
+          relatedType: 'comment',
+          priority: 'normal',
+          isRead: false
+        });
+      }
+      
+      console.log(`已为 ${adminUsers.length} 个管理员创建评论待审核通知`);
+    } catch (notificationError) {
+      console.error('创建评论待审核通知失败:', notificationError);
+      // 通知创建失败不影响评论创建
     }
 
     // 返回带有作者信息的评论

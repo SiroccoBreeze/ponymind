@@ -8,6 +8,7 @@ import '@/models/Image';
 import { moveAttachmentToEvent } from '@/lib/minio';
 import Image from '@/models/Image';
 import { updateTagCounts } from '@/lib/tag-count-utils';
+import { getCurrentUTCTime, localToUTC } from '@/lib/time-utils';
 
 // 获取事件列表
 export async function GET(request: NextRequest) {
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
       title,
       description: description || '',
       tags: validTags,
-      occurredAt: new Date(occurredAt),
+      occurredAt: localToUTC(occurredAt), // 将前端本地时间转换为UTC时间
       creator: user._id,
       attachments: attachmentIds || []
     });
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
                 objectName: `images/${user._id}/event/${event._id}/${attachment.filename}`,
                 isUsed: true,
                 associatedPost: event._id,
-                updatedAt: new Date()
+                updatedAt: getCurrentUTCTime()
               }
             });
           } catch (moveError) {
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
               $set: {
                 isUsed: true,
                 associatedPost: event._id,
-                updatedAt: new Date()
+                updatedAt: getCurrentUTCTime()
               }
             });
           }

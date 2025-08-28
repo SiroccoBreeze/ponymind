@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Event from '@/models/Event';
+import User from '@/models/User';
+import { getCurrentUTCTime, localToUTC } from '@/lib/time-utils';
 import Image from '@/models/Image';
-import { getServerSession } from 'next-auth/next';
 import { moveAttachmentToEvent } from '@/lib/minio';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
+  let tags: string | undefined;
+  let status: string | undefined;
+  let limit: number = 200;
+  
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
-    const tags = searchParams.get('tags') || undefined;
-    const status = searchParams.get('status') || undefined;
-    const limit = Number(searchParams.get('limit') || '200');
+    tags = searchParams.get('tags') || undefined;
+    status = searchParams.get('status') || undefined;
+    limit = Number(searchParams.get('limit') || '200');
 
     const query: Record<string, unknown> = {};
     if (tags) query.tags = { $in: tags.split(',') };
@@ -27,6 +34,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, data: events });
   } catch (error) {
     console.error('GET /api/events error', error);
+    
+    // 记录获取事件列表失败日志
+    logger.error('获取事件列表失败', error, {
+      operation: 'get_events_list',
+      tags,
+      status,
+      limit,
+      context: '获取事件列表时发生错误'
+    });
+    
     return NextResponse.json({ success: false, message: 'Failed to fetch events' }, { status: 500 });
   }
 }
@@ -39,7 +56,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
     }
 
-    const User = (await import('@/models/User')).default;
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return NextResponse.json({ success: false, message: '用户不存在' }, { status: 404 });
@@ -62,18 +78,53 @@ export async function POST(req: NextRequest) {
       ? tags.filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0)
       : [];
 
+    // 处理时间转换
+    let utcOccurredAt: Date;
+    try {
+      utcOccurredAt = localToUTC(occurredAt);
+    } catch (timeError) {
+      console.error('时间转换失败:', timeError);
+      return NextResponse.json({ 
+        success: false, 
+        message: `时间格式错误: ${occurredAt}` 
+      }, { status: 400 });
+    }
+
     const created = await Event.create({
       title,
       description,
       tags: validTags,
       status,
-      occurredAt: new Date(occurredAt),
+      occurredAt: utcOccurredAt,
       creator: user._id,
       attachments: validAttachmentIds,
+      updatedAt: getCurrentUTCTime()
+    });
+
+    // 记录事件创建成功日志
+    logger.event('事件创建成功', user._id.toString(), user.email, {
+      operation: 'create_event',
+      eventId: created._id.toString(),
+      title: created.title,
+      status: created.status,
+      tags: created.tags,
+      occurredAt: created.occurredAt,
+      hasAttachments: validAttachmentIds.length > 0,
+      attachmentCount: validAttachmentIds.length
     });
 
     if (validAttachmentIds.length > 0) {
       console.log(`🔍 开始处理 ${validAttachmentIds.length} 个附件...`);
+      
+      // 记录附件处理开始日志
+      logger.user('开始处理事件附件', user._id.toString(), user.email, {
+        operation: 'process_event_attachments',
+        eventId: created._id.toString(),
+        eventTitle: created.title,
+        attachmentCount: validAttachmentIds.length,
+        attachmentIds: validAttachmentIds
+      });
+      
       try {
         // 获取附件信息并移动到事件目录
         const attachmentRecords = await Image.find({ _id: { $in: validAttachmentIds } });
@@ -101,31 +152,82 @@ export async function POST(req: NextRequest) {
                 objectName: newObjectName,
                 isUsed: true,
                 associatedPost: created._id,
-                updatedAt: new Date()
+                updatedAt: getCurrentUTCTime()
               }
             });
             
             console.log(`💾 数据库更新成功: ${attachment._id} -> ${newObjectName}`);
+            
+            // 记录单个附件处理成功日志
+            logger.user('附件处理成功', user._id.toString(), user.email, {
+              operation: 'attachment_processed',
+              eventId: created._id.toString(),
+              eventTitle: created.title,
+              attachmentId: attachment._id.toString(),
+              attachmentName: attachment.filename,
+              newObjectName,
+              newUrl
+            });
           } catch (moveError) {
             console.error(`❌ 移动附件 ${attachment._id} 失败:`, moveError);
+            
+            // 记录附件处理失败日志
+            logger.error('附件处理失败', moveError, {
+              operation: 'attachment_process_failed',
+              userId: user._id.toString(),
+              userEmail: user.email,
+              eventId: created._id.toString(),
+              eventTitle: created.title,
+              attachmentId: attachment._id.toString(),
+              attachmentName: attachment.filename,
+              context: '移动附件到事件目录时发生错误'
+            });
+            
             // 即使移动失败，也要标记为已使用
             await Image.findByIdAndUpdate(attachment._id, {
               $set: {
                 isUsed: true,
                 associatedPost: created._id,
-                updatedAt: new Date()
+                updatedAt: getCurrentUTCTime()
               }
             });
           }
         }
+        
+        // 记录附件处理完成日志
+        logger.user('事件附件处理完成', user._id.toString(), user.email, {
+          operation: 'event_attachments_completed',
+          eventId: created._id.toString(),
+          eventTitle: created.title,
+          totalAttachments: validAttachmentIds.length,
+          processedAttachments: attachmentRecords.length
+        });
       } catch (e) {
         console.error('❌ 处理附件失败', e);
+        
+        // 记录附件处理整体失败日志
+        logger.error('事件附件处理整体失败', e, {
+          operation: 'event_attachments_failed',
+          userId: user._id.toString(),
+          userEmail: user.email,
+          eventId: created._id.toString(),
+          eventTitle: created.title,
+          attachmentCount: validAttachmentIds.length,
+          context: '处理事件附件时发生错误'
+        });
       }
     }
 
     return NextResponse.json({ success: true, data: created });
   } catch (error) {
     console.error('POST /api/events error', error);
+    
+    // 记录事件创建失败日志
+    logger.error('事件创建失败', error, {
+      operation: 'create_event',
+      context: '创建事件时发生错误'
+    });
+    
     return NextResponse.json({ success: false, message: 'Failed to create event' }, { status: 500 });
   }
 }

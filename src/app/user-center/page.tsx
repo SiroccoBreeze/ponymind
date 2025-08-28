@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import UserAvatar from '@/components/UserAvatar';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface UserStats {
   totalPosts: number;
@@ -301,6 +302,7 @@ export default function UserCenterPage() {
 
 
 
+
   // 当搜索或标签页改变时，重置到第一页并重新获取数据
   useEffect(() => {
     if (session?.user && activeSection === 'content') {
@@ -482,8 +484,8 @@ export default function UserCenterPage() {
                       <input
                         type="text"
                         value={userProfile?.createdAt 
-                          ? new Date(userProfile.createdAt).toLocaleDateString('zh-CN')
-                          : new Date().toLocaleDateString('zh-CN')
+                          ? displayLocalTime(userProfile.createdAt, 'datetime')
+                          : displayLocalTime(new Date().toISOString(), 'datetime')
                         }
                         className="w-full px-3 py-2 border border-border rounded-lg bg-muted text-foreground"
                         readOnly
@@ -772,7 +774,7 @@ export default function UserCenterPage() {
                                   </span>
                                   {getStatusBadge(post.reviewStatus)}
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(post.createdAt).toLocaleDateString('zh-CN')}
+                                    {displayLocalTime(post.createdAt, 'datetime')}
                                   </span>
                                 </div>
                                 <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary cursor-pointer group-hover:text-primary transition-colors">
@@ -977,7 +979,7 @@ export default function UserCenterPage() {
                                 <h3 className="font-medium text-foreground">{message.title}</h3>
                                 <div className="flex items-center space-x-2">
                                   <span className="text-xs text-muted-foreground">
-                                    {new Date(message.createdAt).toLocaleDateString('zh-CN')}
+                                    {displayLocalTime(message.createdAt, 'datetime')}
                                   </span>
                                   {!message.isRead && (
                                     <div className="w-2 h-2 bg-primary rounded-full"></div>

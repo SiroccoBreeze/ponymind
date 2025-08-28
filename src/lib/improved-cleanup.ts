@@ -52,7 +52,6 @@ export async function improvedCleanupUnusedImages(): Promise<{
     errors: string[];
   };
 }> {
-  const startTime = Date.now();
   const errors: string[] = [];
   let deletedCount = 0;
   let skippedCount = 0;
@@ -160,7 +159,6 @@ export async function improvedCleanupUnusedImages(): Promise<{
       }
     }
     
-    const duration = Date.now() - startTime;
     console.log(`清理完成，删除了 ${deletedCount} 张未使用的图片，跳过了 ${skippedCount} 张图片`);
     
     return {
@@ -177,7 +175,6 @@ export async function improvedCleanupUnusedImages(): Promise<{
     };
     
   } catch (error) {
-    const duration = Date.now() - startTime;
     const errorMsg = `清理未使用图片失败: ${error}`;
     console.error(errorMsg);
     
@@ -272,6 +269,118 @@ export async function safeCleanupTempImages(): Promise<{
         totalTempImages: 0,
         deletedImages: deletedCount,
         errors: [...errors, errorMsg]
+      }
+    };
+  }
+}
+
+/**
+ * 更新非活跃用户状态
+ * 将半个月内没有登录的用户状态设置为非活跃
+ */
+export async function updateInactiveUsers(): Promise<{
+  success: boolean;
+  message: string;
+  details: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    updatedUsers: number;
+    errors: string[];
+  };
+}> {
+  const startTime = Date.now();
+  const errors: string[] = [];
+  let updatedCount = 0;
+  
+  try {
+    await connectDB();
+    
+    // 计算半个月前的时间（15天）
+    const halfMonthAgo = new Date();
+    halfMonthAgo.setDate(halfMonthAgo.getDate() - 15);
+    
+    console.log(`开始检查非活跃用户，截止时间: ${halfMonthAgo.toISOString()}`);
+    
+    // 查找所有用户
+    const allUsers = await User.find({});
+    console.log(`检查 ${allUsers.length} 个用户的活动状态`);
+    
+    // 统计当前状态
+    const activeUsers = allUsers.filter(user => user.status === 'active').length;
+    const inactiveUsers = allUsers.filter(user => user.status === 'inactive').length;
+    
+    // 查找需要更新的用户：状态为活跃且最后登录时间超过半个月
+    const usersToUpdate = allUsers.filter(user => {
+      // 只处理状态为活跃的用户
+      if (user.status !== 'active') return false;
+      
+      // 如果没有最后登录时间，说明用户从未登录过
+      // 检查用户创建时间是否超过半个月
+      if (!user.lastLoginAt) {
+        const isOldEnough = user.createdAt < halfMonthAgo;
+        if (isOldEnough) {
+          console.log(`用户 ${user.name} (${user.email}) 从未登录且创建时间超过半个月，将被标记为非活跃`);
+        }
+        return isOldEnough;
+      }
+      
+      // 检查最后登录时间是否超过半个月
+      const isInactive = user.lastLoginAt < halfMonthAgo;
+      if (isInactive) {
+        console.log(`用户 ${user.name} (${user.email}) 最后登录时间: ${user.lastLoginAt.toISOString()}，超过半个月，将被标记为非活跃`);
+      }
+      return isInactive;
+    });
+    
+    console.log(`发现 ${usersToUpdate.length} 个需要更新为非活跃状态的用户`);
+    
+    // 批量更新用户状态
+    for (const user of usersToUpdate) {
+      try {
+        await User.findByIdAndUpdate(user._id, {
+          status: 'inactive',
+          updatedAt: new Date()
+        });
+        
+        console.log(`✅ 已更新用户状态为非活跃: ${user.name} (${user.email})`);
+        updatedCount++;
+        
+      } catch (error) {
+        const errorMsg = `更新用户状态失败: ${user.name} (${user.email}) - ${error}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
+      }
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log(`非活跃用户状态更新完成，更新了 ${updatedCount} 个用户，耗时 ${duration}ms`);
+    
+    return {
+      success: true,
+      message: `成功更新了 ${updatedCount} 个非活跃用户状态`,
+      details: {
+        totalUsers: allUsers.length,
+        activeUsers: activeUsers - updatedCount, // 减去已更新的用户
+        inactiveUsers: inactiveUsers + updatedCount, // 加上新更新的用户
+        updatedUsers: updatedCount,
+        errors
+      }
+    };
+    
+  } catch (error) {
+    const errorMsg = `更新非活跃用户状态失败: ${error}`;
+    console.error(errorMsg);
+    
+    return {
+      success: false,
+      message: errorMsg,
+      details: {
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        updatedUsers: 0,
+        errors: [errorMsg]
       }
     };
   }

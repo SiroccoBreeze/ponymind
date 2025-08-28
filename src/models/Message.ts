@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 const messageSchema = new mongoose.Schema({
   recipient: {
@@ -44,17 +45,17 @@ const messageSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
 });
 
 // 更新updatedAt时间戳
 messageSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
+  this.updatedAt = getCurrentUTCTime();
   next();
 });
 

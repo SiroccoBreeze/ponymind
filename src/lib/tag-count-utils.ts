@@ -1,6 +1,7 @@
 import Tag from '@/models/Tag';
 import Post from '@/models/Post';
 import Event from '@/models/Event';
+import { getCurrentUTCTime } from './time-utils';
 
 /**
  * 更新标签的文章和事件计数
@@ -31,7 +32,7 @@ export async function updateTagCounts(tagNames: string[]) {
         { 
           postCount,
           eventCount,
-          updatedAt: new Date()
+          updatedAt: getCurrentUTCTime()
         },
         { upsert: false } // 不创建新标签，只更新现有标签
       );
@@ -65,7 +66,7 @@ export async function updateSingleTagCount(tagName: string) {
       { 
         postCount,
         eventCount,
-        updatedAt: new Date()
+        updatedAt: getCurrentUTCTime()
       },
       { upsert: false }
     );

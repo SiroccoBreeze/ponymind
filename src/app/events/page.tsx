@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import CustomTimeline, { TimelineMode } from '@/components/CustomTimeline'
 import { toast } from 'sonner'
-import { localToUTC, getCurrentLocalDateTime } from '@/lib/time-utils'
+import { getCurrentLocalTime, displayLocalTime } from '@/lib/frontend-time-utils'
 
 type EventItem = {
   _id: string
@@ -71,29 +71,14 @@ export default function EventsPage() {
   
   // 根据时间轴模式格式化日期
   const formatDateForMode = (date: string, mode: TimelineMode) => {
-    const dateObj = new Date(date)
     switch (mode) {
       case 'year':
-        return dateObj.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: 'short'
-        })
+        return displayLocalTime(date, 'date')
       case 'month':
-        return dateObj.toLocaleString('zh-CN', {
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+        return displayLocalTime(date, 'datetime')
       case 'day':
       default:
-        return dateObj.toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+        return displayLocalTime(date, 'datetime')
     }
   }
   
@@ -184,7 +169,7 @@ export default function EventsPage() {
       title: '',
       description: '',
       tags: [],
-      occurredAt: getCurrentLocalDateTime(),
+              occurredAt: getCurrentLocalTime(),
       attachmentIds: []
     });
     setSelectedFiles([]);
@@ -248,7 +233,7 @@ export default function EventsPage() {
       // 处理时间：将本地时间转换为UTC时间
       const requestBodyWithUTCTime = {
         ...formData,
-        occurredAt: localToUTC(formData.occurredAt)
+        occurredAt: formData.occurredAt // 后端会自动转换为UTC时间
       };
       
       const response = await fetch('/api/events', {

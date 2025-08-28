@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import UserAvatar from '@/components/UserAvatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -25,6 +25,7 @@ import {
   BarChart3,
   ChevronDown
 } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -628,7 +629,7 @@ export default function Navbar() {
                                       {notification.content}
                                     </p>
                                     <p className="text-xs text-muted-foreground/70 mt-1">
-                                      {new Date(notification.createdAt).toLocaleDateString('zh-CN')}
+                                      {displayLocalTime(notification.createdAt, 'datetime')}
                                     </p>
                                   </div>
                                 </div>

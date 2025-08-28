@@ -4,11 +4,14 @@ import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
 import Image from '@/models/Image';
+import Message from '@/models/Message';
 import { deleteFromMinio } from '@/lib/minio';
 import { extractImagesFromContent } from '@/lib/cascade-delete';
 import { moveImageToPost } from '@/lib/minio';
 import { updateImageLinksInContent } from '@/lib/image-utils';
 import { updateTagCounts } from '@/lib/tag-count-utils';
+import { getCurrentUTCTime } from '@/lib/time-utils';
+import { logger } from '@/lib/logger';
 
 // 获取文章列表
 export async function GET(request: NextRequest) {
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
     const author = searchParams.get('author');
 
     // 构建查询条件
-    const query: Record<string, any> = {
+    const query: Record<string, unknown> = {
       reviewStatus: 'published' // 默认只显示已发布的内容
     };
     
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建排序条件
-    let sortCondition: any = {};
+    let sortCondition: Record<string, 1 | -1> = {};
     
     switch (sort) {
       case 'newest':
@@ -91,7 +94,7 @@ export async function GET(request: NextRequest) {
     
     // 热门内容的特殊处理
     if (trending) {
-      const oneWeekAgo = new Date();
+      const oneWeekAgo = getCurrentUTCTime();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       query.createdAt = { $gte: oneWeekAgo };
       sortCondition = { views: -1, likes: -1, createdAt: -1 };
@@ -147,6 +150,17 @@ export async function POST(request: NextRequest) {
       questionDetails, 
       reviewStatus = 'draft', // 修复：使用正确的字段名
       imageIds = [] // 保留但不使用，改为从内容中提取
+    }: {
+      title: string;
+      content: string;
+      summary?: string;
+      tags?: string[];
+      type: string;
+      difficulty?: string;
+      bounty?: number;
+      questionDetails?: Record<string, unknown>;
+      reviewStatus?: string;
+      imageIds?: string[];
     } = await request.json();
 
     if (!title || !content) {
@@ -166,7 +180,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建文章/问题
-    const postData: Record<string, any> = {
+    const postData: Record<string, unknown> = {
       title,
       content,
       summary: summary || content.substring(0, 200) + '...',
@@ -186,6 +200,17 @@ export async function POST(request: NextRequest) {
 
     const post = new Post(postData);
     await post.save();
+
+    // 记录帖子创建日志
+    logger.user('帖子创建成功', user._id.toString(), user.email, {
+      operation: 'create_post',
+      postId: post._id.toString(),
+      title: post.title,
+      type: post.type,
+      tags: post.tags,
+      reviewStatus: post.reviewStatus,
+      hasImages: imageIds && imageIds.length > 0
+    });
 
     // 处理图片移动：从文章内容中提取实际使用的图片
     try {
@@ -229,7 +254,7 @@ export async function POST(request: NextRequest) {
               isUsed: true,
               url: `/api/images/${newObjectName}`,
               objectName: newObjectName,
-              updatedAt: new Date()
+              updatedAt: getCurrentUTCTime()
             });
             
             console.log(`✅ 图片已移动到文章: ${image.filename}`);
@@ -252,7 +277,7 @@ export async function POST(request: NextRequest) {
             await Post.findByIdAndUpdate(post._id, {
               content: updatedContent,
               summary: updatedContent.substring(0, 200) + '...',
-              updatedAt: new Date()
+              updatedAt: getCurrentUTCTime()
             });
             console.log(`✅ 文章内容已更新，图片链接已修正`);
           }
@@ -291,6 +316,15 @@ export async function POST(request: NextRequest) {
       
     } catch (error) {
       console.error('❌ 处理图片移动失败:', error);
+      
+      // 记录图片处理失败日志
+      logger.error('图片处理失败', error, {
+        operation: 'process_post_images',
+        userId: user._id.toString(),
+        userEmail: user.email,
+        postId: post._id.toString(),
+        context: '创建帖子后处理图片时发生错误'
+      });
       // 图片移动失败不影响帖子创建
     }
 
@@ -300,6 +334,48 @@ export async function POST(request: NextRequest) {
     // 更新标签计数
     if (tags && tags.length > 0) {
       await updateTagCounts(tags);
+    }
+
+    // 为新发布的内容创建待审核通知
+    try {
+      // 查找所有管理员用户
+      const adminUsers = await User.find({ 
+        role: { $in: ['admin', 'moderator'] } 
+      });
+
+      if (adminUsers.length > 0) {
+        // 为每个管理员创建待审核通知
+        for (const admin of adminUsers) {
+          const messageTitle = `新内容待审核：${title}`;
+          const messageContent = `用户 ${user.name} 发布了新的${type === 'article' ? '文章' : '问题'}，需要您审核。
+
+内容标题：${title}
+内容类型：${type === 'article' ? '文章' : '问题'}
+发布时间：${new Date().toLocaleDateString('zh-CN')}
+审核状态：${reviewStatus === 'pending' ? '待审核' : '草稿'}
+
+请及时审核此内容。`;
+
+          await Message.create({
+            recipient: admin._id,
+            sender: null, // 系统消息
+            type: 'warning',
+            title: messageTitle,
+            content: messageContent,
+            relatedId: post._id,
+            relatedType: 'post',
+            priority: 'high',
+            isRead: false
+          });
+        }
+        
+        console.log(`✅ 已为 ${adminUsers.length} 个管理员创建待审核通知`);
+      } else {
+        console.log('⚠️ 未找到管理员用户，无法发送审核通知');
+      }
+    } catch (notificationError) {
+      console.error('❌ 创建待审核通知失败:', notificationError);
+      // 通知创建失败不影响帖子创建
     }
 
     return NextResponse.json(post, { status: 201 });

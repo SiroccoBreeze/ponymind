@@ -65,6 +65,18 @@ const authOptions = {
             throw new Error('邮箱或密码错误');
           }
 
+          // 更新用户最后登录时间
+          try {
+            await User.findByIdAndUpdate(user._id, {
+              lastLoginAt: new Date(),
+              updatedAt: new Date()
+            });
+            console.log('✅ 已更新用户最后登录时间:', user.email);
+          } catch (updateError) {
+            console.warn('⚠️ 更新用户最后登录时间失败:', updateError);
+            // 不阻止登录，只是记录警告
+          }
+
           // 返回用户信息（不包含密码）
           return {
             id: user._id.toString(),

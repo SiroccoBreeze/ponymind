@@ -29,6 +29,7 @@ import {
   Calendar,
   Activity
 } from "lucide-react";
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Tag {
   _id: string;
@@ -205,7 +206,7 @@ export default function TagsManagement() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("zh-CN");
+    return displayLocalTime(dateString, 'date');
   };
 
   if (loading) {

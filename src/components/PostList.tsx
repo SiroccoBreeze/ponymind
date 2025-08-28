@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Post {
   _id: string;
@@ -107,11 +112,7 @@ export default function PostList({
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} 小时前`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} 天前`;
     
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return displayLocalTime(dateString, 'datetime');
   };
 
   const stripMarkdown = (text: string) => {

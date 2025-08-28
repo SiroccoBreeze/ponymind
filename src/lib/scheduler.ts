@@ -1,6 +1,6 @@
 import connectDB from './mongodb';
 import ScheduledTask from '@/models/ScheduledTask';
-import { cleanupUnusedImages } from './cascade-delete';
+import { getCurrentUTCTime } from './time-utils';
 
 interface TaskResult {
   success: boolean;
@@ -45,7 +45,7 @@ class TaskScheduler {
     try {
       await connectDB();
       
-      const now = new Date();
+      const now = getCurrentUTCTime();
       const tasksToRun = await ScheduledTask.find({
         isEnabled: true,
         nextRun: { $lte: now },
@@ -69,7 +69,7 @@ class TaskScheduler {
       // 更新任务状态为运行中
       await ScheduledTask.findByIdAndUpdate(task._id, {
         status: 'running',
-        lastRun: new Date()
+        lastRun: getCurrentUTCTime()
       });
 
       let result: TaskResult;
@@ -79,14 +79,8 @@ class TaskScheduler {
         case 'cleanupUnusedImages':
           result = await this.executeCleanupUnusedImages(task);
           break;
-        case 'autoCloseQuestions':
-          result = await this.executeAutoCloseQuestions(task);
-          break;
-        case 'cleanupLogs':
-          result = await this.executeCleanupLogs(task);
-          break;
-        case 'backupDatabase':
-          result = await this.executeBackupDatabase(task);
+        case 'updateInactiveUsers':
+          result = await this.executeUpdateInactiveUsers(task);
           break;
         default:
           result = {
@@ -168,89 +162,52 @@ class TaskScheduler {
     }
   }
 
-  private async executeAutoCloseQuestions(task: any): Promise<TaskResult> {
+  private async executeUpdateInactiveUsers(task: any): Promise<TaskResult> {
     const startTime = Date.now();
     
     try {
-      console.log('🔒 开始自动关闭过期问题...');
+      console.log('👥 开始更新非活跃用户状态...');
       
-      // 这里实现自动关闭问题的逻辑
-      // 暂时返回成功，具体实现可以根据需求添加
+      // 使用新的清理逻辑
+      const { updateInactiveUsers } = await import('./improved-cleanup');
+      const result = await updateInactiveUsers();
       
       const duration = Date.now() - startTime;
       
-      return {
-        success: true,
-        message: '自动关闭问题功能待实现',
-        duration
-      };
+      if (result.success) {
+        console.log(`✅ 非活跃用户状态更新完成: ${result.message}`);
+        return {
+          success: true,
+          message: result.message,
+          details: {
+            ...result.details,
+            duration
+          },
+          duration
+        };
+      } else {
+        console.error(`❌ 非活跃用户状态更新失败: ${result.message}`);
+        return {
+          success: false,
+          message: result.message,
+          details: result.details,
+          duration
+        };
+      }
       
     } catch (error) {
       const duration = Date.now() - startTime;
+      console.error('更新非活跃用户状态失败:', error);
       
       return {
         success: false,
-        message: error instanceof Error ? error.message : '自动关闭失败',
+        message: error instanceof Error ? error.message : '更新失败',
         duration
       };
     }
   }
 
-  private async executeCleanupLogs(task: any): Promise<TaskResult> {
-    const startTime = Date.now();
-    
-    try {
-      console.log('📝 开始清理日志...');
-      
-      // 这里实现清理日志的逻辑
-      // 暂时返回成功，具体实现可以根据需求添加
-      
-      const duration = Date.now() - startTime;
-      
-      return {
-        success: true,
-        message: '清理日志功能待实现',
-        duration
-      };
-      
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '清理日志失败',
-        duration
-      };
-    }
-  }
 
-  private async executeBackupDatabase(task: any): Promise<TaskResult> {
-    const startTime = Date.now();
-    
-    try {
-      console.log('💾 开始备份数据库...');
-      
-      // 这里实现数据库备份的逻辑
-      // 暂时返回成功，具体实现可以根据需求添加
-      
-      const duration = Date.now() - startTime;
-      
-      return {
-        success: true,
-        message: '数据库备份功能待实现',
-        duration
-      };
-      
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '备份失败',
-        duration
-      };
-    }
-  }
 
   private extractImagesFromContent(content: string): string[] {
     const imageUrls: string[] = [];
@@ -292,7 +249,7 @@ class TaskScheduler {
     }
     
     const [minute, hour, day, month, weekday] = parts;
-    const now = new Date();
+    const now = getCurrentUTCTime();
     let nextRun = new Date(now);
     
     // 设置分钟
@@ -335,7 +292,7 @@ class TaskScheduler {
       // 更新任务状态为运行中
       await ScheduledTask.findByIdAndUpdate(task._id, {
         status: 'running',
-        lastRun: new Date()
+        lastRun: getCurrentUTCTime()
       });
 
       let result: TaskResult;
@@ -345,14 +302,8 @@ class TaskScheduler {
         case 'cleanupUnusedImages':
           result = await this.executeCleanupUnusedImages(task);
           break;
-        case 'autoCloseQuestions':
-          result = await this.executeAutoCloseQuestions(task);
-          break;
-        case 'cleanupLogs':
-          result = await this.executeCleanupLogs(task);
-          break;
-        case 'backupDatabase':
-          result = await this.executeBackupDatabase(task);
+        case 'updateInactiveUsers':
+          result = await this.executeUpdateInactiveUsers(task);
           break;
         default:
           result = {

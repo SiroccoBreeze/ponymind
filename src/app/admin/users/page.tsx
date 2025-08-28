@@ -28,6 +28,7 @@ import {
   Activity,
   Eye
 } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface User {
   _id: string;
@@ -193,7 +194,7 @@ export default function UsersManagement() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN');
+    return displayLocalTime(dateString, 'date');
   };
 
   if (loading) {

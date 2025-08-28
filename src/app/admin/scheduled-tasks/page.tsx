@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Plus, Play, Edit, Trash2, Clock, Loader2 } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface ScheduledTask {
   _id: string;
@@ -65,32 +66,44 @@ export default function ScheduledTasks() {
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [executingTask, setExecutingTask] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    // 加载定时任务和系统信息
-    const loadData = async () => {
-      try {
-        const [tasksResponse, systemInfoResponse] = await Promise.all([
-          fetch('/api/admin/scheduled-tasks'),
-          fetch('/api/admin/system-info')
-        ]);
+  // 加载数据的函数
+  const loadData = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const [tasksResponse, systemInfoResponse] = await Promise.all([
+        fetch('/api/admin/scheduled-tasks'),
+        fetch('/api/admin/system-info')
+      ]);
 
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json();
-          setScheduledTasks(tasksData.tasks);
-        }
+      if (tasksResponse.ok) {
+        const tasksData = await tasksResponse.json();
+        setScheduledTasks(tasksData.tasks);
+      }
 
-        if (systemInfoResponse.ok) {
-          const systemInfoData = await systemInfoResponse.json();
-          setSystemInfo(systemInfoData.systemInfo);
-        }
-      } catch (error) {
-        console.error('加载数据失败:', error);
-      } finally {
+      if (systemInfoResponse.ok) {
+        const systemInfoData = await systemInfoResponse.json();
+        setSystemInfo(systemInfoData.systemInfo);
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      } else {
         setLoading(false);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
+    // 初始加载
     loadData();
   }, []);
 
@@ -109,18 +122,15 @@ export default function ScheduledTasks() {
       });
 
       if (response.ok) {
-        // 重新加载任务列表
-        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json();
-          setScheduledTasks(tasksData.tasks);
-        }
+        // 立即重新加载任务列表，确保新任务显示
+        await loadData(false);
         
         setShowTaskModal(false);
         setEditingTask(null);
         alert(taskData.taskId ? '任务更新成功' : '任务创建成功');
       } else {
-        alert('操作失败');
+        const errorData = await response.json();
+        alert(`操作失败: ${errorData.error || '未知错误'}`);
       }
     } catch (error) {
       console.error('保存任务失败:', error);
@@ -149,12 +159,8 @@ export default function ScheduledTasks() {
           alert(`任务执行失败: ${result?.message || '未知错误'}`);
         }
         
-        // 重新加载任务列表
-        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json();
-          setScheduledTasks(tasksData.tasks);
-        }
+        // 立即重新加载任务列表
+        await loadData(false);
       } else {
         const errorData = await response.json();
         alert(`执行失败: ${errorData.error || '未知错误'}`);
@@ -178,12 +184,8 @@ export default function ScheduledTasks() {
       });
 
       if (response.ok) {
-        // 重新加载任务列表
-        const tasksResponse = await fetch('/api/admin/scheduled-tasks');
-        if (tasksResponse.ok) {
-          const tasksData = await tasksResponse.json();
-          setScheduledTasks(tasksData.tasks);
-        }
+        // 立即重新加载任务列表
+        await loadData(false);
         alert('任务删除成功');
       } else {
         alert('删除失败');
@@ -230,18 +232,29 @@ export default function ScheduledTasks() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">定时任务</h1>
-          <p className="text-gray-600 mt-2">管理系统定时任务，包括图片清理、数据备份等</p>
+          <p className="text-gray-600 mt-2">管理系统定时任务，包括图片清理、用户状态更新等</p>
         </div>
-        <Button 
-          onClick={() => {
-            setEditingTask(null);
-            setShowTaskModal(true);
-          }}
-          className="flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>添加任务</span>
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            onClick={() => loadData(true)}
+            variant="outline"
+            className="flex items-center space-x-2"
+            disabled={refreshing}
+          >
+            <Loader2 className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? '刷新中...' : '刷新'}</span>
+          </Button>
+          <Button 
+            onClick={() => {
+              setEditingTask(null);
+              setShowTaskModal(true);
+            }}
+            className="flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>添加任务</span>
+          </Button>
+        </div>
       </div>
 
       {/* 系统信息卡片 */}
@@ -361,12 +374,12 @@ export default function ScheduledTasks() {
                         </div>
                         <div>
                           <span className="font-medium">下次执行:</span>
-                          <span className="ml-1">{new Date(task.nextRun).toLocaleString()}</span>
+                          <span className="ml-1">{displayLocalTime(task.nextRun, 'datetime')}</span>
                         </div>
                         {task.lastRun && (
                           <div>
                             <span className="font-medium">上次执行:</span>
-                            <span className="ml-1">{new Date(task.lastRun).toLocaleString()}</span>
+                            <span className="ml-1">{displayLocalTime(task.lastRun, 'datetime')}</span>
                           </div>
                         )}
                       </div>
@@ -518,11 +531,7 @@ function TaskModal({ task, onClose, onSave }: {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cleanupUnusedImages">清理未使用图片</SelectItem>
-                <SelectItem value="autoCloseQuestions">自动关闭过期问题</SelectItem>
-                <SelectItem value="cleanupLogs">清理日志</SelectItem>
-                <SelectItem value="backupDatabase">备份数据库</SelectItem>
-                <SelectItem value="cleanupTempFiles">清理临时文件</SelectItem>
-                <SelectItem value="updateStatistics">更新统计数据</SelectItem>
+                <SelectItem value="updateInactiveUsers">更新非活跃用户状态</SelectItem>
               </SelectContent>
             </Select>
           </div>

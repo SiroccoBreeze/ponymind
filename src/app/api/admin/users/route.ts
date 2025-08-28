@@ -4,21 +4,24 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Post from '@/models/Post';
 import bcrypt from 'bcryptjs';
+import { logger } from '@/lib/logger';
+import { captureException } from '@/lib/sentry';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 // 检查管理员权限
 async function checkAdminPermission() {
   const session = await getServerSession();
   if (!session?.user?.email) {
-    return { error: '请先登录', status: 401 };
+    return { error: '请先登录', status: 401, user: null };
   }
 
   await connectDB();
   const user = await User.findOne({ email: session.user.email });
   if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
-    return { error: '权限不足', status: 403 };
+    return { error: '权限不足', status: 403, user: null };
   }
 
-  return { user, status: 200 };
+  return { user, status: 200, error: null };
 }
 
 interface UserQuery {
@@ -35,9 +38,15 @@ interface UpdateData {
 
 // 创建新用户
 export async function POST(request: NextRequest) {
+  let permissionCheck: any = null;
+  
   try {
-    const permissionCheck = await checkAdminPermission();
+    permissionCheck = await checkAdminPermission();
     if (permissionCheck.error) {
+      logger.auth('创建用户权限检查失败', permissionCheck.user?.id, permissionCheck.user?.email, {
+        error: permissionCheck.error,
+        status: permissionCheck.status
+      });
       return NextResponse.json({ error: permissionCheck.error }, { status: permissionCheck.status });
     }
 
@@ -45,12 +54,14 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!name || !email || !password) {
+      logger.warn('创建用户参数验证失败', { name, email, hasPassword: !!password });
       return NextResponse.json({ error: '用户名、邮箱和密码不能为空' }, { status: 400 });
     }
 
     // 检查邮箱是否已存在
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      logger.warn('创建用户失败：邮箱已存在', { email, adminId: permissionCheck.user.id });
       return NextResponse.json({ error: '该邮箱已被注册' }, { status: 400 });
     }
 
@@ -61,11 +72,20 @@ export async function POST(request: NextRequest) {
       password: password, // 传入明文密码，让pre中间件加密
       role: role || 'user',
       status: status || 'active',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: getCurrentUTCTime(),
+      updatedAt: getCurrentUTCTime()
     });
 
     await newUser.save();
+
+    // 记录成功创建用户
+    logger.admin('创建用户成功', permissionCheck.user.id, permissionCheck.user.email, {
+      newUserId: newUser._id,
+      newUserName: newUser.name,
+      newUserEmail: newUser.email,
+      newUserRole: newUser.role,
+      newUserStatus: newUser.status
+    });
 
     // 返回用户信息（不包含密码）
     const userResponse = {
@@ -80,7 +100,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(userResponse, { status: 201 });
   } catch (error) {
-    console.error('创建用户失败:', error);
+    // 记录错误到日志和Sentry
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    logger.error('创建用户失败', error instanceof Error ? error : new Error(errorMessage), { adminId: permissionCheck?.user?.id });
+    captureException(error instanceof Error ? error : new Error(errorMessage), {
+      context: '创建用户',
+      adminId: permissionCheck?.user?.id,
+      adminEmail: permissionCheck?.user?.email
+    });
+    
     return NextResponse.json(
       { error: '创建用户失败' },
       { status: 500 }
@@ -199,7 +227,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const updateData: UpdateData = {
-      updatedAt: new Date()
+      updatedAt: getCurrentUTCTime()
     };
     
     if (role) updateData.role = role;

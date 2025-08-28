@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import Post from '@/models/Post';
 import User from '@/models/User';
 import Message from '@/models/Message';
+import Comment from '@/models/Comment';
 import Event from '@/models/Event';
 
 // 检查管理员权限
@@ -282,6 +283,12 @@ export async function GET() {
       }
     ]);
 
+    // 获取待审核内容统计
+    const pendingStats = await Promise.all([
+      Post.countDocuments({ reviewStatus: 'pending' }),
+      Comment.countDocuments({ reviewStatus: 'pending' })
+    ]);
+
     return NextResponse.json({
       overview: {
         users: userStats[0] || {
@@ -313,6 +320,10 @@ export async function GET() {
           successMessages: 0,
           warningMessages: 0,
           messagesThisMonth: 0
+        },
+        pending: {
+          pendingPosts: pendingStats[0] || 0,
+          pendingComments: pendingStats[1] || 0
         }
       },
       recentActivity: {

@@ -50,7 +50,8 @@ import {
   Calendar,
   Database,
   FolderOpen,
-  ChevronDown
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -61,10 +62,21 @@ interface NavItem {
   href?: string;
   key?: string;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   description: string;
   children?: NavItem[];
+}
+
+interface AdminMessage {
+  _id: string;
+  type: 'info' | 'success' | 'rejection' | 'warning' | 'comment_reply' | 'post_like' | 'comment_like';
+  title: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  relatedId?: string;
+  relatedType?: 'post' | 'comment' | 'user';
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -74,6 +86,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<AdminMessage[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -109,6 +125,94 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       setExpandedMenus(prev => new Set([...prev, 'resources']));
     }
   }, [pathname]);
+
+  // 获取管理员消息通知
+  const fetchAdminNotifications = async () => {
+    if (!session?.user?.email || loadingNotifications) return;
+
+    setLoadingNotifications(true);
+    try {
+      const response = await fetch('/api/admin/messages?page=1&limit=10');
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.messages || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('获取管理员消息失败:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // 标记消息为已读
+  const markMessageAsRead = async (messageId: string) => {
+    try {
+      const response = await fetch('/api/admin/messages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          messageIds: [messageId] 
+        }),
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => prev.map(msg => 
+          msg._id === messageId 
+            ? { ...msg, isRead: true }
+            : msg
+        ));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        setTimeout(() => {
+          setShowNotifications(false);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('标记消息已读失败:', error);
+    }
+  };
+
+  // 标记所有消息为已读
+  const markAllMessagesAsRead = async () => {
+    try {
+      const response = await fetch('/api/admin/messages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ markAllAsRead: true }),
+      });
+      
+      if (response.ok) {
+        setUnreadCount(0);
+        setNotifications(prev => prev.map(msg => ({ ...msg, isRead: true })));
+        setShowNotifications(false);
+      }
+    } catch (error) {
+      console.error('标记所有消息已读失败:', error);
+    }
+  };
+
+  // 初始加载消息
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchAdminNotifications();
+    }
+  }, [isAuthorized]);
+
+  // 定期刷新消息
+  useEffect(() => {
+    if (!isAuthorized) return;
+    
+    const interval = setInterval(() => {
+      fetchAdminNotifications();
+    }, 30000); // 每30秒刷新一次
+
+    return () => clearInterval(interval);
+  }, [isAuthorized]);
 
   if (loading) {
     return (
@@ -203,6 +307,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: Tags,
       description: ''
     },
+    { 
+      href: '/admin/messages', 
+      label: '消息管理', 
+      icon: MessageSquare,
+      description: ''
+    },
+    { 
+      href: '/admin/logs', 
+      label: '系统日志', 
+      icon: FileText,
+      description: ''
+    },
     {
       key: 'settings',
       label: '系统设置',
@@ -230,6 +346,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       return pathname === href;
     }
     return pathname.startsWith(href);
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return '刚刚';
+    if (diffInMinutes < 60) return `${diffInMinutes}分钟前`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}小时前`;
+    return date.toLocaleDateString('zh-CN');
   };
 
   return (
@@ -420,12 +547,100 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2 px-4">
-              <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              {/* 消息通知按钮 */}
+              <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 relative">
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                  <div className="flex items-center justify-between p-2 border-b">
+                    <DropdownMenuLabel className="text-base">消息通知</DropdownMenuLabel>
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={markAllMessagesAsRead}
+                        className="h-6 px-2 text-xs"
+                      >
+                        全部已读
+                      </Button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {loadingNotifications ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent mx-auto mb-2"></div>
+                        加载中...
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>暂无消息</p>
+                      </div>
+                    ) : (
+                      notifications.map((message) => (
+                        <DropdownMenuItem
+                          key={message._id}
+                          className="flex flex-col items-start p-3 cursor-pointer hover:bg-muted/50"
+                          onClick={() => markMessageAsRead(message._id)}
+                        >
+                          <div className="flex items-start gap-3 w-full">
+                            <div className={`flex-shrink-0 mt-1 ${
+                              message.type === 'rejection' ? 'text-red-500' :
+                              message.type === 'success' ? 'text-green-500' :
+                              message.type === 'warning' ? 'text-yellow-500' :
+                              'text-blue-500'
+                            }`}>
+                              {message.type === 'rejection' ? <AlertCircle className="h-4 w-4" /> :
+                               message.type === 'success' ? <CheckCircle className="h-4 w-4" /> :
+                               message.type === 'warning' ? <AlertCircle className="h-4 w-4" /> :
+                               <MessageSquare className="h-4 w-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className={`text-sm font-medium ${!message.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  {message.title}
+                                </p>
+                                {!message.isRead && (
+                                  <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
+                                {message.content}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatTime(message.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="p-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="w-full h-8 text-xs"
+                      >
+                        <Link href="/admin/messages">
+                          查看全部消息
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Badge variant="secondary" className="text-xs font-medium bg-gradient-to-r from-primary/10 to-primary/20 text-primary border-primary/20">
                 v1.0.0
               </Badge>

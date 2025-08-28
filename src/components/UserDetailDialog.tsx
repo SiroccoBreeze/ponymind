@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, User, Mail, Calendar, MapPin, Globe, FileText, Shield, Activity } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface UserDetail {
   _id: string;
@@ -187,7 +188,7 @@ export default function UserDetailDialog({ open, onOpenChange, userId, onUserUpd
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '未知';
-    return new Date(dateString).toLocaleString('zh-CN');
+    return displayLocalTime(dateString, 'datetime');
   };
 
   const getRoleBadgeVariant = (role: string) => {

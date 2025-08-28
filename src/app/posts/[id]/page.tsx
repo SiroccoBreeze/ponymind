@@ -7,6 +7,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 // 动态导入组件，避免SSR问题
 const MarkdownPreview = dynamic(() => import('@/components/MarkdownPreview'), { 
@@ -300,7 +301,7 @@ export default function PostDetailPage() {
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-sm font-medium text-foreground">{comment.author.name}</h3>
               <time className="text-xs text-muted-foreground">
-                {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
+                {displayLocalTime(comment.createdAt, 'datetime')}
               </time>
               {comment.isAccepted && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700">
@@ -433,7 +434,7 @@ export default function PostDetailPage() {
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-sm font-medium text-foreground">{reply.author.name}</h4>
                           <time className="text-xs text-muted-foreground">
-                            {new Date(reply.createdAt).toLocaleDateString('zh-CN')}
+                            {displayLocalTime(reply.createdAt, 'datetime')}
                           </time>
                         </div>
                         <div className="text-sm text-foreground">
@@ -617,13 +618,14 @@ export default function PostDetailPage() {
                   </Avatar>
                   <div>
                     <p className="text-sm font-medium text-foreground">{post.author.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(post.createdAt).toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                    <p className="text-xs text-muted-foreground">
+                      发布于 {displayLocalTime(post.createdAt, 'datetime')}
                     </p>
+                    {post.updatedAt !== post.createdAt && (
+                      <p className="text-xs text-muted-foreground">
+                        更新于 {displayLocalTime(post.updatedAt, 'datetime')}
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import UserAvatar from "@/components/UserAvatar"
 import ImagePreview from "@/components/ui/ImagePreview"
+import { displayLocalTime } from "@/lib/frontend-time-utils"
 
 export type EventItem = {
   _id: string
@@ -47,7 +48,7 @@ export const columns: ColumnDef<EventItem>[] = [
       return (
         <div className="flex items-center gap-2">
           <div className="text-nowrap">
-            {occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3')}
+            {displayLocalTime(occurredAt, 'datetime')}
           </div>
           {creator && (
             <div className="flex items-center gap-2">

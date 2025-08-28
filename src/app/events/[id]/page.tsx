@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import { ArrowLeft, Calendar, FileText } from 'lucide-react'
+import { displayLocalTime } from '@/lib/frontend-time-utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -111,7 +112,7 @@ export default function EventDetailPage() {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                                     {event.occurredAt.replace('T', ' ').replace('.000Z', '').replace(/(\d{4})-(\d{2})-(\d{2})/, '$1年$2月$3日')}
+                  {displayLocalTime(event.occurredAt, 'full')}
                 </div>
                 <div className="flex items-center gap-2">
                   <UserAvatar 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 import { 
   Search, 
   Filter, 
@@ -359,13 +360,7 @@ export default function CommentsPage() {
   const totalPages = Math.ceil(totalComments / pageSize);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return displayLocalTime(dateString, 'datetime');
   };
 
   const truncateContent = (content: string, maxLength: number = 100) => {

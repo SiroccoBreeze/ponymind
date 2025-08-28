@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, Heart, MessageCircle, Trash2, Check, X } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Post {
   _id: string;
@@ -188,7 +189,7 @@ export default function PostsManagement() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN');
+    return displayLocalTime(dateString, 'date');
   };
 
   const getTypeText = (type: string) => {

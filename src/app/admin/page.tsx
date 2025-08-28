@@ -17,7 +17,6 @@ import {
   TrendingUp, 
   UserPlus, 
   Tag,
-  Settings,
   ArrowRight,
   Activity,
   Clock,
@@ -27,6 +26,7 @@ import {
   AlertCircle,
   Crown
 } from 'lucide-react';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Post {
   _id: string;
@@ -69,6 +69,10 @@ interface DashboardData {
       totalViews: number;
       totalLikes: number;
       newPostsThisMonth: number;
+    };
+    pending: {
+      pendingPosts: number;
+      pendingComments: number;
     };
   };
   recentActivity: {
@@ -118,18 +122,11 @@ export default function AdminDashboard() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN');
+    return displayLocalTime(dateString, 'datetime');
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return displayLocalTime(date.toISOString(), 'full');
   };
 
   if (loading) {
@@ -214,72 +211,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* 快速操作 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/admin/users">
-          <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100/50">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform shadow-lg">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold group-hover:text-blue-600 transition-colors">用户管理</h3>
-                  <p className="text-sm text-muted-foreground">管理用户账户</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/admin/posts">
-          <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-200 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-100/50">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform shadow-lg">
-                  <FileText className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold group-hover:text-green-600 transition-colors">内容管理</h3>
-                  <p className="text-sm text-muted-foreground">管理文章和问题</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/admin/tags">
-          <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-purple-200 hover:bg-gradient-to-br hover:from-purple-50 hover:to-purple-100/50">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform shadow-lg">
-                  <Tag className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold group-hover:text-purple-600 transition-colors">标签管理</h3>
-                  <p className="text-sm text-muted-foreground">管理内容标签</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link href="/admin/settings">
-          <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-orange-200 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100/50">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl group-hover:scale-110 transition-transform shadow-lg">
-                  <Settings className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold group-hover:text-orange-600 transition-colors">系统设置</h3>
-                  <p className="text-sm text-muted-foreground">配置系统参数</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -346,6 +278,25 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold text-red-600">{formatNumber(data.overview.posts.totalLikes)}</div>
             <p className="text-xs text-muted-foreground">累计点赞次数</p>
             <Progress value={70} className="mt-2 h-1" />
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-300">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/10 to-transparent rounded-bl-full"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">待审核内容</CardTitle>
+            <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg">
+              <AlertCircle className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatNumber(data.overview.pending.pendingPosts + data.overview.pending.pendingComments)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              帖子: {data.overview.pending.pendingPosts} | 评论: {data.overview.pending.pendingComments}
+            </p>
+            <Progress value={Math.min(100, ((data.overview.pending.pendingPosts + data.overview.pending.pendingComments) / 10) * 100)} className="mt-2 h-1" />
           </CardContent>
         </Card>
       </div>

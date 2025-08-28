@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 const eventSchema = new mongoose.Schema({
   title: {
@@ -28,11 +29,11 @@ const eventSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   creator: {
     type: mongoose.Schema.Types.ObjectId,
@@ -51,7 +52,7 @@ const eventSchema = new mongoose.Schema({
 
 eventSchema.pre('save', function(next) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (this as any).updatedAt = new Date();
+  (this as any).updatedAt = getCurrentUTCTime();
   next();
 });
 

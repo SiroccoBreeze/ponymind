@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 const commentSchema = new mongoose.Schema({
   content: {
@@ -37,17 +38,17 @@ const commentSchema = new mongoose.Schema({
   }],
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
 });
 
 // 更新updatedAt时间戳
 commentSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
+  this.updatedAt = getCurrentUTCTime();
   next();
 });
 

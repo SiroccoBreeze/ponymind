@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import AvatarUpload from '@/components/AvatarUpload';
 import UserAvatar from '@/components/UserAvatar';
+import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface UserProfile {
   name: string;
@@ -125,8 +126,8 @@ export default function ProfilePage() {
               <input
                 type="text"
                 value={userProfile?.createdAt 
-                  ? new Date(userProfile.createdAt).toLocaleDateString('zh-CN')
-                  : new Date().toLocaleDateString('zh-CN')
+                  ? displayLocalTime(userProfile.createdAt, 'datetime')
+                  : displayLocalTime(new Date().toISOString(), 'datetime')
                 }
                 className="w-full px-3 py-2 border border-border rounded-lg bg-muted"
                 readOnly

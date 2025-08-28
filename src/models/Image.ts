@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getCurrentUTCTime } from '@/lib/time-utils';
 
 const imageSchema = new mongoose.Schema({
   filename: {
@@ -50,11 +51,11 @@ const imageSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
+    default: getCurrentUTCTime,
   },
 });
 
@@ -65,7 +66,7 @@ imageSchema.index({ createdAt: -1 });
 
 // 更新updatedAt时间戳
 imageSchema.pre('save', function(next: () => void) {
-  this.updatedAt = new Date();
+  this.updatedAt = getCurrentUTCTime();
   next();
 });
 

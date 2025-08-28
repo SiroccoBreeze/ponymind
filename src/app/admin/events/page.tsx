@@ -46,7 +46,7 @@ import TagSelectionModal from '@/components/TagSelectionModal';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { localToUTC, utcToLocal, getCurrentLocalDateTime } from '@/lib/time-utils';
+import { getCurrentLocalTime, formatForDateTimeLocal, displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Event {
   _id: string;
@@ -202,7 +202,7 @@ export default function AdminEventsPage() {
       title: '',
       description: '',
       tags: [],
-      occurredAt: getCurrentLocalDateTime(),
+              occurredAt: getCurrentLocalTime(),
       attachmentIds: []
     });
     setSelectedFiles([]);
@@ -221,7 +221,7 @@ export default function AdminEventsPage() {
       title: event.title,
       description: event.description,
       tags: event.tags,
-      occurredAt: utcToLocal(event.occurredAt),
+      occurredAt: formatForDateTimeLocal(event.occurredAt), // 将UTC时间转换为本地时间显示
       attachmentIds: event.attachments?.map(a => a._id) || []
     });
     setUploadedAttachments(event.attachments?.map(a => ({
@@ -269,7 +269,7 @@ export default function AdminEventsPage() {
       // 处理时间：将本地时间转换为UTC时间
       const requestBodyWithUTCTime = {
         ...requestBody,
-        occurredAt: localToUTC(requestBody.occurredAt)
+        occurredAt: requestBody.occurredAt // 后端会自动转换为UTC时间
       };
       
       const response = await fetch(url, {
@@ -428,7 +428,7 @@ export default function AdminEventsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return dateString.replace('T', ' ').replace('.000Z', '');
+    return displayLocalTime(dateString, 'datetime');
   };
 
   const truncateText = (text: string, maxLength: number = 100) => {
