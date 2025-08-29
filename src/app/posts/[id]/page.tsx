@@ -320,13 +320,13 @@ export default function PostDetailPage() {
             {/* 评论图片弹窗预览 */}
             {comment.images && comment.images.length > 0 && (
               <div className="mb-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex flex-wrap gap-2">
                   {comment.images.map((imageUrl, index) => (
                     <img
                       key={index}
                       src={imageUrl}
                       alt={`评论图片 ${index + 1}`}
-                      className="rounded border border-border max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                      className="w-16 h-16 object-cover rounded border border-border cursor-pointer hover:opacity-90 transition-opacity"
                       onClick={() => {
                         setPreviewImage(imageUrl);
                         setPreviewAlt(`评论图片 ${index + 1}`);
@@ -447,13 +447,13 @@ export default function PostDetailPage() {
                         {/* 渲染回复的图片弹窗预览 */}
                         {reply.images && reply.images.length > 0 && (
                           <div className="mt-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="flex flex-wrap gap-2">
                               {reply.images.map((imageUrl, imgIndex) => (
                                 <img
                                   key={imgIndex}
                                   src={imageUrl}
                                   alt={`回复图片 ${imgIndex + 1}`}
-                                  className="rounded border border-border max-h-32 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
+                                  className="w-16 h-16 object-cover rounded border border-border cursor-pointer hover:opacity-90 transition-opacity"
                                   onClick={() => {
                                     setPreviewImage(imageUrl);
                                     setPreviewAlt(`回复图片 ${imgIndex + 1}`);
