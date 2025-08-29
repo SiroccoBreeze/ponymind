@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'newest'; // 'newest' | 'active' | 'votes' | 'views' | 'bounty'
     const trending = searchParams.get('trending') === 'true';
     const answers = searchParams.get('answers');
+    const unanswered = searchParams.get('unanswered') === 'true';
     const search = searchParams.get('search');
     const tag = searchParams.get('tag');
     const author = searchParams.get('author');
@@ -48,6 +49,17 @@ export async function GET(request: NextRequest) {
     
     if (answers !== null) {
       query.answers = parseInt(answers || '0');
+    }
+    
+    // 处理待答问题查询
+    if (unanswered) {
+      query.$or = [
+        { status: 'open' }, // 完全没有回答
+        { 
+          status: 'answered', 
+          acceptedAnswer: { $exists: false } 
+        } // 有回答但未标记最佳答案
+      ];
     }
     
     if (search) {

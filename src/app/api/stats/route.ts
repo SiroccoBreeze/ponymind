@@ -59,10 +59,16 @@ export async function GET() {
         createdAt: { $gte: today }
       }),
       
-      // 待解决问题数
+      // 待解决问题数（包括：1.完全没有回答的问题 2.有回答但未标记最佳答案的问题）
       Post.countDocuments({
         type: 'question',
-        status: { $in: ['open'] },
+        $or: [
+          { status: 'open' }, // 完全没有回答
+          { 
+            status: 'answered', 
+            acceptedAnswer: { $exists: false } 
+          } // 有回答但未标记最佳答案
+        ],
         reviewStatus: 'published'
       }),
       

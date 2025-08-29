@@ -208,9 +208,12 @@ export async function POST(
 
     await comment.save();
     
-    // 更新文章的回答数（只有顶级评论才计入回答数）
+    // 更新文章的回答数和状态（只有顶级评论才计入回答数）
     if (post.type === 'question' && !parentCommentId) {
-      await Post.findByIdAndUpdate(id, { $inc: { answers: 1 } });
+      await Post.findByIdAndUpdate(id, { 
+        $inc: { answers: 1 },
+        status: 'answered' // 当问题有了回答后，状态更新为answered
+      });
     }
 
     // 发送通知

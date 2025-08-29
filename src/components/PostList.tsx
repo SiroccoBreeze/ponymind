@@ -67,7 +67,8 @@ export default function PostList({
       } else if (activeTab === 'articles') {
         url += '&type=article';
       } else if (activeTab === 'unanswered') {
-        url += '&type=question&status=open&answers=0';
+        // 待答问题：包括完全没有回答的问题，以及有回答但未标记最佳答案的问题
+        url += '&type=question&unanswered=true';
       } else if (activeTab === 'trending') {
         url += '&trending=true';
       }
