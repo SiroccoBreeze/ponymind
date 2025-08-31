@@ -22,7 +22,7 @@ import {
   MessageSquare, 
   Users, 
   FileText, 
-  HelpCircle,
+  Zap,
   Edit3,
   Activity,
   Calendar,
@@ -153,30 +153,30 @@ export default function Home() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <TabsList className="grid w-full grid-cols-5 sm:grid-cols-5 lg:w-auto lg:grid-cols-5">
                       <TabsTrigger value="all" className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
+                        <FileText className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">全部</span>
                       </TabsTrigger>
                       <TabsTrigger value="questions" className="flex items-center gap-2">
-                        <HelpCircle className="w-4 h-4" />
+                        <Zap className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">问题</span>
                       </TabsTrigger>
                       <TabsTrigger value="articles" className="flex items-center gap-2">
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">文章</span>
                       </TabsTrigger>
                       <TabsTrigger value="unanswered" className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
+                        <MessageSquare className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">待答</span>
                       </TabsTrigger>
                       <TabsTrigger value="trending" className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
+                        <TrendingUp className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">热门</span>
                       </TabsTrigger>
                     </TabsList>
                     
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-muted-foreground" />
+                        <Activity className="w-4 h-4 text-primary transition-colors" />
                         <span className="text-sm font-medium text-muted-foreground">排序:</span>
                         <Select value={sortBy} onValueChange={setSortBy}>
                           <SelectTrigger className="w-[140px]">
@@ -185,25 +185,25 @@ export default function Home() {
                           <SelectContent>
                             <SelectItem value="newest">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4" />
+                                <Calendar className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
                                 最新发布
                               </div>
                             </SelectItem>
                             <SelectItem value="active">
                               <div className="flex items-center gap-2">
-                                <Activity className="w-4 h-4" />
+                                <Activity className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
                                 最近活跃
                               </div>
                             </SelectItem>
                             <SelectItem value="votes">
                               <div className="flex items-center gap-2">
-                                <Heart className="w-4 h-4" />
+                                <Heart className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
                                 最多点赞
                               </div>
                             </SelectItem>
                             <SelectItem value="views">
                               <div className="flex items-center gap-2">
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
                                 最多浏览
                               </div>
                             </SelectItem>
@@ -267,7 +267,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <TrendingUp className="h-5 w-5 text-primary transition-colors" />
                   今日热点
                 </CardTitle>
               </CardHeader>
@@ -291,28 +291,27 @@ export default function Home() {
                       className="block hover:bg-accent transition-colors rounded-lg group"
                     >
                       <div className="flex items-start space-x-3 p-3">
-                        <Badge 
-                          variant={item.type === 'question' ? 'destructive' : 'default'}
-                          className="w-8 h-8 rounded-full p-0 flex items-center justify-center text-xs font-bold"
-                        >
+                                                <div className={`w-8 h-8 rounded-full p-0 flex items-center justify-center text-xs font-bold ${
+                          item.type === 'question' ? 'bg-primary' : 'bg-muted'
+                        }`}>
                           {item.type === 'question' ? (
-                            <HelpCircle className="w-4 h-4" />
+                            <Zap className="w-4 h-4 text-primary-foreground" />
                           ) : (
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-4 h-4 text-muted-foreground" />
                           )}
-                        </Badge>
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium line-clamp-2 group-hover:text-foreground transition-colors">
                             {item.title}
                           </p>
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
-                              <MessageSquare className="w-3 h-3" />
+                              <MessageSquare className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
                               {item.type === 'question' ? `${item.answers}` : `${item.views}`}
                             </div>
                             {item.likes > 0 && (
                               <div className="flex items-center gap-1">
-                                <Heart className="w-3 h-3" />
+                                <Heart className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
                                 {item.likes}
                               </div>
                             )}
@@ -334,7 +333,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
+                  <Tag className="h-5 w-5 text-primary transition-colors" />
                   热门标签
                 </CardTitle>
               </CardHeader>
@@ -351,7 +350,7 @@ export default function Home() {
                         <Skeleton className="w-8 h-6 rounded-full" />
                       </div>
                     ))
-                  ) : realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag, index) => (
+                  ) : realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag) => (
                     <Button
                       key={tag.name}
                       variant={searchFilters.tag === tag.name ? "default" : "ghost"}
@@ -385,7 +384,7 @@ export default function Home() {
                       }}
                     >
                       <div className="flex items-center gap-2">
-                        <Tag className="w-3 h-3" />
+                        <Tag className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
                         <span className="font-medium">{tag.name}</span>
                       </div>
                       <Badge variant="secondary" className="text-xs font-bold">
@@ -406,7 +405,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
+                  <Activity className="h-5 w-5 text-primary transition-colors" />
                   社区统计
                 </CardTitle>
               </CardHeader>
@@ -461,7 +460,7 @@ export default function Home() {
                       <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-primary rounded-full">
-                            <HelpCircle className="w-4 h-4 text-primary-foreground" />
+                            <Zap className="w-4 h-4 text-primary-foreground" />
                           </div>
                           <div>
                             <p className="text-sm font-medium">待解决问题</p>
@@ -482,7 +481,7 @@ export default function Home() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                  <Users className="h-5 w-4 text-primary transition-colors" />
                   本周活跃用户
                 </CardTitle>
               </CardHeader>
@@ -517,11 +516,11 @@ export default function Home() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs px-2 py-0.5">
-                            <Star className="w-3 h-3 mr-1" />
+                            <Star className="w-3 h-3 mr-1 text-muted-foreground hover:text-primary transition-colors" />
                             {user.reputation}
                           </Badge>
                           <Badge variant="outline" className="text-xs px-2 py-0.5">
-                            <Activity className="w-3 h-3 mr-1" />
+                            <Activity className="w-3 h-3 mr-1 text-muted-foreground hover:text-primary transition-colors" />
                             {user.weekActivity}
                           </Badge>
                         </div>

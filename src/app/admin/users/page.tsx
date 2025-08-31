@@ -238,10 +238,6 @@ export default function UsersManagement() {
           <p className="text-muted-foreground">管理系统中的所有用户账户和权限</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            导出数据
-          </Button>
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
               <Button size="sm">
