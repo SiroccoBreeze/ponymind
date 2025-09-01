@@ -292,12 +292,12 @@ export default function Home() {
                     >
                       <div className="flex items-start space-x-3 p-3">
                                                 <div className={`w-8 h-8 rounded-full p-0 flex items-center justify-center text-xs font-bold ${
-                          item.type === 'question' ? 'bg-primary' : 'bg-muted'
+                          item.type === 'question' ? 'bg-primary' : 'bg-primary'
                         }`}>
                           {item.type === 'question' ? (
                             <Zap className="w-4 h-4 text-primary-foreground" />
                           ) : (
-                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <FileText className="w-4 h-4 text-primary-foreground" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
