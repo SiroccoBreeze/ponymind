@@ -6,6 +6,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
+import { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 
 interface MarkdownPreviewProps {
@@ -305,6 +306,33 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     return content;
   }, [content, truncate]);
 
+  // 自定义sanitize配置，允许更多HTML标签和样式
+  const customSanitizeSchema = useMemo(() => ({
+    ...defaultSchema,
+    attributes: {
+      ...defaultSchema.attributes,
+      '*': ['style', 'class', 'id'],
+      div: ['style', 'class', 'id'],
+      span: ['style', 'class', 'id'],
+      p: ['style', 'class', 'id'],
+      i: ['class', 'style'],
+      svg: ['class', 'style', 'viewBox', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin'],
+      path: ['d', 'fill', 'stroke', 'strokeWidth', 'strokeLinecap', 'strokeLinejoin'],
+    },
+    tagNames: [
+      ...defaultSchema.tagNames || [],
+      'div',
+      'span',
+      'i',
+      'svg',
+      'path',
+      'style'
+    ],
+    protocols: {
+      ...defaultSchema.protocols,
+    }
+  }), []);
+
   // 生成标题ID的函数
   const generateId = (text: string): string => {
     return text
@@ -337,7 +365,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     table({ children }: any) {
       return (
         <div className="overflow-x-auto my-8 rounded-lg border border-border shadow-sm">
-          <table className="min-w-full divide-y divide-border">
+          <table className="markdown-preview-table min-w-full divide-y divide-border">
             {children}
           </table>
         </div>
@@ -366,7 +394,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     },
     td({ children }: any) {
       return (
-        <td className="px-6 py-4 text-sm text-foreground align-top">
+        <td className="px-6 py-4 text-sm text-foreground align-top break-words">
           {children}
         </td>
       );
@@ -500,7 +528,10 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     <div className={`markdown-preview ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeSanitize]}
+        rehypePlugins={[
+          rehypeRaw,
+          [rehypeSanitize, customSanitizeSchema]
+        ]}
         components={components}
       >
         {displayContent}
