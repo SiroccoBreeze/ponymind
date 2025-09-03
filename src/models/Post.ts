@@ -57,7 +57,7 @@ const postSchema = new mongoose.Schema({
   reviewStatus: {
     type: String,
     enum: ['draft', 'pending', 'published', 'rejected'],
-    default: 'published',
+    default: 'pending',
   },
   rejectionReason: {
     type: String,

@@ -348,46 +348,48 @@ export async function POST(request: NextRequest) {
       await updateTagCounts(tags);
     }
 
-    // 为新发布的内容创建待审核通知
-    try {
-      // 查找所有管理员用户
-      const adminUsers = await User.find({ 
-        role: { $in: ['admin', 'moderator'] } 
-      });
+    // 为新发布的内容创建待审核通知（仅当状态为pending时）
+    if (reviewStatus === 'pending') {
+      try {
+        // 查找所有管理员用户
+        const adminUsers = await User.find({ 
+          role: { $in: ['admin', 'moderator'] } 
+        });
 
-      if (adminUsers.length > 0) {
-        // 为每个管理员创建待审核通知
-        for (const admin of adminUsers) {
-          const messageTitle = `新内容待审核：${title}`;
-          const messageContent = `用户 ${user.name} 发布了新的${type === 'article' ? '文章' : '问题'}，需要您审核。
+        if (adminUsers.length > 0) {
+          // 为每个管理员创建待审核通知
+          for (const admin of adminUsers) {
+            const messageTitle = `新内容待审核：${title}`;
+            const messageContent = `用户 ${user.name} 发布了新的${type === 'article' ? '文章' : '问题'}，需要您审核。
 
 内容标题：${title}
 内容类型：${type === 'article' ? '文章' : '问题'}
 发布时间：${new Date().toLocaleDateString('zh-CN')}
-审核状态：${reviewStatus === 'pending' ? '待审核' : '草稿'}
+审核状态：待审核
 
 请及时审核此内容。`;
 
-          await Message.create({
-            recipient: admin._id,
-            sender: null, // 系统消息
-            type: 'warning',
-            title: messageTitle,
-            content: messageContent,
-            relatedId: post._id,
-            relatedType: 'post',
-            priority: 'high',
-            isRead: false
-          });
+            await Message.create({
+              recipient: admin._id,
+              sender: null, // 系统消息
+              type: 'warning',
+              title: messageTitle,
+              content: messageContent,
+              relatedId: post._id,
+              relatedType: 'post',
+              priority: 'high',
+              isRead: false
+            });
+          }
+          
+          console.log(`✅ 已为 ${adminUsers.length} 个管理员创建待审核通知`);
+        } else {
+          console.log('⚠️ 未找到管理员用户，无法发送审核通知');
         }
-        
-        console.log(`✅ 已为 ${adminUsers.length} 个管理员创建待审核通知`);
-      } else {
-        console.log('⚠️ 未找到管理员用户，无法发送审核通知');
+      } catch (notificationError) {
+        console.error('❌ 创建待审核通知失败:', notificationError);
+        // 通知创建失败不影响帖子创建
       }
-    } catch (notificationError) {
-      console.error('❌ 创建待审核通知失败:', notificationError);
-      // 通知创建失败不影响帖子创建
     }
 
     return NextResponse.json(post, { status: 201 });

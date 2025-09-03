@@ -173,8 +173,8 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
         // 如果原来是已发布状态，保持已发布；否则提交审核
         body.reviewStatus = originalPost?.reviewStatus === 'published' ? 'published' : 'pending';
       } else {
-        // 新建模式：直接发布，不需要审核
-        body.reviewStatus = 'published';
+        // 新建模式：提交审核，需要管理员审核后才能发布
+        body.reviewStatus = 'pending';
       }
 
       const res = await fetch(url, {
@@ -203,7 +203,11 @@ export default function CreatePost({ onPostCreated, editPostId, onClose }: Creat
       router.refresh();
       
       // 显示成功提示
-      toast.success(editPostId ? '更新成功！' : '内容已发布成功！');
+      if (editPostId) {
+        toast.success('更新成功！');
+      } else {
+        toast.success('内容已提交审核，等待管理员审核后即可发布！');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : (editPostId ? '更新失败，请稍后重试' : '发布失败，请稍后重试'));
     } finally {
