@@ -8,6 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import MermaidDiagram from './MermaidDiagram';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -218,8 +219,7 @@ const StableImage = memo(({ src, alt, ...props }: any) => {
           }`}
           style={{ 
             maxHeight: '300px',
-            height: 'auto',
-            display: 'block'
+            height: 'auto'
           }}
           loading="lazy"
           {...props}
@@ -350,6 +350,16 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
       const match = /language-(\w+)/.exec(className || '');
       const language = match ? match[1] : '';
       const isInline = !className?.includes('language-');
+      
+      // 检查是否为 Mermaid 图表
+      if (!isInline && language === 'mermaid') {
+        return (
+          <MermaidDiagram 
+            chart={String(children).replace(/\n$/, '')} 
+            className="my-6"
+          />
+        );
+      }
       
       return !isInline && language ? (
         <CodeBlock language={language} {...props}>
