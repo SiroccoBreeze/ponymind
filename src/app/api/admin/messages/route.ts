@@ -35,15 +35,9 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
-    // 获取管理员消息（系统消息和审核相关消息）
+    // 获取管理员消息（只获取发给当前管理员的消息）
     const messages = await Message.find({
-      $or: [
-        { recipient: permissionCheck.user._id }, // 发给管理员的消息
-        { 
-          type: { $in: ['info', 'warning'] }, 
-          sender: null // 系统消息
-        }
-      ]
+      recipient: permissionCheck.user._id
     })
       .populate('sender', 'name email avatar')
       .populate('recipient', 'name email avatar')
@@ -54,27 +48,15 @@ export async function GET(request: Request) {
 
     // 获取总数
     const total = await Message.countDocuments({
-      $or: [
-        { recipient: permissionCheck.user._id },
-        { 
-          type: { $in: ['info', 'warning'] }, 
-          sender: null
-        }
-      ]
+      recipient: permissionCheck.user._id
     });
 
     const totalPages = Math.ceil(total / limit);
 
     // 统计未读消息数
     const unreadCount = await Message.countDocuments({
-      $or: [
-        { recipient: permissionCheck.user._id, isRead: false },
-        { 
-          type: { $in: ['info', 'warning'] }, 
-          sender: null,
-          isRead: false
-        }
-      ]
+      recipient: permissionCheck.user._id,
+      isRead: false
     });
 
     // 获取待审核内容的统计

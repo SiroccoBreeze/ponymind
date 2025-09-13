@@ -229,8 +229,8 @@ export async function POST(
             `${user.name} 回复了你的评论："${content.trim().substring(0, 100)}..."`,
             {
               senderId: user._id.toString(),
-              relatedId: comment._id.toString(),
-              relatedType: 'comment',
+              relatedId: post._id.toString(), // 使用文章ID而不是评论ID
+              relatedType: 'post',
               priority: 'normal'
             }
           );

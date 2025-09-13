@@ -991,9 +991,9 @@ export default function UserCenterPage() {
                               </p>
                               {message.relatedId && (
                                 <div className="mt-2">
-                                                                      <Link
-                                      href={`/posts/${message.relatedId}`}
-                                      onClick={async () => {
+                                  <Link
+                                    href={`/posts/${message.relatedId}`}
+                                    onClick={async () => {
                                         // 如果消息未读，标记为已读
                                         if (!message.isRead) {
                                           try {
