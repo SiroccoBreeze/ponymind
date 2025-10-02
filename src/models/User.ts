@@ -17,6 +17,7 @@ export interface IUser extends mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   posts: mongoose.Types.ObjectId[];
+  userGroups: mongoose.Types.ObjectId[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -79,6 +80,11 @@ const userSchema = new mongoose.Schema({
   likedPosts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Post',
+  }],
+  userGroups: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserGroup',
+    default: []
   }],
 });
 

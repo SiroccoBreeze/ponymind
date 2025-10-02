@@ -124,6 +124,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname.startsWith('/admin/resources') || pathname.startsWith('/admin/resource-categories')) {
       setExpandedMenus(prev => new Set([...prev, 'resources']));
     }
+    if (pathname.startsWith('/admin/users') || pathname.startsWith('/admin/user-groups')) {
+      setExpandedMenus(prev => new Set([...prev, 'users']));
+    }
   }, [pathname]);
 
   // 获取管理员消息通知
@@ -257,11 +260,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       exact: true,
       description: ''
     },
-    { 
-      href: '/admin/users', 
-      label: '用户管理', 
+    {
+      key: 'users',
+      label: '用户管理',
       icon: Users,
-      description: ''
+      description: '',
+      children: [
+        {
+          href: '/admin/users',
+          label: '用户列表',
+          icon: Users,
+          description: ''
+        },
+        {
+          href: '/admin/user-groups',
+          label: '用户组管理',
+          icon: Users,
+          description: ''
+        }
+      ]
     },
     { 
       href: '/admin/posts', 

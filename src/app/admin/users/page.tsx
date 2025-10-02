@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserDetailDialog from '@/components/UserDetailDialog';
 
 import { useEffect, useState } from 'react';
@@ -26,7 +27,8 @@ import {
   Crown,
   UserCog,
   Activity,
-  Eye
+  Eye,
+  UserPlus
 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 
@@ -235,16 +237,31 @@ export default function UsersManagement() {
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             用户管理
           </h1>
-          <p className="text-muted-foreground">管理系统中的所有用户账户和权限</p>
+          <p className="text-muted-foreground">管理系统中的所有用户账户、用户组和权限</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                添加用户
-              </Button>
-            </DialogTrigger>
+      </div>
+
+      <Tabs defaultValue="users" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            用户列表
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            用户组管理
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-8">
+          <div className="flex justify-end">
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  添加用户
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>添加新用户</DialogTitle>
@@ -364,14 +381,11 @@ export default function UsersManagement() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-                     </Dialog>
-         </div>
-       </div>
+          </Dialog>
+        </div>
 
-       
-
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="relative overflow-hidden border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-300">
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -427,10 +441,10 @@ export default function UsersManagement() {
             <p className="text-xs text-muted-foreground">被封禁账户</p>
           </CardContent>
         </Card>
-      </div>
+        </div>
 
-      {/* 筛选器 */}
-      <Card className="border-primary/20">
+        {/* 筛选器 */}
+        <Card className="border-primary/20">
         <CardHeader>
           <div className="flex items-center space-x-2">
             <Filter className="h-5 w-5 text-primary" />
@@ -500,10 +514,10 @@ export default function UsersManagement() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
 
-      {/* 用户表格 */}
-      <Card className="border-primary/20">
+        {/* 用户表格 */}
+        <Card className="border-primary/20">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -608,10 +622,10 @@ export default function UsersManagement() {
             </Table>
           </div>
         </CardContent>
-      </Card>
+        </Card>
 
-      {/* 分页 */}
-      <Card className="border-primary/20">
+        {/* 分页 */}
+        <Card className="border-primary/20">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
@@ -641,15 +655,28 @@ export default function UsersManagement() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
 
-      {/* 用户详情弹框 */}
-      <UserDetailDialog
-        open={showUserDetailDialog}
-        onOpenChange={setShowUserDetailDialog}
-        userId={selectedUserId}
-        onUserUpdated={fetchUsers}
-      />
+          {/* 用户详情弹框 */}
+          <UserDetailDialog
+            open={showUserDetailDialog}
+            onOpenChange={setShowUserDetailDialog}
+            userId={selectedUserId}
+            onUserUpdated={fetchUsers}
+          />
+        </TabsContent>
+
+        <TabsContent value="groups" className="space-y-8">
+          <div className="text-center py-12 space-y-4">
+            <div className="text-muted-foreground text-6xl">👥</div>
+            <h3 className="text-lg font-medium">用户组管理</h3>
+            <p className="text-muted-foreground">用户组管理功能已移至独立页面</p>
+            <Button onClick={() => window.location.href = '/admin/user-groups'}>
+              前往用户组管理
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 } 

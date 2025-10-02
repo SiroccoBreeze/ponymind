@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
   
   try {
     await connectDB();
+    const session = await getServerSession();
+    
     const { searchParams } = new URL(req.url);
     tags = searchParams.get('tags') || undefined;
     status = searchParams.get('status') || undefined;
@@ -24,12 +26,28 @@ export async function GET(req: NextRequest) {
     if (tags) query.tags = { $in: tags.split(',') };
     if (status) query.status = status;
 
+    // 用户组隔离：只有登录用户才能看到事件，且只能看到同用户组的事件
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email }).populate('userGroups');
+      if (user && user.userGroups && user.userGroups.length > 0) {
+        const userGroupIds = user.userGroups.map((group: any) => group._id);
+        query.userGroup = { $in: userGroupIds };
+      } else {
+        // 如果用户没有加入任何用户组，返回空结果
+        return NextResponse.json({ success: true, data: [] });
+      }
+    } else {
+      // 未登录用户不能查看事件
+      return NextResponse.json({ success: false, message: '需要登录才能查看事件' }, { status: 401 });
+    }
+
     const events = await Event.find(query)
       .setOptions({ strictPopulate: false })
       .sort({ occurredAt: -1 })
       .limit(limit)
       .populate({ path: 'attachments', select: 'originalName url size mimetype' })
-      .populate({ path: 'creator', select: 'name avatar email' });
+      .populate({ path: 'creator', select: 'name avatar email' })
+      .populate({ path: 'userGroup', select: 'name color' });
 
     return NextResponse.json({ success: true, data: events });
   } catch (error) {
@@ -62,10 +80,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [] } = body;
+    const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [], userGroupId } = body;
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
+    }
+
+    if (!userGroupId) {
+      return NextResponse.json({ success: false, message: 'userGroupId 为必填' }, { status: 400 });
+    }
+
+    // 验证用户是否属于指定的用户组
+    const userWithGroups = await User.findById(user._id).populate('userGroups');
+    const userGroupIds = userWithGroups?.userGroups?.map((group: any) => group._id.toString()) || [];
+    if (!userGroupIds.includes(userGroupId)) {
+      return NextResponse.json({ success: false, message: '您不属于指定的用户组' }, { status: 403 });
     }
 
     // 过滤并校验附件ID格式
@@ -97,6 +126,7 @@ export async function POST(req: NextRequest) {
       status,
       occurredAt: utcOccurredAt,
       creator: user._id,
+      userGroup: userGroupId,
       attachments: validAttachmentIds,
       updatedAt: getCurrentUTCTime()
     });

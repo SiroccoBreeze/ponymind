@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { captureException } from '@/lib/sentry';
 
 export function loggingMiddleware(
   request: NextRequest,
@@ -38,9 +37,9 @@ export function loggingMiddleware(
       timestamp: new Date().toISOString()
     });
 
-    // 如果是错误状态码，记录到Sentry
+    // 如果是错误状态码，记录错误日志
     if (statusCode >= 400) {
-      captureException(new Error(`API请求失败: ${method} ${pathname} - ${statusCode}`), {
+      logger.error('API请求失败', new Error(`API请求失败: ${method} ${pathname} - ${statusCode}`), {
         method,
         path: pathname + search,
         statusCode,
@@ -64,14 +63,7 @@ export function loggingMiddleware(
       timestamp: new Date().toISOString()
     });
 
-    // 记录到Sentry
-    captureException(error, {
-      method,
-      path: pathname + search,
-      duration,
-      ip,
-      userAgent
-    });
+    // 错误已通过logger.error记录
 
     throw error;
   });

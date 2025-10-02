@@ -41,6 +41,12 @@ const eventSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  userGroup: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserGroup',
+    required: true,
+    index: true,
+  },
   attachments: [
     {
       type: mongoose.Schema.Types.ObjectId,

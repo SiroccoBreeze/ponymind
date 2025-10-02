@@ -5,7 +5,6 @@ import User from '@/models/User';
 import Post from '@/models/Post';
 import bcrypt from 'bcryptjs';
 import { logger } from '@/lib/logger';
-import { captureException } from '@/lib/sentry';
 import { getCurrentUTCTime } from '@/lib/time-utils';
 
 // 检查管理员权限
@@ -100,13 +99,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(userResponse, { status: 201 });
   } catch (error) {
-    // 记录错误到日志和Sentry
+    // 记录错误到日志
     const errorMessage = error instanceof Error ? error.message : '未知错误';
-    logger.error('创建用户失败', error instanceof Error ? error : new Error(errorMessage), { adminId: permissionCheck?.user?.id });
-    captureException(error instanceof Error ? error : new Error(errorMessage), {
-      context: '创建用户',
+    logger.error('创建用户失败', error instanceof Error ? error : new Error(errorMessage), { 
       adminId: permissionCheck?.user?.id,
-      adminEmail: permissionCheck?.user?.email
+      adminEmail: permissionCheck?.user?.email,
+      context: '创建用户'
     });
     
     return NextResponse.json(
