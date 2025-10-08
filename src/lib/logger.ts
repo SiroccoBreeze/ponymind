@@ -7,20 +7,21 @@ import { getCurrentUTCTime } from './time-utils';
 // 创建Pino日志实例
 const pinoLogger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  // 可以通过环境变量禁用 transport 功能
-  ...(process.env.NODE_ENV === 'development' && !process.env.DISABLE_PINO_TRANSPORT ? {
+  // 简化配置，避免worker线程问题
+  base: null,
+  timestamp: () => `,"time":"${new Date().toISOString()}"`,
+  // 在开发环境中使用简单的控制台输出
+  ...(process.env.NODE_ENV === 'development' ? {
     transport: {
       target: 'pino-pretty',
       options: {
         colorize: true,
         translateTime: 'SYS:standard',
         ignore: 'pid,hostname',
+        singleLine: true
       },
     },
   } : {}),
-  // 添加更多配置选项
-  base: null,
-  timestamp: () => `,"time":"${new Date().toISOString()}"`,
 });
 
 // 自定义日志记录器，同时写入Pino和MongoDB
@@ -75,8 +76,11 @@ class Logger {
     try {
       pinoLogger.error(data || {}, message);
     } catch (pinoError) {
+      // 如果Pino logger失败，直接使用console.error作为降级方案
       console.error(`[ERROR] ${message}`, data || {});
-      console.error('Pino logger error:', pinoError);
+      if (pinoError instanceof Error) {
+        console.error('Pino logger error:', pinoError.message);
+      }
     }
     
     const logData: Partial<ILog> = {

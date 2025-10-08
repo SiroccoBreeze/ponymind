@@ -37,7 +37,6 @@ type EventItem = {
   occurredAt: string
   attachments?: Array<{ _id: string; originalName: string; url: string; size: number; mimetype: string }>
   creator?: { _id: string; name: string; avatar?: string; email?: string }
-  userGroup?: { _id: string; name: string; color: string }
 }
 
 interface Tag {
@@ -54,7 +53,6 @@ interface EventFormData {
   tags: string[];
   occurredAt: string;
   attachmentIds: string[];
-  userGroupId: string;
 }
 
 interface UploadedAttachment {
@@ -92,8 +90,7 @@ export default function EventsPage() {
     description: '',
     tags: [],
     occurredAt: '',
-    attachmentIds: [],
-    userGroupId: ''
+    attachmentIds: []
   });
   const [saving, setSaving] = useState(false);
   
@@ -108,8 +105,6 @@ export default function EventsPage() {
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
-  // 用户组相关状态
-  const [availableUserGroups, setAvailableUserGroups] = useState<Array<{_id: string; name: string; color: string}>>([]);
 
 
 
@@ -129,21 +124,6 @@ export default function EventsPage() {
     fetchTags();
   }, []);
 
-  // 获取可用用户组
-  useEffect(() => {
-    const fetchUserGroups = async () => {
-      try {
-        const response = await fetch('/api/user-groups');
-        if (response.ok) {
-          const data = await response.json();
-          setAvailableUserGroups(data.data || []);
-        }
-      } catch (error) {
-        console.error('获取用户组失败:', error);
-      }
-    };
-    fetchUserGroups();
-  }, []);
 
   async function fetchEvents(signal?: AbortSignal) {
     try {
@@ -246,8 +226,8 @@ export default function EventsPage() {
 
   // 保存事件 - 完全匹配管理端逻辑
   const handleSave = async () => {
-    if (!formData.title.trim() || !formData.occurredAt || !formData.userGroupId) {
-      toast.error('请填写标题、发生时间和选择用户组');
+    if (!formData.title.trim() || !formData.occurredAt) {
+      toast.error('请填写标题和发生时间');
       return;
     }
 
@@ -500,40 +480,14 @@ export default function EventsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="occurredAt">发生时间 *</Label>
-                <Input
-                  id="occurredAt"
-                  type="datetime-local"
-                  value={formData.occurredAt}
-                  onChange={(e) => setFormData(prev => ({ ...prev, occurredAt: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="userGroupId">用户组 *</Label>
-                <Select
-                  value={formData.userGroupId}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, userGroupId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择用户组" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableUserGroups.map((group) => (
-                      <SelectItem key={group._id} value={group._id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: group.color }}
-                          />
-                          {group.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="occurredAt">发生时间 *</Label>
+              <Input
+                id="occurredAt"
+                type="datetime-local"
+                value={formData.occurredAt}
+                onChange={(e) => setFormData(prev => ({ ...prev, occurredAt: e.target.value }))}
+              />
             </div>
 
             <div>

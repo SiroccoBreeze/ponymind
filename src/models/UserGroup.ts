@@ -69,7 +69,7 @@ const UserGroupSchema = new Schema<IUserGroup>({
 
 // 虚拟字段：成员数量
 UserGroupSchema.virtual('memberCount').get(function() {
-  return this.members.length;
+  return this.members ? this.members.length : 0;
 });
 
 // 确保虚拟字段在 JSON 序列化时包含

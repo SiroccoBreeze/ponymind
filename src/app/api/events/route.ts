@@ -26,15 +26,25 @@ export async function GET(req: NextRequest) {
     if (tags) query.tags = { $in: tags.split(',') };
     if (status) query.status = status;
 
-    // 用户组隔离：只有登录用户才能看到事件，且只能看到同用户组的事件
+    // 用户组隔离：只有登录用户才能看到事件
     if (session?.user?.email) {
       const user = await User.findOne({ email: session.user.email }).populate('userGroups');
       if (user && user.userGroups && user.userGroups.length > 0) {
+        // 获取用户所在的所有用户组ID
         const userGroupIds = user.userGroups.map((group: any) => group._id);
-        query.userGroup = { $in: userGroupIds };
+        
+        // 查找同组用户创建的事件，或者用户自己创建的事件
+        query.$or = [
+          { creator: user._id }, // 用户自己创建的事件
+          { 
+            creator: { 
+              $in: await User.find({ userGroups: { $in: userGroupIds } }).distinct('_id')
+            }
+          } // 同组其他用户创建的事件
+        ];
       } else {
-        // 如果用户没有加入任何用户组，返回空结果
-        return NextResponse.json({ success: true, data: [] });
+        // 如果用户没有加入任何用户组，只能看到自己创建的事件
+        query.creator = user._id;
       }
     } else {
       // 未登录用户不能查看事件
@@ -46,8 +56,7 @@ export async function GET(req: NextRequest) {
       .sort({ occurredAt: -1 })
       .limit(limit)
       .populate({ path: 'attachments', select: 'originalName url size mimetype' })
-      .populate({ path: 'creator', select: 'name avatar email' })
-      .populate({ path: 'userGroup', select: 'name color' });
+      .populate({ path: 'creator', select: 'name avatar email' });
 
     return NextResponse.json({ success: true, data: events });
   } catch (error) {
@@ -80,21 +89,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [], userGroupId } = body;
+    const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [] } = body;
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
-    }
-
-    if (!userGroupId) {
-      return NextResponse.json({ success: false, message: 'userGroupId 为必填' }, { status: 400 });
-    }
-
-    // 验证用户是否属于指定的用户组
-    const userWithGroups = await User.findById(user._id).populate('userGroups');
-    const userGroupIds = userWithGroups?.userGroups?.map((group: any) => group._id.toString()) || [];
-    if (!userGroupIds.includes(userGroupId)) {
-      return NextResponse.json({ success: false, message: '您不属于指定的用户组' }, { status: 403 });
     }
 
     // 过滤并校验附件ID格式
@@ -126,7 +124,6 @@ export async function POST(req: NextRequest) {
       status,
       occurredAt: utcOccurredAt,
       creator: user._id,
-      userGroup: userGroupId,
       attachments: validAttachmentIds,
       updatedAt: getCurrentUTCTime()
     });
