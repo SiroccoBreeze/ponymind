@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import connectDB from '@/lib/mongodb'
 import Event from '@/models/Event'
 import User from '@/models/User'
+import UserGroup from '@/models/UserGroup'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -35,7 +36,6 @@ export async function GET(
       .setOptions({ strictPopulate: false })
       .populate('attachments', 'originalName url size mimetype')
       .populate('creator', 'name avatar email')
-      .populate('userGroup', 'name color')
     
     if (!event) {
       // 记录事件不存在日志
@@ -51,26 +51,37 @@ export async function GET(
       )
     }
 
-    // 检查用户组权限：只有同一用户组的用户才能查看事件
-    const userGroupIds = user.userGroups?.map((group: any) => group._id.toString()) || []
-    const eventUserGroupId = event.userGroup?._id?.toString()
+    // 检查权限：用户总是可以查看自己创建的事件
+    const isCreator = event.creator?._id?.toString() === user._id.toString();
+    const userGroupIds = user.userGroups?.map((group: { _id: string }) => group._id.toString()) || [];
     
-    // 管理员可以查看所有事件
-    if (user.role !== 'admin' && (!eventUserGroupId || !userGroupIds.includes(eventUserGroupId))) {
-      logger.warn('用户尝试访问无权限的事件', {
-        operation: 'get_event_detail',
-        eventId: id,
-        userId: user._id.toString(),
-        userEmail: user.email,
-        eventUserGroupId,
-        userGroupIds,
-        context: '用户组权限检查失败'
-      });
+    // 管理员可以查看所有事件，用户总是可以查看自己创建的事件
+    if (user.role !== 'admin' && !isCreator) {
+      // 如果不是管理员且不是创建者，检查用户组权限
+      // 获取事件创建者的用户组信息
+      const eventCreator = await User.findById(event.creator?._id).populate('userGroups');
+      const eventCreatorGroupIds = eventCreator?.userGroups?.map((group: { _id: string }) => group._id.toString()) || [];
       
-      return NextResponse.json(
-        { success: false, message: '您没有权限查看此事件' },
-        { status: 403 }
-      )
+      // 检查是否有共同的用户组
+      const hasCommonGroup = userGroupIds.some(groupId => eventCreatorGroupIds.includes(groupId));
+      
+      if (!hasCommonGroup) {
+        logger.warn('用户尝试访问无权限的事件', {
+          operation: 'get_event_detail',
+          eventId: id,
+          userId: user._id.toString(),
+          userEmail: user.email,
+          userGroupIds,
+          eventCreatorGroupIds,
+          isCreator,
+          context: '用户组权限检查失败'
+        });
+        
+        return NextResponse.json(
+          { success: false, message: '您没有权限查看此事件' },
+          { status: 403 }
+        );
+      }
     }
 
     // 记录事件详情获取成功日志

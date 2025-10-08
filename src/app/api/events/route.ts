@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import connectDB from '@/lib/mongodb';
 import Event from '@/models/Event';
 import User from '@/models/User';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import UserGroup from '@/models/UserGroup'; // 需要导入以注册模型，用于populate('userGroups')
 import { getCurrentUTCTime, localToUTC } from '@/lib/time-utils';
 import Image from '@/models/Image';
 import { moveAttachmentToEvent } from '@/lib/minio';
@@ -29,22 +31,30 @@ export async function GET(req: NextRequest) {
     // 用户组隔离：只有登录用户才能看到事件
     if (session?.user?.email) {
       const user = await User.findOne({ email: session.user.email }).populate('userGroups');
-      if (user && user.userGroups && user.userGroups.length > 0) {
-        // 获取用户所在的所有用户组ID
-        const userGroupIds = user.userGroups.map((group: any) => group._id);
-        
-        // 查找同组用户创建的事件，或者用户自己创建的事件
-        query.$or = [
-          { creator: user._id }, // 用户自己创建的事件
-          { 
-            creator: { 
-              $in: await User.find({ userGroups: { $in: userGroupIds } }).distinct('_id')
-            }
-          } // 同组其他用户创建的事件
-        ];
+      if (user) {
+        if (user.userGroups && user.userGroups.length > 0) {
+          // 如果用户加入了用户组，可以看到同组用户创建的事件
+          const userGroupIds = user.userGroups.map((group: { _id: string }) => group._id);
+          const groupUserIds = await User.find({ userGroups: { $in: userGroupIds } }).distinct('_id');
+          
+          console.log('用户组权限调试信息:', {
+            userId: user._id,
+            userEmail: user.email,
+            userGroupIds: userGroupIds,
+            groupUserIds: groupUserIds,
+            userGroups: user.userGroups
+          });
+          
+          query.$or = [
+            { creator: user._id }, // 用户自己创建的事件
+            { creator: { $in: groupUserIds } } // 同组用户创建的事件
+          ];
+        } else {
+          // 如果用户没有加入任何用户组，只能看到自己创建的事件
+          query.creator = user._id;
+        }
       } else {
-        // 如果用户没有加入任何用户组，只能看到自己创建的事件
-        query.creator = user._id;
+        return NextResponse.json({ success: false, message: '用户不存在' }, { status: 404 });
       }
     } else {
       // 未登录用户不能查看事件
@@ -83,13 +93,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
     }
 
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).populate('userGroups');
     if (!user) {
       return NextResponse.json({ success: false, message: '用户不存在' }, { status: 404 });
     }
 
     const body = await req.json();
     const { title, description = '', tags = [], status = 'planned', occurredAt, attachmentIds = [] } = body;
+    
+    // 获取用户的用户组信息
+    const userGroupIds = user.userGroups?.map((group: { _id: string }) => group._id) || [];
 
     if (!title || !occurredAt) {
       return NextResponse.json({ success: false, message: 'title 与 occurredAt 为必填' }, { status: 400 });
@@ -116,6 +129,13 @@ export async function POST(req: NextRequest) {
         message: `时间格式错误: ${occurredAt}` 
       }, { status: 400 });
     }
+
+    console.log('事件创建调试信息:', {
+      userId: user._id,
+      userEmail: user.email,
+      userGroupIds: userGroupIds,
+      userGroups: user.userGroups
+    });
 
     const created = await Event.create({
       title,

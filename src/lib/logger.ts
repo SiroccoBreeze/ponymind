@@ -39,7 +39,7 @@ class Logger {
 
   info(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       console.log(`[INFO] ${message}`, data || {});
       console.error('Pino logger error:', pinoError);
@@ -56,7 +56,7 @@ class Logger {
 
   warn(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.warn(data || {}, message);
+      pinoLogger.warn(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.warn(`[WARN] ${message}`, data || {});
@@ -74,7 +74,7 @@ class Logger {
 
   error(message: string, error?: Error | unknown, data?: Record<string, unknown>) {
     try {
-      pinoLogger.error(data || {}, message);
+      pinoLogger.error(message, data || {});
     } catch (pinoError) {
       // 如果Pino logger失败，直接使用console.error作为降级方案
       console.error(`[ERROR] ${message}`, data || {});
@@ -105,7 +105,7 @@ class Logger {
 
   debug(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.debug(data || {}, message);
+      pinoLogger.debug(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[DEBUG] ${message}`, data || {});
@@ -124,7 +124,7 @@ class Logger {
   // 记录API请求日志
   api(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[API] ${message}`, data || {});
@@ -143,7 +143,7 @@ class Logger {
   // 记录用户操作日志
   user(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[USER] ${message}`, data || {});
@@ -164,7 +164,7 @@ class Logger {
   // 记录认证相关日志
   auth(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[AUTH] ${message}`, data || {});
@@ -185,7 +185,7 @@ class Logger {
   // 记录数据库操作日志
   database(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[DATABASE] ${message}`, data || {});
@@ -204,7 +204,7 @@ class Logger {
   // 记录文件操作日志
   file(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[FILE] ${message}`, data || {});
@@ -223,7 +223,7 @@ class Logger {
   // 记录管理员操作日志
   admin(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[ADMIN] ${message}`, message);
@@ -244,7 +244,7 @@ class Logger {
   // 记录用户行为日志
   behavior(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[BEHAVIOR] ${message}`, data || {});
@@ -265,7 +265,7 @@ class Logger {
   // 记录资源相关操作日志
   resource(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[RESOURCE] ${message}`, data || {});
@@ -286,7 +286,7 @@ class Logger {
   // 记录事件相关操作日志
   event(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[EVENT] ${message}`, data || {});
@@ -307,7 +307,7 @@ class Logger {
   // 记录标签相关操作日志
   tag(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[TAG] ${message}`, data || {});
@@ -328,7 +328,7 @@ class Logger {
   // 记录消息相关操作日志
   message(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[MESSAGE] ${message}`, data || {});
@@ -349,7 +349,7 @@ class Logger {
   // 记录搜索操作日志
   search(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[SEARCH] ${message}`, data || {});
@@ -370,7 +370,7 @@ class Logger {
   // 记录设置变更日志
   settings(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[SETTINGS] ${message}`, data || {});
@@ -391,7 +391,7 @@ class Logger {
   // 记录定时任务日志
   scheduledTask(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[SCHEDULED_TASK] ${message}`, data || {});
@@ -410,7 +410,7 @@ class Logger {
   // 记录系统参数变更日志
   systemParameter(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[SYSTEM_PARAMETER] ${message}`, data || {});
@@ -431,7 +431,7 @@ class Logger {
   // 记录用户状态变更日志
   userStatus(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[USER_STATUS] ${message}`, data || {});
@@ -452,7 +452,7 @@ class Logger {
   // 记录性能监控日志
   performance(message: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.info(data || {}, message);
+      pinoLogger.info(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.log(`[PERFORMANCE] ${message}`, data || {});
@@ -471,7 +471,7 @@ class Logger {
   // 记录安全相关日志
   security(message: string, userId?: string, userEmail?: string, data?: Record<string, unknown>) {
     try {
-      pinoLogger.warn(data || {}, message);
+      pinoLogger.warn(message, data || {});
     } catch (pinoError) {
       // 如果 Pino 日志失败，使用 console 作为降级方案
       console.warn(`[SECURITY] ${message}`, data || {});

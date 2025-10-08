@@ -53,6 +53,7 @@ interface EventFormData {
   tags: string[];
   occurredAt: string;
   attachmentIds: string[];
+  userGroupId?: string;
 }
 
 interface UploadedAttachment {
@@ -605,7 +606,7 @@ export default function EventsPage() {
             <Button variant="outline" onClick={handleDialogClose}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving || !formData.title.trim() || !formData.occurredAt || !formData.userGroupId}>
+            <Button onClick={handleSave} disabled={saving || !formData.title.trim() || !formData.occurredAt}>
               {saving ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>

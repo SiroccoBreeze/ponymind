@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { getCurrentUTCTime } from '@/lib/time-utils';
+// 需要导入UserGroup模型以确保引用正确
+import './UserGroup';
 
 export interface IUser extends mongoose.Document {
   name: string;
