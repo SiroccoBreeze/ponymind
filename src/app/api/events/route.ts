@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
     if (status) query.status = status;
 
     // 用户组隔离：只有登录用户才能看到事件
+    let user = null;
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email }).populate('userGroups');
+      user = await User.findOne({ email: session.user.email }).populate('userGroups');
       if (user) {
         if (user.userGroups && user.userGroups.length > 0) {
           // 如果用户加入了用户组，可以看到同组用户创建的事件
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
             userGroups: user.userGroups
           });
           
+          // 确保用户自己创建的事件和同组用户创建的事件都能被查询到
           query.$or = [
             { creator: user._id }, // 用户自己创建的事件
             { creator: { $in: groupUserIds } } // 同组用户创建的事件
@@ -61,12 +63,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, message: '需要登录才能查看事件' }, { status: 401 });
     }
 
+    console.log('事件查询调试信息:', {
+      query,
+      userEmail: session?.user?.email,
+      userId: user?._id
+    });
+
     const events = await Event.find(query)
       .setOptions({ strictPopulate: false })
       .sort({ occurredAt: -1 })
       .limit(limit)
       .populate({ path: 'attachments', select: 'originalName url size mimetype' })
       .populate({ path: 'creator', select: 'name avatar email' });
+
+    console.log('查询到的事件数量:', events.length);
+    console.log('事件列表:', events.map(e => ({ id: e._id, title: e.title, creator: e.creator })));
 
     return NextResponse.json({ success: true, data: events });
   } catch (error) {

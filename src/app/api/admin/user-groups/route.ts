@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import UserGroup from '@/models/UserGroup';
 import User from '@/models/User';
 
-// 获取用户组列表
+// 获取用户组列表或单个用户组
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -16,6 +16,29 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
+    const groupId = searchParams.get('groupId');
+    
+    // 如果提供了groupId，返回单个用户组
+    if (groupId) {
+      const userGroup = await UserGroup.findById(groupId)
+        .populate('createdBy', 'name email')
+        .populate('members', 'name email avatar')
+        .lean();
+      
+      if (!userGroup) {
+        return NextResponse.json({ error: '用户组不存在' }, { status: 404 });
+      }
+      
+      // 添加成员数量
+      const userGroupWithMemberCount = {
+        ...userGroup,
+        memberCount: (userGroup as any).members ? (userGroup as any).members.length : 0
+      };
+      
+      return NextResponse.json(userGroupWithMemberCount);
+    }
+
+    // 否则返回用户组列表
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
@@ -41,6 +64,12 @@ export async function GET(request: NextRequest) {
       UserGroup.countDocuments(query)
     ]);
 
+    // 为每个用户组添加成员数量
+    const userGroupsWithMemberCount = userGroups.map(group => ({
+      ...group,
+      memberCount: (group as any).members ? (group as any).members.length : 0
+    }));
+
     const stats = await Promise.all([
       UserGroup.countDocuments(),
       UserGroup.countDocuments({ isActive: true }),
@@ -48,7 +77,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     return NextResponse.json({
-      userGroups,
+      userGroups: userGroupsWithMemberCount,
       pagination: {
         page,
         limit,
@@ -62,8 +91,8 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('获取用户组列表失败:', error);
-    return NextResponse.json({ error: '获取用户组列表失败' }, { status: 500 });
+    console.error('获取用户组失败:', error);
+    return NextResponse.json({ error: '获取用户组失败' }, { status: 500 });
   }
 }
 

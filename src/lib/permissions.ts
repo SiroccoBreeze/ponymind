@@ -1,4 +1,4 @@
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
@@ -25,7 +25,7 @@ export async function checkUserPermission(
     
     const user = await User.findOne({ email: userEmail })
       .populate('userGroups')
-      .lean();
+      .lean() as any;
     
     if (!user) {
       return {
@@ -80,7 +80,7 @@ export async function checkUserGroupMembership(
     
     const user = await User.findOne({ email: userEmail })
       .populate('userGroups')
-      .lean();
+      .lean() as any;
     
     if (!user) {
       return false;
@@ -111,7 +111,7 @@ export async function getUserAccessibleGroups(userEmail: string): Promise<any[]>
     
     const user = await User.findOne({ email: userEmail })
       .populate('userGroups')
-      .lean();
+      .lean() as any;
     
     if (!user) {
       return [];

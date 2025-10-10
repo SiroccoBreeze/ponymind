@@ -24,11 +24,6 @@ interface TimelineItemProps {
     avatar?: string
     email?: string
   }
-  userGroup?: {
-    _id: string
-    name: string
-    color: string
-  }
   attachments?: Array<{
     _id: string
     originalName: string
@@ -78,13 +73,6 @@ const MiniEventCard: React.FC<{ item: TimelineItemProps }> = ({ item }) => {
           {item.title}
         </h4>
         <div className="flex items-center gap-1 flex-shrink-0">
-          {item.userGroup && (
-            <div 
-              className="w-2 h-2 rounded-full" 
-              style={{ backgroundColor: item.userGroup.color }}
-              title={item.userGroup.name}
-            />
-          )}
           {item.tags && item.tags.length > 0 && (
             <Badge variant="outline" className="text-xs px-1.5 py-0.5">
               {item.tags[0]}
@@ -221,18 +209,6 @@ const TimelineItem: React.FC<{
                   </div>
                 )}
                 
-                {/* 用户组信息 */}
-                {item.userGroup && (
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                      style={{ backgroundColor: item.userGroup.color }}
-                    />
-                    <span className="text-muted-foreground text-xs font-medium">
-                      {item.userGroup.name}
-                    </span>
-                  </div>
-                )}
               </div>
               
               {/* 附件信息 */}

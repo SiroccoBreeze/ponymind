@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { useEffect, useState, useCallback } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import ImagePreview from '@/components/ui/ImagePreview'
 import TagSelectionModal from '@/components/TagSelectionModal'
 import { EventsDataTable } from '@/components/events/EventsDataTable'
@@ -22,7 +18,6 @@ import {
   X,
   FileText,
   Tag,
-  Calendar
 } from 'lucide-react'
 import CustomTimeline, { TimelineMode } from '@/components/CustomTimeline'
 import { toast } from 'sonner'
@@ -53,7 +48,6 @@ interface EventFormData {
   tags: string[];
   occurredAt: string;
   attachmentIds: string[];
-  userGroupId?: string;
 }
 
 interface UploadedAttachment {
@@ -126,14 +120,20 @@ export default function EventsPage() {
   }, []);
 
 
-  async function fetchEvents(signal?: AbortSignal) {
+  const fetchEvents = useCallback(async (signal?: AbortSignal) => {
     try {
       if (!isMounted) return
       setLoading(true)
+      console.log('开始获取事件列表...')
       const res = await fetch('/api/events', { signal })
+      console.log('API响应状态:', res.status, res.statusText)
       const json = await res.json()
+      console.log('API响应数据:', json)
       if (json?.success && isMounted) {
+        console.log('设置事件数据:', json.data)
         setEvents(json.data)
+      } else {
+        console.log('API响应失败或组件已卸载:', { success: json?.success, isMounted })
       }
     } catch (error) {
       // 忽略 AbortError，这是正常的组件卸载行为
@@ -152,7 +152,7 @@ export default function EventsPage() {
         setLoading(false)
       }
     }
-  }
+  }, [isMounted])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -161,7 +161,7 @@ export default function EventsPage() {
       setIsMounted(false)
       controller.abort()
     }
-  }, [])
+  }, [fetchEvents])
 
 
 
@@ -174,8 +174,7 @@ export default function EventsPage() {
       description: '',
       tags: [],
       occurredAt: getCurrentLocalTime(),
-      attachmentIds: [],
-      userGroupId: ''
+      attachmentIds: []
     });
     setSelectedFiles([]);
     setUploadedAttachments([]);
@@ -357,15 +356,6 @@ export default function EventsPage() {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  function StatusBadge({ status }: { status: EventItem['status'] }) {
-    const styles: Record<string, string> = {
-      planned: 'bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:text-primary dark:border-primary/30',
-      'in-progress': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/30',
-      done: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800/30',
-      canceled: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800/30',
-    }
-    return <Badge variant="outline" className={cn('capitalize', styles[status ?? 'planned'])}>{status}</Badge>
-  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 bg-background">
@@ -411,7 +401,6 @@ export default function EventsPage() {
                     tags: event.tags,
                     creator: event.creator,
                     attachments: event.attachments,
-                    userGroup: event.userGroup,
                     onClick: () => window.open(`/events/${event._id}`, '_blank')
                   }))}
                 mode={timelineMode}

@@ -63,7 +63,7 @@ export async function GET(
       const eventCreatorGroupIds = eventCreator?.userGroups?.map((group: { _id: string }) => group._id.toString()) || [];
       
       // 检查是否有共同的用户组
-      const hasCommonGroup = userGroupIds.some(groupId => eventCreatorGroupIds.includes(groupId));
+      const hasCommonGroup = userGroupIds.some((groupId: string) => eventCreatorGroupIds.includes(groupId));
       
       if (!hasCommonGroup) {
         logger.warn('用户尝试访问无权限的事件', {
@@ -89,8 +89,7 @@ export async function GET(
       operation: 'get_event_detail',
       eventId: id,
       eventTitle: event.title,
-      eventStatus: event.status,
-      userGroupId: eventUserGroupId
+      eventStatus: event.status
     });
 
     return NextResponse.json({

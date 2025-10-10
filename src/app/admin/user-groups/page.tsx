@@ -22,6 +22,7 @@ import {
   UserMinus
 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import { toast } from 'sonner';
 
 interface UserGroup {
   _id: string;
@@ -174,13 +175,16 @@ export default function UserGroupsManagement() {
             setSelectedGroup(groupData);
           }
         }
+        // 重新获取可添加用户列表
+        await fetchAvailableUsers();
+        toast.success('添加成员成功');
       } else {
         const errorData = await response.json();
-        alert(errorData.error || '添加成员失败');
+        toast.error(errorData.error || '添加成员失败');
       }
     } catch (error) {
       console.error('添加成员失败:', error);
-      alert('添加成员失败');
+      toast.error('添加成员失败');
     }
   };
 
@@ -199,13 +203,16 @@ export default function UserGroupsManagement() {
             setSelectedGroup(groupData);
           }
         }
+        // 重新获取可添加用户列表
+        await fetchAvailableUsers();
+        toast.success('移除成员成功');
       } else {
         const errorData = await response.json();
-        alert(errorData.error || '移除成员失败');
+        toast.error(errorData.error || '移除成员失败');
       }
     } catch (error) {
       console.error('移除成员失败:', error);
-      alert('移除成员失败');
+      toast.error('移除成员失败');
     }
   };
 
@@ -221,6 +228,8 @@ export default function UserGroupsManagement() {
   const handleBulkAddMembers = async () => {
     if (!selectedGroup || selectedMembers.length === 0) return;
     
+    const memberCount = selectedMembers.length; // 保存成员数量
+    
     try {
       const promises = selectedMembers.map(userId => 
         fetch('/api/admin/user-groups/members', {
@@ -231,24 +240,39 @@ export default function UserGroupsManagement() {
       );
       
       await Promise.all(promises);
-      await fetchUserGroups();
-      if (selectedGroup) {
-        const updatedGroup = await fetch(`/api/admin/user-groups?groupId=${selectedGroup._id}`);
-        if (updatedGroup.ok) {
-          const groupData = await updatedGroup.json();
-          setSelectedGroup(groupData);
-        }
-      }
+      
+      // 先清空选择状态，避免页面闪烁
       setSelectedMembers([]);
-      alert(`成功添加 ${selectedMembers.length} 个成员`);
+      setBulkOperation(null);
+      
+      // 重新获取更新后的用户组数据
+      const updatedGroup = await fetch(`/api/admin/user-groups?groupId=${selectedGroup._id}`);
+      if (updatedGroup.ok) {
+        const groupData = await updatedGroup.json();
+        console.log('更新后的用户组数据:', groupData);
+        setSelectedGroup(groupData);
+      } else {
+        console.error('获取更新后的用户组失败:', updatedGroup.status);
+      }
+      
+      // 重新获取可添加用户列表，因为一些用户可能已经添加到组中
+      await fetchAvailableUsers();
+      
+      // 刷新用户组列表
+      await fetchUserGroups();
+      
+      // 使用toast通知替代alert
+      toast.success(`成功添加 ${memberCount} 个成员`);
     } catch (error) {
       console.error('批量添加成员失败:', error);
-      alert('批量添加成员失败');
+      toast.error('批量添加成员失败');
     }
   };
 
   const handleBulkRemoveMembers = async () => {
     if (!selectedGroup || selectedMembers.length === 0) return;
+    
+    const memberCount = selectedMembers.length; // 保存成员数量
     
     try {
       const promises = selectedMembers.map(userId => 
@@ -258,19 +282,32 @@ export default function UserGroupsManagement() {
       );
       
       await Promise.all(promises);
-      await fetchUserGroups();
-      if (selectedGroup) {
-        const updatedGroup = await fetch(`/api/admin/user-groups?groupId=${selectedGroup._id}`);
-        if (updatedGroup.ok) {
-          const groupData = await updatedGroup.json();
-          setSelectedGroup(groupData);
-        }
-      }
+      
+      // 先清空选择状态，避免页面闪烁
       setSelectedMembers([]);
-      alert(`成功移除 ${selectedMembers.length} 个成员`);
+      setBulkOperation(null);
+      
+      // 重新获取更新后的用户组数据
+      const updatedGroup = await fetch(`/api/admin/user-groups?groupId=${selectedGroup._id}`);
+      if (updatedGroup.ok) {
+        const groupData = await updatedGroup.json();
+        console.log('更新后的用户组数据:', groupData);
+        setSelectedGroup(groupData);
+      } else {
+        console.error('获取更新后的用户组失败:', updatedGroup.status);
+      }
+      
+      // 重新获取可添加用户列表
+      await fetchAvailableUsers();
+      
+      // 刷新用户组列表
+      await fetchUserGroups();
+      
+      // 使用toast通知替代alert
+      toast.success(`成功移除 ${memberCount} 个成员`);
     } catch (error) {
       console.error('批量移除成员失败:', error);
-      alert('批量移除成员失败');
+      toast.error('批量移除成员失败');
     }
   };
 
