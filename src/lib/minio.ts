@@ -41,7 +41,9 @@ export async function uploadToMinio(
   isAvatar: boolean = false,
   isComment: boolean = false,
   isEvent: boolean = false,
-  eventId?: string
+  eventId?: string,
+  isReport: boolean = false,
+  reportId?: string
 ): Promise<string> {
   try {
     await ensureBucketExists(bucketName);
@@ -51,6 +53,12 @@ export async function uploadToMinio(
     if (isAvatar && userId) {
       // 头像文件: images/userId/avatar/filename
       objectName = `images/${userId}/avatar/${fileName}`;
+    } else if (isReport && userId && reportId) {
+      // 报表图片: reports/reportId/filename
+      objectName = `reports/${reportId}/${fileName}`;
+    } else if (isReport && userId) {
+      // 报表图片（临时，创建时使用）: images/userId/reports/temp/filename
+      objectName = `images/${userId}/reports/temp/${fileName}`;
     } else if (isEvent && userId && eventId) {
       // 事件附件: images/userId/event/eventId/filename
       objectName = `images/${userId}/event/${eventId}/${fileName}`;
@@ -143,6 +151,39 @@ export async function moveAttachmentToEvent(
   }
 }
 
+// 移动临时报表图片到正式位置
+export async function moveImageToReport(
+  oldObjectName: string,
+  reportId: string,
+  fileName: string,
+  bucketName: string = DEFAULT_BUCKET
+): Promise<string> {
+  try {
+    const newObjectName = `reports/${reportId}/${fileName}`;
+    console.log(`🔄 MinIO: 复制文件 ${bucketName}/${oldObjectName} -> ${bucketName}/${newObjectName}`);
+    
+    // 复制文件到新位置
+    await minioClient.copyObject(
+      bucketName,
+      newObjectName,
+      `${bucketName}/${oldObjectName}`
+    );
+    
+    console.log(`✅ MinIO: 文件复制成功，开始删除旧文件 ${bucketName}/${oldObjectName}`);
+    
+    // 删除旧文件
+    await minioClient.removeObject(bucketName, oldObjectName);
+    
+    console.log(`🗑️ MinIO: 旧文件删除成功`);
+    
+    // 返回相对路径
+    return `/api/images/${newObjectName}`;
+  } catch (error) {
+    console.error('❌ 移动报表图片失败:', error);
+    throw error;
+  }
+}
+
 // 从MinIO删除文件
 export async function deleteFromMinio(
   objectName: string,
@@ -198,27 +239,27 @@ export function extractObjectNameFromUrl(url: string, bucketName: string = DEFAU
     }
     
     // 处理直接MinIO URL格式（向后兼容）
-  const baseUrl = process.env.MINIO_PUBLIC_URL || `http://${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || '9000'}`;
-  const prefix = `${baseUrl}/${bucketName}/`;
-  
-  if (url.startsWith(prefix)) {
-    return url.substring(prefix.length);
-  }
-  
-  // 如果URL格式不匹配，尝试从路径中提取
-  const urlObj = new URL(url);
-  const pathParts = urlObj.pathname.split('/');
-  const bucketIndex = pathParts.indexOf(bucketName);
-  
-  if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
-    return pathParts.slice(bucketIndex + 1).join('/');
-  }
-  
-  throw new Error('无法从URL中提取对象名称');
+    const baseUrl = process.env.MINIO_PUBLIC_URL || `http://${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || '9000'}`;
+    const prefix = `${baseUrl}/${bucketName}/`;
+    
+    if (url.startsWith(prefix)) {
+      return url.substring(prefix.length);
+    }
+    
+    // 如果URL格式不匹配，尝试从路径中提取
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    const bucketIndex = pathParts.indexOf(bucketName);
+    
+    if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+      return pathParts.slice(bucketIndex + 1).join('/');
+    }
+    
+    throw new Error('无法从URL中提取对象名称');
   } catch (error) {
     console.error('提取对象名称失败:', error);
     throw new Error('无法从URL中提取对象名称');
   }
 }
 
-export default minioClient; 
+export default minioClient;

@@ -2,51 +2,41 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import CreatePost from '@/components/CreatePost';
-import PostList from '@/components/PostList';
-import FilterBar from '@/components/FilterBar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-
 import { 
-  Tag, 
-  TrendingUp, 
+  ArrowRight, 
+  BookOpen, 
   MessageSquare, 
   Users, 
+  TrendingUp,
+  Sparkles,
   FileText, 
-  Zap,
-  Edit3,
-  Activity,
   Calendar,
-  Eye,
+  Zap,
   Heart,
-  Star
+  Eye,
+  Tag,
+  Database,
+  Star,
+  Award,
+  Rocket,
+  Lightbulb,
+  Target,
+  BarChart3,
+  Clock,
+  FileBarChart
 } from 'lucide-react';
-import FloatingAddButton from '@/components/FloatingAddButton';
 
-
-export default function Home() {
+export default function HomePage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [activeTab, setActiveTab] = useState('all');
-  const [sortBy, setSortBy] = useState('newest');
-  const [searchFilters, setSearchFilters] = useState({
-    search: '',
-    tag: '',
-    author: ''
-  });
-
-  const [realTimeStats, setRealTimeStats] = useState<{
+  const [stats, setStats] = useState<{
     hotPosts: Array<{
       _id: string;
       title: string;
@@ -65,12 +55,6 @@ export default function Home() {
       todayComments: number;
       unansweredQuestions: number;
     };
-    activeUsers: Array<{
-      name: string;
-      reputation: number;
-      weekActivity: number;
-      badge: string;
-    }>;
   }>({
     hotPosts: [],
     popularTags: [],
@@ -78,251 +62,463 @@ export default function Home() {
       todayPosts: 0,
       todayComments: 0,
       unansweredQuestions: 0
-    },
-    activeUsers: []
+    }
   });
-  const [showCreatePost, setShowCreatePost] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCreatePost, setShowCreatePost] = useState(false);
 
-
-  const handlePostCreated = () => {
-    setRefreshTrigger(prev => prev + 1);
-    setShowCreatePost(false);
-  };
-
-  const handleCreateArticle = () => {
-    setShowCreatePost(true);
-  };
-
-  const handleCreateQuestion = () => {
-    router.push('/ask');
-  };
-
-  // 从URL参数初始化搜索状态
+  // 获取首页数据
   useEffect(() => {
-    setSearchFilters({
-      search: searchParams.get('search') || '',
-      tag: searchParams.get('tag') || '',
-      author: searchParams.get('author') || ''
-    });
-  }, [searchParams]);
-
-  // 获取统计数据
-  useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        // 获取真实统计数据
         const response = await fetch('/api/stats');
         if (response.ok) {
           const data = await response.json();
-          setRealTimeStats(data);
-        } else {
-          console.error('获取统计数据失败');
+          setStats(data);
         }
       } catch (error) {
-        console.error('获取统计数据失败:', error);
+        console.error('获取数据失败:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchStats();
-  }, [refreshTrigger]);
+    fetchData();
+  }, []);
 
-  const handleSearch = (filters: { search: string; tag: string; author: string }) => {
-    setSearchFilters(filters);
-    setRefreshTrigger(prev => prev + 1);
+  const handlePostCreated = () => {
+    setShowCreatePost(false);
+    // 刷新统计数据
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('获取数据失败:', error);
+      }
+    };
+    fetchData();
   };
 
+  const features = [
+    {
+      icon: BookOpen,
+      title: '知识库',
+      description: '浏览和分享技术文章、问题与答案',
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10',
+      gradient: 'from-blue-500/20 to-blue-600/10',
+      link: '/knowledge'
+    },
+    {
+      icon: Calendar,
+      title: '事件管理',
+      description: '记录和追踪重要事件与活动',
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
+      gradient: 'from-purple-500/20 to-purple-600/10',
+      link: '/events'
+    },
+    {
+      icon: Database,
+      title: '资源中心',
+      description: '收藏和管理各类学习资源',
+      color: 'text-green-500',
+      bgColor: 'bg-green-500/10',
+      gradient: 'from-green-500/20 to-green-600/10',
+      link: '/resources'
+    },
+    {
+      icon: FileBarChart,
+      title: '报表中心',
+      description: '查看各类报表和统计数据',
+      color: 'text-indigo-500',
+      bgColor: 'bg-indigo-500/10',
+      gradient: 'from-indigo-500/20 to-indigo-600/10',
+      link: '/reports'
+    },
+    {
+      icon: Users,
+      title: '社区互动',
+      description: '与其他用户交流和分享经验',
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10',
+      gradient: 'from-orange-500/20 to-orange-600/10',
+      link: '/user-center'
+    }
+  ];
 
+  const quickActions = [
+    {
+      icon: FileText,
+      label: '发布文章',
+      description: '分享你的知识和见解',
+      action: () => setShowCreatePost(true),
+      gradient: 'from-blue-500 to-cyan-500'
+    },
+    {
+      icon: Zap,
+      label: '提问',
+      description: '寻求社区的帮助',
+      action: () => router.push('/ask'),
+      gradient: 'from-yellow-500 to-orange-500'
+    },
+    {
+      icon: Calendar,
+      label: '查看事件',
+      description: '浏览最新事件',
+      action: () => router.push('/events'),
+      gradient: 'from-purple-500 to-pink-500'
+    },
+    {
+      icon: Database,
+      label: '浏览资源',
+      description: '发现优质资源',
+      action: () => router.push('/resources'),
+      gradient: 'from-green-500 to-emerald-500'
+    }
+  ];
+
+  const statsCards = [
+    {
+      label: '今日新内容',
+      value: stats.stats.todayPosts,
+      icon: FileText,
+      color: 'text-blue-500',
+      bgGradient: 'from-blue-500/20 to-blue-600/10',
+      iconBg: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/20'
+    },
+    {
+      label: '今日新回答',
+      value: stats.stats.todayComments,
+      icon: MessageSquare,
+      color: 'text-green-500',
+      bgGradient: 'from-green-500/20 to-green-600/10',
+      iconBg: 'bg-green-500/10',
+      borderColor: 'border-green-500/20'
+    },
+    {
+      label: '待解决问题',
+      value: stats.stats.unansweredQuestions,
+      icon: Zap,
+      color: 'text-orange-500',
+      bgGradient: 'from-orange-500/20 to-orange-600/10',
+      iconBg: 'bg-orange-500/10',
+      borderColor: 'border-orange-500/20'
+    }
+  ];
 
     return (
     <div className="min-h-screen bg-background">
-      {/* 主要内容区域 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-          {/* 左侧主内容区 */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* 搜索区域 */}
-            <FilterBar onSearch={handleSearch} />
+      {/* Hero Section - 增强版 */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background via-50% to-primary/5">
+        {/* 背景装饰 */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.03]"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32 relative">
+          <div className="text-center space-y-8">
+            {/* 欢迎标签 - 增强版 */}
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/20 backdrop-blur-sm shadow-lg">
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-sm font-semibold text-primary">欢迎来到 PonyMind</span>
+              <Rocket className="w-4 h-4 text-primary" />
+            </div>
+            
+            {/* 主标题 - 增强版 */}
+            <div className="space-y-4">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight">
+                <span className="block bg-gradient-to-r from-foreground via-foreground/90 to-foreground/80 bg-clip-text text-transparent">
+                  构建你的
+                </span>
+                <span className="block bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
+                  知识管理平台
+                </span>
+              </h1>
+              
+              <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                一个集<span className="font-semibold text-foreground">知识分享</span>、<span className="font-semibold text-foreground">问答交流</span>、<span className="font-semibold text-foreground">事件管理</span>和<span className="font-semibold text-foreground">资源收藏</span>于一体的综合性平台
+              </p>
+            </div>
+            
+            {/* 行动按钮 - 增强版 */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              {session ? (
+                <>
+                  <Button 
+                    size="lg" 
+                    className="gap-2 px-8 h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" 
+                    onClick={() => router.push('/knowledge')}
+                  >
+                    进入知识库
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="gap-2 px-8 h-12 text-base font-semibold border-2 hover:scale-105 transition-all duration-300" 
+                    onClick={() => router.push('/ask')}
+                  >
+                    <Zap className="w-5 h-5" />
+                    立即提问
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    size="lg" 
+                    className="gap-2 px-8 h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" 
+                    onClick={() => router.push('/auth/signin')}
+                  >
+                    立即开始
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="gap-2 px-8 h-12 text-base font-semibold border-2 hover:scale-105 transition-all duration-300" 
+                    onClick={() => router.push('/knowledge')}
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    浏览内容
+                  </Button>
+                </>
+              )}
+            </div>
 
-            {/* 内容筛选和排序 */}
-            <Card>
-              <CardContent className="p-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <TabsList className="grid w-full grid-cols-5 sm:grid-cols-5 lg:w-auto lg:grid-cols-5">
-                      <TabsTrigger value="all" className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
-                        <span className="hidden sm:inline">全部</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="questions" className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
-                        <span className="hidden sm:inline">问题</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="articles" className="flex items-center gap-2">
-                        <Edit3 className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
-                        <span className="hidden sm:inline">文章</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="unanswered" className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
-                        <span className="hidden sm:inline">待答</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="trending" className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
-                        <span className="hidden sm:inline">热门</span>
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-primary transition-colors" />
-                        <span className="text-sm font-medium text-muted-foreground">排序:</span>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="newest">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                                最新发布
+            {/* 特色亮点 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-12 max-w-3xl mx-auto">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Lightbulb className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">知识分享</p>
+                  <p className="text-xs text-muted-foreground">分享你的见解</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">精准搜索</p>
+                  <p className="text-xs text-muted-foreground">快速找到内容</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Award className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">社区认可</p>
+                  <p className="text-xs text-muted-foreground">获得他人认可</p>
+                </div>
                               </div>
-                            </SelectItem>
-                            <SelectItem value="active">
-                              <div className="flex items-center gap-2">
-                                <Activity className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                                最近活跃
                               </div>
-                            </SelectItem>
-                            <SelectItem value="votes">
-                              <div className="flex items-center gap-2">
-                                <Heart className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                                最多点赞
                               </div>
-                            </SelectItem>
-                            <SelectItem value="views">
-                              <div className="flex items-center gap-2">
-                                <Eye className="w-4 h-4 text-muted-foreground hover:text-primary transition-colors" />
-                                最多浏览
                               </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+      </section>
+
+      {/* Stats Section - 美化版 */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {statsCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card 
+                key={index} 
+                className={`relative overflow-hidden border-2 ${stat.borderColor} bg-gradient-to-br ${stat.bgGradient} hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl"></div>
+                <CardContent className="p-6 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                      {isLoading ? (
+                        <Skeleton className="h-10 w-20 mt-2" />
+                      ) : (
+                        <p className="text-4xl font-extrabold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                          {stat.value}
+                        </p>
+                      )}
                     </div>
+                    <div className={`p-4 rounded-2xl ${stat.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                      <Icon className={`w-8 h-8 ${stat.color}`} />
                     </div>
                   </div>
-                  
-                  <Separator className="mb-6" />
-                  
-                  <TabsContent value="all" className="mt-0">
-                    <PostList 
-                      refreshTrigger={refreshTrigger}
-                      activeTab="all"
-                      sortBy={sortBy}
-                      searchFilters={searchFilters}
-                    />
-                  </TabsContent>
-                  <TabsContent value="questions" className="mt-0">
-                    <PostList 
-                      refreshTrigger={refreshTrigger}
-                      activeTab="questions"
-                      sortBy={sortBy}
-                      searchFilters={searchFilters}
-                    />
-                  </TabsContent>
-                  <TabsContent value="articles" className="mt-0">
-                    <PostList 
-                      refreshTrigger={refreshTrigger}
-                      activeTab="articles"
-                      sortBy={sortBy}
-                      searchFilters={searchFilters}
-                    />
-                  </TabsContent>
-                  <TabsContent value="unanswered" className="mt-0">
-                    <PostList 
-                      refreshTrigger={refreshTrigger}
-                      activeTab="unanswered"
-                      sortBy={sortBy}
-                      searchFilters={searchFilters}
-                    />
-                  </TabsContent>
-                  <TabsContent value="trending" className="mt-0">
-              <PostList 
-                refreshTrigger={refreshTrigger}
-                      activeTab="trending"
-                sortBy={sortBy}
-                searchFilters={searchFilters}
-              />
-                  </TabsContent>
-                </Tabs>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Features Section - 美化版 */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-gradient-to-b from-transparent to-muted/20">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-4">
+            <Star className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">核心功能</span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+            平台功能
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            探索 PonyMind 提供的强大功能，让知识管理变得简单高效
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <Link key={index} href={feature.link}>
+                <Card className="h-full group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 cursor-pointer">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                  <CardContent className="p-6 relative">
+                    <div className={`w-14 h-14 rounded-2xl ${feature.bgColor} flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}>
+                      <Icon className={`w-7 h-7 ${feature.color}`} />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{feature.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                    <div className="mt-4 flex items-center gap-2 text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="font-semibold">了解更多</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
               </CardContent>
             </Card>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
+      {/* Quick Actions Section - 美化版 */}
+      {session && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-4">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">快速开始</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+              快速操作
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              快速开始你的工作，让创作变得简单高效
+            </p>
           </div>
 
-          {/* 右侧边栏 */}
-          <div className="lg:col-span-1 space-y-4 lg:space-y-6">
-            {/* 今日热点 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary transition-colors" />
-                  今日热点
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <Card 
+                  key={index} 
+                  className="cursor-pointer group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
+                  onClick={action.action}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                  <CardContent className="p-6 text-center relative">
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${action.gradient} flex items-center justify-center mx-auto mb-5 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg`}>
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">{action.label}</h3>
+                    <p className="text-sm text-muted-foreground">{action.description}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Hot Content Section - 美化版 */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-gradient-to-b from-muted/20 to-transparent">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-4">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">热门内容</span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+            发现精彩内容
+          </h2>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 热门内容 */}
+          <Card className="border-2 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-2xl">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <TrendingUp className="w-6 h-6 text-primary" />
+                    </div>
+                    热门内容
                 </CardTitle>
+                  <CardDescription className="mt-2">最受欢迎的文章和问题</CardDescription>
+                </div>
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  实时
+                </Badge>
+              </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {isLoading ? (
-                    // 加载骨架屏
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3">
-                        <Skeleton className="w-8 h-8 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-3 w-2/3" />
-                        </div>
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="space-y-2 p-4 rounded-lg border">
+                      <Skeleton className="h-5 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
                       </div>
                     ))
-                  ) : realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
+                ) : stats.hotPosts.length > 0 ? (
+                  stats.hotPosts.slice(0, 5).map((post, index) => (
                     <Link 
-                      key={index} 
-                      href={`/posts/${item._id}`}
-                      className="block hover:bg-accent transition-colors rounded-lg group"
+                      key={post._id} 
+                      href={`/posts/${post._id}`}
+                      className="block p-4 rounded-xl hover:bg-accent transition-all duration-300 group border hover:border-primary/50"
                     >
-                      <div className="flex items-start space-x-3 p-3">
-                                                <div className={`w-8 h-8 rounded-full p-0 flex items-center justify-center text-xs font-bold ${
-                          item.type === 'question' ? 'bg-primary' : 'bg-primary'
-                        }`}>
-                          {item.type === 'question' ? (
-                            <Zap className="w-4 h-4 text-primary-foreground" />
-                          ) : (
-                            <FileText className="w-4 h-4 text-primary-foreground" />
-                          )}
+                      <div className="flex items-start gap-4">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-base font-bold text-primary shadow-lg group-hover:scale-110 transition-transform`}>
+                          {index + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-2 group-hover:text-foreground transition-colors">
-                            {item.title}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <MessageSquare className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
-                              {item.type === 'question' ? `${item.answers}` : `${item.views}`}
+                          <h4 className="font-semibold group-hover:text-primary transition-colors line-clamp-2 mb-3">
+                            {post.title}
+                          </h4>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
+                              <Eye className="w-3.5 h-3.5" />
+                              <span className="font-medium">{post.views}</span>
                             </div>
-                            {item.likes > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Heart className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
-                                {item.likes}
+                            {post.type === 'question' && (
+                              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span className="font-medium">{post.answers}</span>
                               </div>
                             )}
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted">
+                              <Heart className="w-3.5 h-3.5" />
+                              <span className="font-medium">{post.likes}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </Link>
-                  )) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">暂无热点内容</p>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <TrendingUp className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <p className="text-sm">暂无热门内容</p>
                     </div>
                   )}
                 </div>
@@ -330,227 +526,107 @@ export default function Home() {
             </Card>
 
             {/* 热门标签 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Tag className="h-5 w-5 text-primary transition-colors" />
+          <Card className="border-2 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-2xl">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Tag className="w-6 h-6 text-primary" />
+                    </div>
                   热门标签
                 </CardTitle>
+                  <CardDescription className="mt-2">探索社区关注的话题</CardDescription>
+                </div>
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  <Clock className="w-3 h-3 mr-1" />
+                  本周
+                </Badge>
+              </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-2">
                   {isLoading ? (
-                    // 加载骨架屏
-                    Array.from({ length: 5 }).map((_, index) => (
-                      <div key={index} className="flex items-center justify-between p-3">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-3 h-3" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                        <Skeleton className="w-8 h-6 rounded-full" />
+                  Array.from({ length: 8 }).map((_, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
+                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-12 rounded-full" />
                       </div>
                     ))
-                  ) : realTimeStats.popularTags.length > 0 ? realTimeStats.popularTags.map((tag) => (
-                    <Button
+                ) : stats.popularTags.length > 0 ? (
+                  stats.popularTags.slice(0, 8).map((tag) => (
+                    <Link
                       key={tag.name}
-                      variant={searchFilters.tag === tag.name ? "default" : "ghost"}
-                      size="sm"
-                      className="justify-between h-auto p-3"
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams.toString());
-                        // 保留其他筛选条件
-                        if (searchFilters.search) params.set('search', searchFilters.search);
-                        if (searchFilters.author) params.set('author', searchFilters.author);
-                        
-                        // 如果当前标签已经选中，则清除标签筛选
-                        const newTag = searchFilters.tag === tag.name ? '' : tag.name;
-                        if (newTag) {
-                          params.set('tag', newTag);
-                        }
-                        
-                        // 更新 URL
-                        router.push(`/?${params.toString()}`);
-                        
-                        // 立即更新搜索状态和触发刷新
-                        const newFilters = {
-                          ...searchFilters,
-                          tag: newTag
-                        };
-                        setSearchFilters(newFilters);
-                        setRefreshTrigger(prev => prev + 1);
-                        
-                        // 通知搜索栏组件更新
-                        handleSearch(newFilters);
-                      }}
+                      href={`/knowledge?tag=${tag.name}`}
+                      className="flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-all duration-300 group border hover:border-primary/50"
                     >
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-3 h-3 text-muted-foreground hover:text-primary transition-colors" />
-                        <span className="font-medium">{tag.name}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          <Tag className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="font-semibold group-hover:text-primary transition-colors">
+                          {tag.name}
+                        </span>
                       </div>
-                      <Badge variant="secondary" className="text-xs font-bold">
+                      <Badge variant="secondary" className="text-sm font-bold px-3 py-1 shadow-sm">
                         {tag.count}
                       </Badge>
-                    </Button>
-                  )) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Tag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Tag className="w-16 h-16 mx-auto mb-4 opacity-30" />
                       <p className="text-sm">暂无标签数据</p>
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
+                          </div>
+      </section>
 
-            {/* 社区统计 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary transition-colors" />
-                  社区统计
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  {isLoading ? (
-                    // 加载骨架屏
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
-                          <div className="space-y-1">
-                            <Skeleton className="h-4 w-20" />
-                            <Skeleton className="h-3 w-24" />
+      {/* CTA Section - 美化版 */}
+      {!session && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <Card className="relative overflow-hidden border-2 bg-gradient-to-br from-primary/10 via-background to-primary/5">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl"></div>
+            <CardContent className="p-16 text-center relative">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 mb-6">
+                <Rocket className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">开始你的旅程</span>
                           </div>
-                        </div>
-                        <Skeleton className="w-12 h-8 rounded" />
-                      </div>
-                    ))
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary rounded-full">
-                            <FileText className="w-4 h-4 text-primary-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">今日新内容</p>
-                            <p className="text-xs text-muted-foreground">发布的文章和问题</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="font-bold text-lg px-3 py-1">
-                          {realTimeStats.stats.todayPosts}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary rounded-full">
-                            <MessageSquare className="w-4 h-4 text-primary-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">今日新回答</p>
-                            <p className="text-xs text-muted-foreground">社区互动活跃度</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="font-bold text-lg px-3 py-1">
-                          {realTimeStats.stats.todayComments}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary rounded-full">
-                            <Zap className="w-4 h-4 text-primary-foreground" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">待解决问题</p>
-                            <p className="text-xs text-muted-foreground">等待你的回答</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="font-bold text-lg px-3 py-1">
-                          {realTimeStats.stats.unansweredQuestions}
-                        </Badge>
-                      </div>
-                    </>
-                  )}
+              <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                准备好开始了吗？
+              </h2>
+              <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
+                加入 PonyMind 社区，开始你的知识管理之旅，与其他用户一起学习和成长
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button 
+                  size="lg" 
+                  className="gap-2 px-8 h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" 
+                  onClick={() => router.push('/auth/signin')}
+                >
+                  立即注册
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="gap-2 px-8 h-12 text-base font-semibold border-2 hover:scale-105 transition-all duration-300" 
+                  onClick={() => router.push('/knowledge')}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  了解更多
+                </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* 活跃用户 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="h-5 w-4 text-primary transition-colors" />
-                  本周活跃用户
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {isLoading ? (
-                    // 加载骨架屏
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div key={index} className="flex items-center space-x-3 p-3 rounded-lg border">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <Skeleton className="h-4 w-20" />
-                          <div className="flex gap-2">
-                            <Skeleton className="h-5 w-12" />
-                            <Skeleton className="h-5 w-12" />
-                          </div>
-                        </div>
-                        <Skeleton className="w-8 h-8" />
-                      </div>
-                    ))
-                  ) : realTimeStats.activeUsers.length > 0 ? realTimeStats.activeUsers.map((user, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-accent transition-colors group border">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={`/api/placeholder/40/40?text=${user.name.charAt(0)}`} />
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                          {user.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold group-hover:text-foreground transition-colors">
-                          {user.name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs px-2 py-0.5">
-                            <Star className="w-3 h-3 mr-1 text-muted-foreground hover:text-primary transition-colors" />
-                            {user.reputation}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs px-2 py-0.5">
-                            <Activity className="w-3 h-3 mr-1 text-muted-foreground hover:text-primary transition-colors" />
-                            {user.weekActivity}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-2xl group-hover:scale-110 transition-transform">
-                        {user.badge}
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">暂无活跃用户数据</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* 浮动添加按钮 */}
-      {session && (
-        <FloatingAddButton
-          onCreateArticle={handleCreateArticle}
-          onCreateQuestion={handleCreateQuestion}
-        />
+        </section>
       )}
 
-      {/* 创作模态框 */}
+      {/* 创建文章模态框 */}
       {showCreatePost && (
         <CreatePost
           onClose={() => setShowCreatePost(false)}
@@ -560,4 +636,3 @@ export default function Home() {
     </div>
   );
 }
-

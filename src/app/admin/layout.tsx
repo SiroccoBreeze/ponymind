@@ -51,7 +51,8 @@ import {
   Database,
   FolderOpen,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  BarChart3
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -290,6 +291,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/events', 
       label: '事件管理', 
       icon: Calendar,
+      description: ''
+    },
+    { 
+      href: '/admin/reports', 
+      label: '报表管理', 
+      icon: BarChart3,
       description: ''
     },
     {

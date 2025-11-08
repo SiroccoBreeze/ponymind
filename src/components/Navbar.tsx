@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import UserAvatar from '@/components/UserAvatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -23,7 +23,8 @@ import {
   FileText,
   Database,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  BookOpen
 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 
@@ -351,6 +352,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: '首页', icon: Home },
+    { href: '/knowledge', label: '知识库', icon: BookOpen },
     { href: '/events', label: '事件', icon: FileText },
   ];
 

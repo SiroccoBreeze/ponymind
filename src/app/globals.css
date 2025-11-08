@@ -1209,3 +1209,56 @@ h1, h2, h3, h4, h5, h6 {
   overflow-wrap: break-word;
 }
 
+/* 网格背景样式 */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, hsl(var(--border) / 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.1) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+}
+
+/* 渐变动画 */
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+/* 悬停提升效果 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 脉冲动画 */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
