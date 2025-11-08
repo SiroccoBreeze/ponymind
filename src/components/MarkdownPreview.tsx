@@ -8,6 +8,7 @@ import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
+import { useTheme } from 'next-themes';
 import MermaidDiagram from './MermaidDiagram';
 
 interface MarkdownPreviewProps {
@@ -19,34 +20,26 @@ interface MarkdownPreviewProps {
 // 代码块组件
 const CodeBlock = memo(({ language, children, ...props }: any) => {
   const [copied, setCopied] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
-  // 检测当前主题
+  // 确保组件已挂载后再使用主题
   useEffect(() => {
-    const checkDarkMode = () => {
-      const isDark = document.documentElement.classList.contains('dark') || 
-                    window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setIsDarkMode(isDark);
-    };
-    
-    checkDarkMode();
-    
-    // 监听主题变化
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-    
-    // 监听系统主题变化
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', checkDarkMode);
-    
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener('change', checkDarkMode);
-    };
+    setMounted(true);
   }, []);
+  
+  // 根据主题判断是否为暗黑模式
+  const isDarkMode = useMemo(() => {
+    if (!mounted) {
+      // 在服务端渲染或未挂载时，检查 DOM 中的 dark 类
+      if (typeof window !== 'undefined') {
+        return document.documentElement.classList.contains('dark');
+      }
+      return false; // 服务端默认返回 false
+    }
+    // resolvedTheme 是实际应用的主题（如果是 system，会解析为 light 或 dark）
+    return resolvedTheme === 'dark' || theme === 'dark';
+  }, [theme, resolvedTheme, mounted]);
   
   const handleCopy = async () => {
     try {
