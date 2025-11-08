@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,13 +18,21 @@ import {
   Upload, 
   Image as ImageIcon, 
   FolderPlus,
-  FolderOpen,
   FileText,
-  Sparkles,
-  ZoomIn
+  ZoomIn,
+  ChevronRight,
+  ChevronDown,
+  Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+// 不使用 Sidebar 组件，因为 AdminLayout 已经有 Sidebar
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ReportImage {
   url: string;
@@ -71,10 +79,10 @@ interface ReportCategory {
 
 export default function AdminReportsPage() {
   const [categories, setCategories] = useState<ReportCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [reports, setReports] = useState<Report[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [categoryReports, setCategoryReports] = useState<Record<string, Report[]>>({});
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState<Set<string>>(new Set());
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ReportCategory | null>(null);
@@ -83,6 +91,8 @@ export default function AdminReportsPage() {
   const [deletingReport, setDeletingReport] = useState<Report | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; alt: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const initializedRef = useRef(false);
 
   // 分类表单
   const [categoryForm, setCategoryForm] = useState({
@@ -111,45 +121,108 @@ export default function AdminReportsPage() {
       const response = await fetch('/api/admin/report-categories');
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.categories || []);
-        // 如果没有选中分类，默认选中第一个
-        if (!selectedCategory && data.categories && data.categories.length > 0) {
-          setSelectedCategory(data.categories[0]._id);
-        }
+        // 确保分类按 sortOrder 排序
+        const sortedCategories = (data.categories || []).sort((a: ReportCategory, b: ReportCategory) => {
+          const aOrder = a.sortOrder ?? 0;
+          const bOrder = b.sortOrder ?? 0;
+          return aOrder - bOrder;
+        });
+        setCategories(sortedCategories);
       }
     } catch (error) {
       console.error('获取分类列表失败:', error);
     }
   };
 
-  // 获取报表列表
-  const fetchReports = async () => {
-    if (!selectedCategory) {
-      setReports([]);
+  // 获取指定分类的报表
+  const fetchReportsForCategory = useCallback(async (categoryId: string) => {
+    // 如果已经有数据，不重复获取
+    if (categoryReports[categoryId]) {
       return;
     }
 
-    setLoading(true);
+    // 设置该分类为加载中
+    setLoadingCategories(prev => {
+      const newSet = new Set(prev);
+      newSet.add(categoryId);
+      return newSet;
+    });
+
     try {
-      const response = await fetch(`/api/admin/reports?category=${selectedCategory}&limit=100`);
+      const response = await fetch(`/api/admin/reports?category=${categoryId}&limit=100`);
       if (response.ok) {
         const data = await response.json();
-        setReports(data.reports || []);
+        const reports = data.reports || [];
+        
+        setCategoryReports(prev => {
+          // 如果已经有数据，不重复设置
+          if (prev[categoryId]) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [categoryId]: reports
+          };
+        });
       }
     } catch (error) {
       console.error('获取报表列表失败:', error);
     } finally {
-      setLoading(false);
+      setLoadingCategories(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(categoryId);
+        return newSet;
+      });
     }
-  };
+  }, [categoryReports]);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    fetchReports();
-  }, [selectedCategory]);
+    if (categories.length > 0 && !initializedRef.current) {
+      // 初始化时展开第一个分类
+      const firstCategoryId = categories[0]._id;
+      const newSet = new Set([firstCategoryId]);
+      setExpandedCategories(newSet);
+      initializedRef.current = true;
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    // 为所有已展开但还没有数据的分类获取报表
+    if (expandedCategories.size > 0) {
+      expandedCategories.forEach(categoryId => {
+        // 检查是否已有数据或正在加载
+        const hasData = categoryReports[categoryId] !== undefined;
+        const isLoading = loadingCategories.has(categoryId);
+        
+        if (!hasData && !isLoading) {
+          fetchReportsForCategory(categoryId);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedCategories]);
+
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+        // 如果该分类还没有数据且不在加载中，立即获取
+        const hasData = categoryReports[categoryId] !== undefined;
+        const isLoading = loadingCategories.has(categoryId);
+        if (!hasData && !isLoading) {
+          fetchReportsForCategory(categoryId);
+        }
+      }
+      return newSet;
+    });
+  };
 
   const resetCategoryForm = () => {
     setCategoryForm({
@@ -230,6 +303,14 @@ export default function AdminReportsPage() {
         setShowCategoryDialog(false);
         resetCategoryForm();
         fetchCategories();
+        // 清除该分类的报表缓存，以便重新加载
+        if (editingCategory) {
+          setCategoryReports(prev => {
+            const updated = { ...prev };
+            delete updated[editingCategory._id];
+            return updated;
+          });
+        }
       } else {
         const data = await response.json();
         toast.error(data.error || '操作失败');
@@ -250,8 +331,17 @@ export default function AdminReportsPage() {
 
       if (response.ok) {
         toast.success('分类删除成功');
-        if (selectedCategory === deletingCategory._id) {
-          setSelectedCategory(null);
+        setCategoryReports(prev => {
+          const updated = { ...prev };
+          delete updated[deletingCategory._id];
+          return updated;
+        });
+        setExpandedCategories(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(deletingCategory._id);
+          return newSet;
+        });
+        if (selectedReport?.category._id === deletingCategory._id) {
           setSelectedReport(null);
         }
         fetchCategories();
@@ -266,13 +356,11 @@ export default function AdminReportsPage() {
     }
   };
 
-  const handleCreateReport = () => {
-    if (!selectedCategory) {
-      toast.error('请先选择分类');
-      return;
-    }
+  const handleCreateReport = (categoryId: string) => {
     resetReportForm();
     setShowReportDialog(true);
+    // 临时存储选中的分类ID
+    (window as any).__tempSelectedCategory = categoryId;
   };
 
   const handleEditReport = (report: Report) => {
@@ -287,6 +375,8 @@ export default function AdminReportsPage() {
     setUploadedImages([]);
     setEditingReport(report);
     setShowReportDialog(true);
+    // 临时存储选中的分类ID
+    (window as any).__tempSelectedCategory = report.category._id;
   };
 
   const handleSelectReport = async (report: Report) => {
@@ -309,7 +399,8 @@ export default function AdminReportsPage() {
       return;
     }
 
-    if (!selectedCategory) {
+    const categoryId = (window as any).__tempSelectedCategory || (editingReport?.category._id);
+    if (!categoryId) {
       toast.error('请选择分类');
       return;
     }
@@ -330,7 +421,7 @@ export default function AdminReportsPage() {
       const submitFormData = new FormData();
       submitFormData.append('name', reportForm.name);
       submitFormData.append('description', reportForm.description);
-      submitFormData.append('category', selectedCategory);
+      submitFormData.append('category', categoryId);
       submitFormData.append('isActive', reportForm.isActive.toString());
       submitFormData.append('sortOrder', reportForm.sortOrder.toString());
 
@@ -356,10 +447,20 @@ export default function AdminReportsPage() {
         toast.success(editingReport ? '报表更新成功' : '报表创建成功');
         setShowReportDialog(false);
         resetReportForm();
-        fetchReports();
+        // 清除该分类的报表缓存，以便重新加载
+        setCategoryReports(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+        // 如果该分类已展开，重新获取报表
+        if (expandedCategories.has(categoryId)) {
+          fetchReportsForCategory(categoryId);
+        }
         if (editingReport) {
           setSelectedReport(null);
         }
+        delete (window as any).__tempSelectedCategory;
       } else {
         const data = await response.json();
         toast.error(data.error || '操作失败');
@@ -373,6 +474,8 @@ export default function AdminReportsPage() {
   const handleDeleteReport = async () => {
     if (!deletingReport) return;
 
+    const categoryId = deletingReport.category._id;
+
     try {
       const response = await fetch(`/api/admin/reports/${deletingReport._id}`, {
         method: 'DELETE'
@@ -383,7 +486,16 @@ export default function AdminReportsPage() {
         if (selectedReport?._id === deletingReport._id) {
           setSelectedReport(null);
         }
-        fetchReports();
+        // 清除该分类的报表缓存，以便重新加载
+        setCategoryReports(prev => {
+          const updated = { ...prev };
+          delete updated[categoryId];
+          return updated;
+        });
+        // 如果该分类已展开，重新获取报表
+        if (expandedCategories.has(categoryId)) {
+          fetchReportsForCategory(categoryId);
+        }
         setDeletingReport(null);
       } else {
         const data = await response.json();
@@ -425,255 +537,312 @@ export default function AdminReportsPage() {
     }
   };
 
-  const selectedCategoryData = categories.find(c => c._id === selectedCategory);
-
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
-      {/* 顶部标题栏 */}
-      <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            报表管理
-          </h1>
-          <p className="text-muted-foreground mt-1">管理报表分类和内容</p>
+    <div className="flex h-[calc(100vh-4rem)] w-full">
+      {/* 左侧菜单栏 - 不使用 SidebarProvider，因为已经在 AdminLayout 中 */}
+      <div className="w-64 border-r bg-sidebar overflow-y-auto flex-shrink-0">
+        <div className="border-b px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">报表分类</span>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleCreateCategory}
+            className="h-7 w-7 p-0"
+          >
+            <FolderPlus className="w-4 h-4" />
+          </Button>
         </div>
-        <Button onClick={handleCreateCategory} className="gap-2 shadow-lg">
-          <FolderPlus className="w-4 h-4" />
-          新建分类
-        </Button>
-      </div>
-
-      {/* 主内容区 - 三栏布局 */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* 左侧：分类列表 */}
-        <div className="w-64 border-r bg-muted/30 overflow-y-auto">
-          <div className="p-4 space-y-2">
-            {categories.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">暂无分类</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={handleCreateCategory}
-                >
-                  创建第一个分类
-                </Button>
-              </div>
-            ) : (
-              categories.map((category) => (
-                <div
-                  key={category._id}
-                  onClick={() => {
-                    setSelectedCategory(category._id);
-                    setSelectedReport(null);
-                  }}
-                  className={cn(
-                    "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group relative overflow-hidden cursor-pointer",
-                    selectedCategory === category._id
-                      ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
-                      : "border-border hover:border-primary/50 hover:bg-accent"
-                  )}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-md"
-                      style={{ backgroundColor: category.color }}
-                    >
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold truncate">{category.name}</h3>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {reports.filter(r => r.category._id === category._id).length} 个报表
-                      </p>
-                    </div>
-                  </div>
-                  {category.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                      {category.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditCategory(category);
-                      }}
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeletingCategory(category);
-                      }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+        {/* 搜索框 */}
+        <div className="px-3 py-2 border-b">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="搜索报表..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-8 text-xs"
+            />
           </div>
         </div>
-
-        {/* 中间：报表列表 */}
-        <div className="w-80 border-r bg-background overflow-y-auto">
-          <div className="p-4 border-b bg-gradient-to-r from-muted/50 to-transparent">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">
-                {selectedCategoryData ? selectedCategoryData.name : '选择分类'}
-              </h2>
-              {selectedCategory && (
-                <Button
-                  size="sm"
-                  onClick={handleCreateReport}
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  新建报表
-                </Button>
-              )}
+        <div className="p-2">
+          {categories.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+              暂无分类
             </div>
-          </div>
+          ) : (
+            <div className="space-y-1">
+              {categories.map((category) => {
+                const isExpanded = expandedCategories.has(category._id);
+                const allReports = categoryReports[category._id] || [];
+                // 根据搜索关键词过滤报表
+                const filteredReports = searchQuery.trim()
+                  ? allReports.filter(report => 
+                      report.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (report.description && report.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                    )
+                  : allReports;
+                const hasReports = filteredReports.length > 0;
+                // 如果有搜索关键词且有匹配的报表，自动展开分类
+                const shouldExpand = isExpanded || (searchQuery.trim() && hasReports);
 
-          <div className="p-4 space-y-3">
-            {!selectedCategory ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">请先选择一个分类</p>
-              </div>
-            ) : loading ? (
-              Array.from({ length: 3 }).map((_, index) => (
-                <Skeleton key={index} className="h-20 w-full rounded-lg" />
-              ))
-            ) : reports.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm mb-4">该分类下暂无报表</p>
-                <Button size="sm" onClick={handleCreateReport}>
-                  创建第一个报表
-                </Button>
-              </div>
-            ) : (
-              reports.map((report) => (
-                <div
-                  key={report._id}
-                  onClick={() => handleSelectReport(report)}
-                  className={cn(
-                    "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 group relative overflow-hidden cursor-pointer",
-                    selectedReport?._id === report._id
-                      ? "border-primary bg-primary/10 shadow-lg"
-                      : "border-border hover:border-primary/50 hover:bg-accent"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                      <ImageIcon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1 truncate">{report.name}</h3>
-                      {report.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                          {report.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant={report.isActive ? 'default' : 'secondary'} className="text-xs">
-                          {report.isActive ? '已启用' : '已禁用'}
-                        </Badge>
-                        {report.images && report.images.length > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            {report.images.length} 张图片
-                          </Badge>
+                // 如果有搜索关键词但没有匹配的报表，不显示该分类
+                if (searchQuery.trim() && !hasReports) {
+                  return null;
+                }
+
+                return (
+                  <div key={category._id} className="group">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="relative">
+                            <button
+                              onClick={() => toggleCategory(category._id)}
+                              className="w-full flex items-center gap-1.5 h-8 px-2 rounded-md text-xs hover:bg-sidebar-accent transition-colors"
+                            >
+                              {shouldExpand ? (
+                                <ChevronDown className="w-3 h-3 shrink-0" />
+                              ) : (
+                                <ChevronRight className="w-3 h-3 shrink-0" />
+                              )}
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: category.color }}
+                              />
+                                    <span className="truncate flex-1 text-left">{category.name}</span>
+                                    {hasReports && (
+                                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                                        {searchQuery.trim() ? filteredReports.length : allReports.length}
+                                      </Badge>
+                                    )}
+                            </button>
+                            {/* 分类编辑和删除按钮 - 悬浮显示 */}
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditCategory(category);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingCategory(category);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </TooltipTrigger>
+                        {category.description && (
+                          <TooltipContent side="right" className="max-w-xs">
+                            <p className="text-xs">{category.description}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                          
+                    {/* 报表列表 - 可收缩 */}
+                    {shouldExpand && (
+                      <div className="ml-4 mt-1 space-y-0.5">
+                        {loadingCategories.has(category._id) ? (
+                          Array.from({ length: 3 }).map((_, index) => (
+                            <div key={index} className="px-2 py-1">
+                              <Skeleton className="h-6 w-full" />
+                            </div>
+                          ))
+                        ) : hasReports ? (
+                          <>
+                            {filteredReports.map((report) => {
+                              const isSelected = selectedReport?._id === report._id;
+                              return (
+                                <div key={report._id} className="group/report relative">
+                                  <button
+                                    onClick={() => handleSelectReport(report)}
+                                    className={cn(
+                                      "w-full flex items-center gap-2 h-7 px-2 rounded-md text-xs transition-colors",
+                                      isSelected 
+                                        ? "bg-primary text-primary-foreground font-semibold shadow-sm border-l-2 border-primary"
+                                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                                    )}
+                                    style={isSelected ? {
+                                      backgroundColor: 'hsl(var(--primary))',
+                                      color: 'hsl(var(--primary-foreground))'
+                                    } : undefined}
+                                  >
+                                    <FileText className={cn(
+                                      "w-3 h-3 shrink-0",
+                                      isSelected ? "text-primary-foreground" : "text-muted-foreground"
+                                    )} />
+                                    <span className={cn(
+                                      "truncate flex-1 text-left",
+                                      isSelected && "font-semibold"
+                                    )}>{report.name}</span>
+                                  </button>
+                                  {/* 管理按钮 - 悬浮显示 */}
+                                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/report:opacity-100 transition-opacity">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditReport(report);
+                                      }}
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingReport(report);
+                                      }}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {/* 新建报表按钮 */}
+                            <button
+                              onClick={() => handleCreateReport(category._id)}
+                              className="w-full flex items-center gap-2 h-7 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+                            >
+                              <Plus className="w-3 h-3 shrink-0" />
+                              <span className="truncate">新建报表</span>
+                            </button>
+                          </>
+                        ) : searchQuery.trim() ? (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground">
+                            未找到匹配的报表
+                          </div>
+                        ) : (
+                          <div className="px-2 py-1 text-[10px] text-muted-foreground flex items-center justify-between">
+                            <span>暂无报表</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0"
+                              onClick={() => handleCreateReport(category._id)}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
                         )}
                       </div>
-                    </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                );
+              }).filter(Boolean)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 右侧内容区 */}
+      <div className="flex-1 overflow-auto bg-background">
+        <div className="h-full p-6">
+          {selectedReport ? (
+            <div className="space-y-6">
+              {/* 报表标题和描述 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold">{selectedReport.name}</h2>
+                    {selectedReport.category && (
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1.5"
+                        style={{ borderColor: selectedReport.category.color }}
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: selectedReport.category.color }}
+                        />
+                        {selectedReport.category.name}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 px-2 flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditReport(report);
-                      }}
+                      onClick={() => handleEditReport(selectedReport)}
                     >
-                      <Edit className="w-3 h-3 mr-1" />
+                      <Edit className="w-4 h-4 mr-2" />
                       编辑
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 px-2 text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeletingReport(report);
-                      }}
+                      onClick={() => setDeletingReport(selectedReport)}
+                      className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      删除
                     </Button>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* 右侧：报表详情和图片管理 */}
-        <div className="flex-1 bg-muted/20 overflow-y-auto">
-          {selectedReport ? (
-            <div className="p-6">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold">{selectedReport.name}</h2>
                 </div>
                 {selectedReport.description && (
                   <p className="text-muted-foreground mb-4">{selectedReport.description}</p>
                 )}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                   <Badge variant={selectedReport.isActive ? 'default' : 'secondary'}>
                     {selectedReport.isActive ? '已启用' : '已禁用'}
                   </Badge>
                   <span>创建时间: {new Date(selectedReport.createdAt).toLocaleString('zh-CN')}</span>
+                  {selectedReport.createdBy && (
+                    <span>创建者: {selectedReport.createdBy.name}</span>
+                  )}
                 </div>
               </div>
 
-              {/* 图片展示区域 */}
-              <div className="space-y-4">
+              {/* 图片展示 */}
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">报表图片</h3>
+                  <h3 className="text-lg font-semibold">报表图片</h3>
                   {selectedReport.images && selectedReport.images.length > 0 && (
                     <Badge variant="secondary" className="text-sm">
                       共 {selectedReport.images.length} 张
                     </Badge>
                   )}
                 </div>
-
                 {selectedReport.images && selectedReport.images.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-6">
                     {selectedReport.images.map((image, index) => (
-                      <div
-                        key={index}
-                        className="group relative rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all duration-200 bg-card cursor-pointer"
-                        onClick={() => setPreviewImage({ url: image.url, alt: image.originalName })}
+                      <div 
+                        key={index} 
+                        className="group relative rounded-xl overflow-hidden border-2 border-border hover:border-primary/30 transition-all duration-300 bg-card shadow-sm hover:shadow-lg cursor-pointer"
+                        onClick={() => setPreviewImage({ url: image.url, alt: `${selectedReport.name} - 图片 ${index + 1}` })}
                       >
-                        <div className="aspect-video bg-muted relative">
+                        <div className="relative w-full bg-gradient-to-br from-muted/50 to-muted">
                           <img
                             src={image.url}
-                            alt={image.originalName}
-                            className="w-full h-full object-cover"
+                            alt={`${selectedReport.name} - 图片 ${index + 1}`}
+                            className="w-full h-auto object-contain max-h-[70vh] mx-auto block"
                             loading="lazy"
                           />
+                          {/* 图片序号标识 */}
+                          <div className="absolute top-4 left-4 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                            图片 {index + 1} / {selectedReport.images.length}
+                          </div>
+                          {/* 悬浮提示 */}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <div className="flex items-center gap-2 text-white">
                               <ZoomIn className="w-6 h-6" />
@@ -681,26 +850,24 @@ export default function AdminReportsPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="p-3 bg-muted/50">
-                          <p className="text-xs font-medium truncate">{image.originalName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(image.size / 1024).toFixed(2)} KB
-                          </p>
+                        <div className="p-4 bg-gradient-to-r from-muted/80 to-muted/50 border-t">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{image.originalName}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {(image.size / 1024).toFixed(2)} KB · {image.mimetype}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 border-2 border-dashed rounded-xl">
-                    <ImageIcon className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
-                    <p className="text-muted-foreground mb-4">该报表暂无图片</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      上传图片
-                    </Button>
+                  <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-xl bg-muted/30">
+                    <ImageIcon className="w-20 h-20 mx-auto mb-4 opacity-30" />
+                    <p className="text-base font-medium mb-1">该报表暂无图片</p>
+                    <p className="text-sm">请编辑报表上传图片</p>
                   </div>
                 )}
               </div>
@@ -708,9 +875,9 @@ export default function AdminReportsPage() {
           ) : (
             <div className="flex items-center justify-center h-full text-center text-muted-foreground">
               <div>
-                <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
                 <p className="text-lg font-medium mb-2">选择一个报表查看详情</p>
-                <p className="text-sm">在左侧选择分类，然后选择报表进行管理</p>
+                <p className="text-sm">从左侧菜单选择分类和报表进行管理</p>
               </div>
             </div>
           )}
@@ -982,17 +1149,21 @@ export default function AdminReportsPage() {
             className="relative max-w-[95vw] max-h-[95vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={previewImage.url}
-              alt={previewImage.alt}
-              className="rounded-lg transition-opacity duration-300 max-w-[90vw] max-h-[90vh] object-contain"
-            />
-            {previewImage.alt && (
-              <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-center">
-                <span className="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded max-w-md">
-                  {previewImage.alt}
-                </span>
-              </div>
+            {previewImage && (
+              <>
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.alt || '预览图片'}
+                  className="rounded-lg transition-opacity duration-300 max-w-[90vw] max-h-[90vh] object-contain"
+                />
+                {previewImage.alt && (
+                  <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-center">
+                    <span className="text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded max-w-md">
+                      {previewImage.alt}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

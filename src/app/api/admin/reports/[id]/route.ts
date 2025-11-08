@@ -9,6 +9,15 @@ import Image from '@/models/Image';
 import path from 'path';
 import crypto from 'crypto';
 
+// 图片对象类型定义
+interface ReportImage {
+  url: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  mimetype: string;
+}
+
 // 允许的文件类型
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -115,7 +124,7 @@ export async function PUT(
 
     // 注意：这里不删除图片，只有在保存成功后才删除
     // 找出被删除的图片（在原始列表中但不在新列表中）
-    const deletedImages = originalImages.filter(originalImg => {
+    const deletedImages = (originalImages as ReportImage[]).filter((originalImg: ReportImage) => {
       return !images.some((newImg: any) => 
         newImg.url === originalImg.url || 
         newImg.filename === originalImg.filename
@@ -149,7 +158,7 @@ export async function PUT(
           // 保存文件到MinIO（临时位置）
           const bytes = await file.arrayBuffer();
           const buffer = Buffer.from(bytes);
-          const tempFileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), null, false, false, false, undefined, true);
+          const tempFileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), undefined, false, false, false, undefined, true);
 
           // 临时对象名称
           const tempObjectName = `images/${user._id}/reports/temp/${fileName}`;
@@ -316,6 +325,37 @@ export async function DELETE(
       return NextResponse.json({ error: '报表不存在' }, { status: 404 });
     }
 
+    // 删除报表关联的所有图片
+    const images = (report.images || []) as ReportImage[];
+    for (const img of images) {
+      try {
+        // 从URL中提取objectName
+        const urlMatch = img.url.match(/\/api\/images\/(.+)/);
+        if (urlMatch) {
+          const objectName = urlMatch[1];
+          // 删除MinIO中的文件
+          await deleteFromMinio(objectName);
+          console.log(`✅ 已删除MinIO文件: ${objectName}`);
+        }
+
+        // 查找并删除数据库中的图片记录
+        const imageRecord = await Image.findOne({
+          $or: [
+            { url: img.url },
+            { filename: img.filename }
+          ]
+        });
+        if (imageRecord) {
+          await Image.findByIdAndDelete(imageRecord._id);
+          console.log(`✅ 已删除图片记录: ${img.filename}`);
+        }
+      } catch (error) {
+        console.error(`❌ 删除图片失败: ${img.filename}`, error);
+        // 继续处理其他图片，不中断流程
+      }
+    }
+
+    // 删除报表记录
     await Report.findByIdAndDelete(id);
 
     return NextResponse.json({ message: '报表删除成功' });

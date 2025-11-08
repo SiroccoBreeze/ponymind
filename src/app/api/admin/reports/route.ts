@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         // 保存文件到MinIO（临时位置）
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const tempFileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), null, false, false, false, undefined, true);
+        const tempFileUrl = await uploadToMinio(buffer, fileName, file.type, undefined, user._id.toString(), undefined, false, false, false, undefined, true);
 
         // 临时对象名称
         const tempObjectName = `images/${user._id}/reports/temp/${fileName}`;
