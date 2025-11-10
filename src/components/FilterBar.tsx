@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Combobox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tag, User, Search, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface FilterBarProps {
   onSearch?: (params: {
@@ -28,6 +27,7 @@ interface ComboboxOption {
 export default function FilterBar({ onSearch }: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [selectedTag, setSelectedTag] = useState(searchParams.get('tag') || '');
@@ -92,7 +92,9 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
     }
 
     const queryString = params.toString();
-    const newUrl = queryString ? `/?${queryString}` : '/';
+    // 如果在知识库页面，保持 /knowledge 路径；否则使用首页路径
+    const basePath = pathname?.startsWith('/knowledge') ? '/knowledge' : '/';
+    const newUrl = queryString ? `${basePath}?${queryString}` : basePath;
     router.push(newUrl);
   };
 
@@ -139,7 +141,9 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
     setSearch('');
     setSelectedTag('');
     setSelectedAuthor('');
-    router.push('/');
+    // 如果在知识库页面，保持 /knowledge 路径；否则跳转到首页
+    const basePath = pathname?.startsWith('/knowledge') ? '/knowledge' : '/';
+    router.push(basePath);
     
     if (onSearch) {
       onSearch({
@@ -163,7 +167,12 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
               placeholder="搜索问题、文章、标签..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
               className="pl-10 pr-4 h-12"
             />
             {search && (
