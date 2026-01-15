@@ -20,13 +20,22 @@ interface MarkdownPreviewProps {
 // 代码块组件
 const CodeBlock = memo(({ language, children, ...props }: any) => {
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isLongCode, setIsLongCode] = useState(false);
   
   // 确保组件已挂载后再使用主题
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 检查代码是否超长
+  useEffect(() => {
+    const codeString = String(children);
+    const lines = codeString.split('\n').length;
+    setIsLongCode(lines > 20); // 超过20行视为超长代码
+  }, [children]);
   
   // 根据主题判断是否为暗黑模式
   const isDarkMode = useMemo(() => {
@@ -69,40 +78,60 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
 
   return (
     <div className="relative group">
-      <SyntaxHighlighter
-        style={isDarkMode ? oneDark : oneLight}
-        language={language}
-        PreTag="div"
-        showLineNumbers
-        wrapLines
-        customStyle={{
-          borderRadius: '12px',
-          fontSize: '14px',
-          margin: '20px 0',
-          padding: '20px',
-          border: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-          boxShadow: isDarkMode 
-            ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' 
-            : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-          lineHeight: '1.6',
-          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+      <div 
+        className="relative overflow-hidden transition-all duration-300" 
+        style={{ 
+          maxHeight: isLongCode && !expanded ? '400px' : 'none',
         }}
-        lineNumberStyle={{
-          color: isDarkMode ? '#64748b' : '#94a3b8',
-          fontSize: '12px',
-          paddingRight: '16px',
-          minWidth: '2.5em',
-          borderRight: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
-          marginRight: '16px',
-        }}
-        {...props}
       >
-        {String(children).replace(/\n$/, '')}
-      </SyntaxHighlighter>
+        <SyntaxHighlighter
+          style={isDarkMode ? oneDark : oneLight}
+          language={language}
+          PreTag="div"
+          showLineNumbers
+          wrapLines
+          customStyle={{
+            borderRadius: '12px',
+            fontSize: '14px',
+            margin: '20px 0',
+            padding: '20px',
+            paddingBottom: isLongCode && !expanded ? '60px' : '20px',
+            border: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+            boxShadow: isDarkMode 
+              ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)' 
+              : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+            lineHeight: '1.6',
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          }}
+          lineNumberStyle={{
+            color: isDarkMode ? '#64748b' : '#94a3b8',
+            fontSize: '12px',
+            paddingRight: '16px',
+            minWidth: '2.5em',
+            borderRight: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+            marginRight: '16px',
+          }}
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+        
+        {/* 渐变遮罩 */}
+        {isLongCode && !expanded && (
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
+            style={{
+              background: isDarkMode 
+                ? 'linear-gradient(to bottom, transparent, #282c34)' 
+                : 'linear-gradient(to bottom, transparent, #fafafa)'
+            }}
+          />
+        )}
+      </div>
       
       {/* 语言标签 */}
       {language && (
-        <div className="absolute top-0 left-4 transform -translate-y-1/2">
+        <div className="absolute top-0 left-4 transform -translate-y-1/2 z-10">
           <span className={`px-3 py-1 text-xs font-medium rounded-full border ${
             isDarkMode 
               ? 'bg-slate-800 text-slate-200 border-slate-600' 
@@ -116,7 +145,7 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
       {/* 复制按钮 */}
       <button
         onClick={handleCopy}
-        className={`absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg px-3 py-2 text-sm font-medium shadow-sm border ${
+        className={`absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg px-3 py-2 text-sm font-medium shadow-sm border z-10 ${
           isDarkMode
             ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200 hover:text-white'
             : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900'
@@ -138,6 +167,30 @@ const CodeBlock = memo(({ language, children, ...props }: any) => {
           </div>
         )}
       </button>
+
+      {/* 展开/收起按钮 */}
+      {isLongCode && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 rounded-lg px-4 py-2 text-sm font-medium shadow-lg border transition-all duration-200 z-10 ${
+            isDarkMode
+              ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'
+              : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            <svg 
+              className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            <span>{expanded ? '收起代码' : '展开全部'}</span>
+          </div>
+        </button>
+      )}
     </div>
   );
 });
@@ -409,7 +462,11 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
     },
     h2({ children }: any) {
       const id = generateId(String(children));
-      return <h2 id={id} className="text-2xl font-bold text-foreground mb-5 mt-8" style={{ scrollMarginTop: '100px' }}>{children}</h2>;
+      return (
+        <h2 id={id} className="text-2xl font-bold text-foreground mb-5 mt-8 pl-4 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-primary before:rounded-full" style={{ scrollMarginTop: '100px' }}>
+          {children}
+        </h2>
+      );
     },
     h3({ children }: any) {
       const id = generateId(String(children));
@@ -448,7 +505,7 @@ const MarkdownPreviewComponent = memo(({ content, className = '', truncate }: Ma
         return <div className="my-6">{children}</div>;
       }
       
-      return <p className="mb-6 leading-relaxed text-foreground text-base">{children}</p>;
+      return <p className="text-foreground text-base" style={{ marginBottom: '1.5rem', lineHeight: '1.8' }}>{children}</p>;
     },
     // 链接样式
     a({ href, children }: any) {

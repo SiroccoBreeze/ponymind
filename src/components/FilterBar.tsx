@@ -158,108 +158,99 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          {/* 搜索输入框 */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="搜索问题、文章、标签..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSearch();
-                }
-              }}
-              className="pl-10 pr-4 h-12"
-            />
-            {search && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
-                onClick={() => setSearch('')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          {/* 搜索与筛选合并为一行 */}
+          <div className="flex flex-col lg:flex-row gap-3">
+            {/* 搜索输入框 */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索问题、文章、标签..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+                className="pl-10 pr-4 h-10"
+              />
+              {search && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                  onClick={() => setSearch('')}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
 
-          {/* 筛选器区域 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 标签筛选 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                <Tag className="h-4 w-4" />
-                按标签筛选
-              </label>
+            <div className="w-full lg:w-48">
               <Combobox
                 options={availableTags}
                 value={selectedTag}
                 onValueChange={handleTagChange}
-                placeholder="选择标签..."
+                placeholder="按标签筛选"
                 searchPlaceholder="搜索标签..."
                 emptyMessage="未找到标签"
-                className="w-full"
+                className="w-full h-10"
                 disabled={isLoading}
               />
             </div>
 
             {/* 作者筛选 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                按作者筛选
-              </label>
+            <div className="w-full lg:w-48">
               <Combobox
                 options={availableAuthors}
                 value={selectedAuthor}
                 onValueChange={handleAuthorChange}
-                placeholder="选择作者..."
+                placeholder="按作者筛选"
                 searchPlaceholder="搜索作者..."
                 emptyMessage="未找到作者"
-                className="w-full"
+                className="w-full h-10"
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          {/* 操作按钮 */}
+          {/* 当前筛选标签 */}
           {hasActiveFilters && (
-            <>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>当前筛选:</span>
-                  {search.trim() && (
-                    <Badge variant="secondary" className="text-xs">
-                      搜索: {search.trim()}
-                    </Badge>
-                  )}
-                  {selectedTag && (
-                    <Badge variant="secondary" className="text-xs">
-                      标签: {selectedTag}
-                    </Badge>
-                  )}
-                  {selectedAuthor && (
-                    <Badge variant="secondary" className="text-xs">
-                      作者: {availableAuthors.find(a => a.value === selectedAuthor)?.label || selectedAuthor}
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearAll}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  清除筛选
-                </Button>
+            <div className="flex items-center justify-between gap-2 pt-2 border-t">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">筛选:</span>
+                {search.trim() && (
+                  <Badge variant="secondary" className="text-xs h-6">
+                    {search.trim()}
+                  </Badge>
+                )}
+                {selectedTag && (
+                  <Badge variant="secondary" className="text-xs h-6">
+                    <Tag className="h-3 w-3 mr-1" />
+                    {selectedTag}
+                  </Badge>
+                )}
+                {selectedAuthor && (
+                  <Badge variant="secondary" className="text-xs h-6">
+                    <User className="h-3 w-3 mr-1" />
+                    {availableAuthors.find(a => a.value === selectedAuthor)?.label || selectedAuthor}
+                  </Badge>
+                )}
               </div>
-            </>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="text-xs h-6 px-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3 mr-1" />
+                清除
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

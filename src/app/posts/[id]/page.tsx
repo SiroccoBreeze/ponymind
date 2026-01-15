@@ -124,9 +124,81 @@ export default function PostDetailPage() {
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewAlt, setPreviewAlt] = useState<string | undefined>(undefined);
+  const [readProgress, setReadProgress] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isTocFixed, setIsTocFixed] = useState(true);
+  const [commentSortBy, setCommentSortBy] = useState<'newest' | 'hottest'>('newest');
+  const [replyToAuthor, setReplyToAuthor] = useState<string>('');
 
   
   const postId = params?.id as string;
+
+  // 监听滚动，更新阅读进度
+  useEffect(() => {
+    const handleScroll = () => {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY;
+      const maxScroll = documentHeight - windowHeight;
+      
+      if (maxScroll > 0) {
+        const progress = (scrollTop / maxScroll) * 100;
+        setReadProgress(Math.min(progress, 100));
+      }
+      
+      // 控制返回顶部按钮显示
+      setShowScrollTop(scrollTop > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初始执行一次
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 使用 Intersection Observer 监听评论区，控制目录固定
+  useEffect(() => {
+    const commentsSection = document.getElementById('comments-section');
+    if (!commentsSection) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // 当评论区进入视口时，取消目录固定
+          setIsTocFixed(!entry.isIntersecting);
+        });
+      },
+      {
+        rootMargin: '-100px 0px 0px 0px', // 提前100px触发
+        threshold: 0
+      }
+    );
+
+    observer.observe(commentsSection);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [post]); // 依赖 post，确保评论区已渲染
+
+  // 返回顶部
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // 滚动到评论区
+  const scrollToComments = () => {
+    const commentsSection = document.getElementById('comments-section');
+    if (commentsSection) {
+      commentsSection.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
 
   // 缓存和优化渲染
   const hasTableOfContents = useMemo(() => {
@@ -169,21 +241,29 @@ export default function PostDetailPage() {
         const data = await response.json();
         let sortedComments = data.comments || [];
         
-        // 如果是问题，将采纳的答案置顶
-        if (post?.type === 'question') {
-          sortedComments = sortedComments.sort((a: Comment, b: Comment) => {
-            if (a.isAccepted && !b.isAccepted) return -1;
-            if (!a.isAccepted && b.isAccepted) return 1;
+        // 排序逻辑
+        sortedComments = sortedComments.sort((a: Comment, b: Comment) => {
+          // 最佳答案始终置顶
+          if (a.isAccepted && !b.isAccepted) return -1;
+          if (!a.isAccepted && b.isAccepted) return 1;
+          
+          // 根据选择的排序方式排序
+          if (commentSortBy === 'newest') {
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          });
-        }
+          } else {
+            // 最热 = 点赞数 + 回复数
+            const hotA = (a.likes || 0) + (a.replies?.length || 0);
+            const hotB = (b.likes || 0) + (b.replies?.length || 0);
+            return hotB - hotA;
+          }
+        });
         
         setComments(sortedComments);
       }
     } catch (error) {
       console.error('获取评论失败:', error);
     }
-  }, [postId, post?.type]);
+  }, [postId, commentSortBy]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -290,23 +370,37 @@ export default function PostDetailPage() {
     const isExpanded = expandedReplies.has(comment._id);
 
     return (
-      <div key={comment._id} className={`border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-800' : ''}`}>
+      <div key={comment._id} className={`relative border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-gradient-to-br from-amber-50 via-yellow-50/50 to-green-50 dark:from-amber-950/20 dark:via-yellow-950/10 dark:to-green-950/20 rounded-xl p-5 border-2 border-amber-200 dark:border-amber-800 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20' : ''}`}>
+        {/* 金色角标 - 最佳答案 */}
+        {comment.isAccepted && (
+          <div className="absolute top-0 right-0 overflow-hidden w-24 h-24 pointer-events-none">
+            <div className="absolute top-3 right-[-32px] w-32 h-8 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 transform rotate-45 shadow-lg">
+              <div className="flex items-center justify-center h-full">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-white text-xs font-bold ml-1">BEST</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-start space-x-3">
-          <Avatar className="w-10 h-10 text-base">
+          <Avatar className="w-10 h-10 text-base ring-2 ring-offset-2 ring-amber-200 dark:ring-amber-800 ring-offset-background">
             <AvatarImage src={comment.author.avatar || undefined} alt={comment.author.name} />
             <AvatarFallback>{comment.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2 mb-1">
+            <div className="flex items-center space-x-2 mb-1 flex-wrap">
               <h3 className="text-sm font-medium text-foreground">{comment.author.name}</h3>
               <time className="text-xs text-muted-foreground">
                 {displayLocalTime(comment.createdAt, 'datetime')}
               </time>
               {comment.isAccepted && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700">
-                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md">
+                  <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   最佳答案
                 </span>
@@ -351,7 +445,10 @@ export default function PostDetailPage() {
                   </svg>
                 </button>
                 <button 
-                  onClick={() => setReplyingTo(comment._id)}
+                  onClick={() => {
+                    setReplyingTo(comment._id);
+                    setReplyToAuthor(comment.author.name);
+                  }}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   回复
@@ -401,17 +498,22 @@ export default function PostDetailPage() {
                   }}
                   onCancel={() => {
                     setReplyingTo(null);
+                    setReplyToAuthor('');
                   }}
                   isSubmitting={submittingReply}
                   postId={postId}
+                  initialContent={replyToAuthor ? `> @${replyToAuthor}：\n\n` : ''}
                 />
               </div>
             )}
 
-            {/* 展开的回复列表 */}
+            {/* 展开的回复列表 - 优化层级 */}
             {isExpanded && allReplies.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {allReplies.map((reply) => {
+              <div className="mt-4 space-y-4 ml-4 pl-4 border-l-2 border-primary/20 relative">
+                {/* 渐变引导线 */}
+                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
+                
+                {allReplies.map((reply, index) => {
                   // 找到这个回复是回复谁的
                   const findParentAuthor = (): string | null => {
                     if (reply.parentComment === comment._id) {
@@ -425,8 +527,11 @@ export default function PostDetailPage() {
                   const parentAuthor = findParentAuthor();
 
                   return (
-                    <div key={reply._id} className="flex items-start space-x-3">
-                      <Avatar className="w-10 h-10 text-base">
+                    <div key={reply._id} className="flex items-start space-x-3 bg-accent/30 rounded-lg p-3 hover:bg-accent/50 transition-colors relative">
+                      {/* 连接线 */}
+                      <div className="absolute left-[-18px] top-6 w-4 h-px bg-primary/30" />
+                      
+                      <Avatar className="w-8 h-8 text-sm ring-1 ring-border">
                         <AvatarImage src={reply.author.avatar || undefined} alt={reply.author.name} />
                         <AvatarFallback>{reply.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                       </Avatar>
@@ -477,7 +582,10 @@ export default function PostDetailPage() {
                             </svg>
                           </button>
                           <button 
-                            onClick={() => setReplyingTo(reply._id)}
+                            onClick={() => {
+                              setReplyingTo(reply._id);
+                              setReplyToAuthor(reply.author.name);
+                            }}
                             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                           >
                             回复
@@ -493,9 +601,11 @@ export default function PostDetailPage() {
                               }}
                               onCancel={() => {
                                 setReplyingTo(null);
+                                setReplyToAuthor('');
                               }}
                               isSubmitting={submittingReply}
                               postId={postId}
+                              initialContent={`> @${reply.author.name}：\n\n`}
                             />
                           </div>
                         )}
@@ -583,6 +693,76 @@ export default function PostDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 阅读进度条 */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted">
+        <div 
+          className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary transition-all duration-150 ease-out"
+          style={{ width: `${readProgress}%` }}
+        />
+      </div>
+
+      {/* 侧边悬浮工具栏 */}
+      <div className="fixed right-8 bottom-8 z-40 flex flex-col gap-3">
+        {/* 点赞按钮 */}
+        {session && (
+          <button
+            onClick={handleLike}
+            className={`group relative w-12 h-12 rounded-full shadow-lg border-2 transition-all duration-300 hover:scale-110 ${
+              liked 
+                ? 'bg-red-500 border-red-500 text-white' 
+                : 'bg-background border-border hover:border-primary'
+            }`}
+            title="点赞"
+          >
+            <svg 
+              className={`w-6 h-6 mx-auto transition-all ${liked ? 'fill-current' : 'fill-none'}`}
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              {liked ? '取消点赞' : '点赞'}
+            </span>
+          </button>
+        )}
+
+        {/* 评论跳转按钮 */}
+        <button
+          onClick={scrollToComments}
+          className="group relative w-12 h-12 rounded-full bg-background border-2 border-border hover:border-primary shadow-lg transition-all duration-300 hover:scale-110"
+          title="跳转到评论"
+        >
+          <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          {comments.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-semibold">
+              {comments.length > 99 ? '99+' : comments.length}
+            </span>
+          )}
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            评论区
+          </span>
+        </button>
+
+        {/* 返回顶部按钮 */}
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="group relative w-12 h-12 rounded-full bg-background border-2 border-border hover:border-primary shadow-lg transition-all duration-300 hover:scale-110 animate-in fade-in slide-in-from-bottom-4"
+            title="返回顶部"
+          >
+            <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              返回顶部
+            </span>
+          </button>
+        )}
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 面包屑导航 */}
         <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-8">
@@ -700,10 +880,36 @@ export default function PostDetailPage() {
             </div>
 
             {/* 评论区域 */}
-            <section>
-              <h2 className="text-2xl font-bold text-foreground mb-6">
-                {post.type === 'question' ? `${comments.length} 个回答` : `${comments.length} 条评论`}
-              </h2>
+            <section id="comments-section">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground">
+                  {post.type === 'question' ? `${comments.length} 个回答` : `${comments.length} 条评论`}
+                </h2>
+                
+                {/* 排序切换 */}
+                <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => setCommentSortBy('newest')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      commentSortBy === 'newest'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    最新
+                  </button>
+                  <button
+                    onClick={() => setCommentSortBy('hottest')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      commentSortBy === 'hottest'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    最热
+                  </button>
+                </div>
+              </div>
 
               {/* 评论列表 */}
               <div className="space-y-6 mb-8">
@@ -770,9 +976,16 @@ export default function PostDetailPage() {
           {/* 右侧目录 - 仅在有目录时显示 */}
           {hasTableOfContents && (
             <aside className="hidden lg:block lg:w-64 lg:flex-shrink-0">
-              <div className="sticky top-24 max-h-[calc(100vh-6rem)] overflow-y-auto">
+              <div 
+                className={`top-24 max-h-[calc(100vh-6rem)] transition-all duration-300 ${
+                  isTocFixed ? 'sticky' : 'relative'
+                }`}
+              >
                 <div className="px-4">
-                  <TableOfContents content={stableContent} />
+                  <TableOfContents 
+                    content={stableContent} 
+                    readProgress={readProgress}
+                  />
                 </div>
               </div>
             </aside>

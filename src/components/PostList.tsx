@@ -220,94 +220,104 @@ export default function PostList({
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <article key={post._id} className="bg-card rounded-lg shadow-sm border border-border hover:shadow-md transition-shadow duration-200">
-          <div className="p-6">
-            <div className="flex space-x-6">
-              {/* 左侧统计信息 */}
-              <div className="flex flex-col items-center space-y-2 text-sm text-muted-foreground min-w-[80px]">
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-foreground">{post.likes}</div>
-                  <div>点赞</div>
-                </div>
-                
-                {post.type === 'question' && (
-                  <div className="text-center">
-                    <div className={`text-lg font-semibold ${post.acceptedAnswer ? 'text-green-600' : 'text-foreground'}`}>
-                      {post.answers}
-                    </div>
-                    <div>回答</div>
-                  </div>
-                )}
-                
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-foreground">{post.views}</div>
-                  <div>浏览</div>
+        <article key={post._id} className="bg-card rounded-lg shadow-sm border border-border hover:shadow-lg hover:border-primary/20 hover:-translate-y-0.5 transition-all duration-300 ease-out group">
+          <div className="p-5">
+            {/* 主要内容 */}
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* 内容类型标识 - 增强配色 */}
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
+                    post.type === 'question' 
+                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/20' 
+                      : 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30 dark:border-sky-500/20'
+                  }`}>
+                    {post.type === 'question' ? '问题' : '文章'}
+                  </span>
+
+                  {/* 问题状态 - 增强配色 */}
+                  {post.type === 'question' && (
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
+                      post.acceptedAnswer 
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/20'
+                        : post.status === 'answered'
+                        ? 'bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/30 dark:border-violet-500/20'
+                        : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/20'
+                    }`}>
+                      {post.acceptedAnswer ? '已解决' : post.status === 'answered' ? '有回答' : '待回答'}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* 主要内容 */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    {/* 内容类型标识 */}
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      post.type === 'question' ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'
-                    }`}>
-                      {post.type === 'question' ? '问题' : '文章'}
-                    </span>
+              <Link href={`/posts/${post._id}`}>
+                <h2 className="text-lg font-semibold text-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 cursor-pointer line-clamp-2">
+                  {post.title}
+                </h2>
+              </Link>
 
-                    {/* 问题状态 */}
-                    {post.type === 'question' && (
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                        getStatusColor(post.status, !!post.acceptedAnswer)
-                      }`}>
-                        {post.acceptedAnswer ? '已解决' : post.status === 'answered' ? '有回答' : '待回答'}
+              <p className="text-muted-foreground line-clamp-2 text-sm" style={{ lineHeight: '1.6' }}>
+                {truncateText(post.summary || post.content, 150)}
+              </p>
+
+              {/* 标签 */}
+              <div className="flex flex-wrap gap-2">
+                {post.tags.slice(0, 5).map((tag, index) => (
+                  <Link
+                    key={index}
+                    href={`/?tag=${tag}`}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-muted/80 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors duration-200"
+                  >
+                    {tag}
+                  </Link>
+                ))}
+                {post.tags.length > 5 && (
+                  <span className="text-xs text-muted-foreground self-center">+{post.tags.length - 5}</span>
+                )}
+              </div>
+
+              {/* 底部信息栏 - 横向排列 */}
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  {/* 点赞数 */}
+                  <div className="flex items-center gap-1.5 group/item hover:text-red-500 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span className="font-medium">{post.likes}</span>
+                  </div>
+
+                  {/* 回答/评论数 */}
+                  {post.type === 'question' && (
+                    <div className="flex items-center gap-1.5 group/item hover:text-blue-500 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className={`font-medium ${post.acceptedAnswer ? 'text-green-600 dark:text-green-500' : ''}`}>
+                        {post.answers}
                       </span>
-                    )}
+                    </div>
+                  )}
 
-
-
-
+                  {/* 浏览数 */}
+                  <div className="flex items-center gap-1.5 group/item hover:text-purple-500 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span className="font-medium">{post.views}</span>
                   </div>
                 </div>
 
-                <Link href={`/posts/${post._id}`}>
-                  <h2 className="text-lg font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer mb-2 line-clamp-2">
-                    {post.title}
-                  </h2>
-                </Link>
-
-                <p className="text-muted-foreground mb-4 line-clamp-2 text-sm leading-relaxed">
-                  {truncateText(post.summary || post.content, 150)}
-                </p>
-
-                {/* 标签和作者信息 */}
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-wrap gap-2">
-                    {post.tags.slice(0, 3).map((tag, index) => (
-                      <Link
-                        key={index}
-                        href={`/?tag=${tag}`}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
-                      >
-                        {tag}
-                      </Link>
-                    ))}
-                    {post.tags.length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{post.tags.length - 3}</span>
-                    )}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Avatar className="w-5 h-5">
+                      <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                      <AvatarFallback className="text-xs">{post.author.name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="font-medium">{post.author.name}</span>
                   </div>
-
-                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <Avatar className="w-5 h-5">
-                        <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
-                        <AvatarFallback>{post.author.name.charAt(0).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{post.author.name}</span>
-                    </div>
-                    <span>{formatDate(post.createdAt)}</span>
-                  </div>
+                  <span>{formatDate(post.createdAt)}</span>
                 </div>
               </div>
             </div>

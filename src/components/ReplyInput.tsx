@@ -10,6 +10,7 @@ interface ReplyInputProps {
   isSubmitting?: boolean;
   placeholder?: string;
   postId?: string; // 添加帖子ID参数
+  initialContent?: string; // 初始内容（用于引用）
 }
 
 // 表情数据
@@ -25,8 +26,9 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
   isSubmitting = false,
   placeholder = "写下你的回复...",
   postId,
+  initialContent = '',
 }) => {
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(initialContent);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('常用');
   const [cachedImages, setCachedImages] = useState<CachedImage[]>([]);
@@ -34,6 +36,13 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // 初始化内容
+  useEffect(() => {
+    if (initialContent) {
+      setContent(initialContent);
+    }
+  }, [initialContent]);
 
   // 自动调整文本框高度
   useEffect(() => {
@@ -43,10 +52,12 @@ const ReplyInput: React.FC<ReplyInputProps> = ({
     }
   }, [content]);
 
-  // 自动聚焦
+  // 自动聚焦并将光标移到末尾
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
+      const len = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(len, len);
     }
   }, []);
 
