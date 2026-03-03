@@ -21,8 +21,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Eye, Heart, MessageCircle, Trash2, Check, X } from 'lucide-react';
+import { MoreHorizontal, Eye, Heart, MessageCircle, Trash2, Check, X, Link2 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import ShareLinkDialog from '@/components/ShareLinkDialog';
 
 interface Post {
   _id: string;
@@ -79,6 +80,7 @@ export default function PostsManagement() {
   const [rejectReason, setRejectReason] = useState('');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
+  const [shareDialogPost, setShareDialogPost] = useState<{ id: string; title: string } | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -509,6 +511,13 @@ export default function PostsManagement() {
                                 查看内容
                               </Link>
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setShareDialogPost({ id: post._id, title: post.title })}
+                              className="cursor-pointer"
+                            >
+                              <Link2 className="mr-2 h-4 w-4 text-primary" />
+                              生成分享链接
+                            </DropdownMenuItem>
                             
                             {post.reviewStatus === 'pending' && (
                               <>
@@ -620,6 +629,16 @@ export default function PostsManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 临时分享链接管理弹窗 */}
+      {shareDialogPost && (
+        <ShareLinkDialog
+          open={!!shareDialogPost}
+          onClose={() => setShareDialogPost(null)}
+          postId={shareDialogPost.id}
+          postTitle={shareDialogPost.title}
+        />
+      )}
     </div>
   );
 } 

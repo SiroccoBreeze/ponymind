@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -27,7 +27,9 @@ export type EventItem = {
   creator?: { _id: string; name: string; avatar?: string; email?: string }
 }
 
-export const columns: ColumnDef<EventItem>[] = [
+// 工厂函数，支持传入编辑回调
+export function createColumns(onEdit?: (event: EventItem) => void): ColumnDef<EventItem>[] {
+  return [
   {
     accessorKey: "occurredAt",
     header: ({ column }) => {
@@ -181,15 +183,22 @@ export const columns: ColumnDef<EventItem>[] = [
             >
               查看详情
             </DropdownMenuItem>
+            {onEdit && (
+              <DropdownMenuItem
+                onClick={() => onEdit(event)}
+                className="flex items-center gap-2"
+              >
+                <Pencil className="h-4 w-4" />
+                编辑事件
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={async () => {
                 try {
-                  // 优先使用现代 Clipboard API
                   if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(event._id);
                   } else {
-                    // 降级到传统方法
                     const textArea = document.createElement('textarea');
                     textArea.value = event._id;
                     textArea.style.position = 'fixed';
@@ -213,4 +222,8 @@ export const columns: ColumnDef<EventItem>[] = [
       )
     },
   },
-]
+  ]
+}
+
+// 向后兼容：默认无编辑回调的列定义
+export const columns = createColumns()

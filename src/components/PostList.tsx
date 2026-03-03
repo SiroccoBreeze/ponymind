@@ -69,6 +69,9 @@ export default function PostList({
       } else if (activeTab === 'unanswered') {
         // 待答问题：包括完全没有回答的问题，以及有回答但未标记最佳答案的问题
         url += '&type=question&unanswered=true';
+      } else if (activeTab === 'unresolved') {
+        // 待解决：问题类型且状态为 open（未关闭/未解决）
+        url += '&type=question&status=open';
       } else if (activeTab === 'trending') {
         url += '&trending=true';
       }

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 // 动态导入组件，避免SSR问题
@@ -370,23 +371,22 @@ export default function PostDetailPage() {
     const isExpanded = expandedReplies.has(comment._id);
 
     return (
-      <div key={comment._id} className={`relative border-b border-border pb-6 last:border-b-0 ${comment.isAccepted ? 'bg-gradient-to-br from-amber-50 via-yellow-50/50 to-green-50 dark:from-amber-950/20 dark:via-yellow-950/10 dark:to-green-950/20 rounded-xl p-5 border-2 border-amber-200 dark:border-amber-800 shadow-lg shadow-amber-100/50 dark:shadow-amber-900/20' : ''}`}>
-        {/* 金色角标 - 最佳答案 */}
-        {comment.isAccepted && (
-          <div className="absolute top-0 right-0 overflow-hidden w-24 h-24 pointer-events-none">
-            <div className="absolute top-3 right-[-32px] w-32 h-8 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 transform rotate-45 shadow-lg">
-              <div className="flex items-center justify-center h-full">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span className="text-white text-xs font-bold ml-1">BEST</span>
-              </div>
-            </div>
-          </div>
-        )}
-        
+      <div
+        key={comment._id}
+        className={`relative border-b border-border pb-6 last:border-b-0 rounded-xl p-5 transition-colors duration-200 ${
+          comment.isAccepted
+            ? 'bg-emerald-50/80 dark:bg-emerald-950/25 border-2 border-emerald-200 dark:border-emerald-800/60 shadow-[0_4px_16px_rgba(16,185,129,0.08)] dark:shadow-[0_4px_16px_rgba(52,211,153,0.06)]'
+            : ''
+        }`}
+      >
         <div className="flex items-start space-x-3">
-          <Avatar className="w-10 h-10 text-base ring-2 ring-offset-2 ring-amber-200 dark:ring-amber-800 ring-offset-background">
+          <Avatar
+            className={`w-10 h-10 text-base shrink-0 ${
+              comment.isAccepted
+                ? 'ring-2 ring-offset-2 ring-emerald-300 dark:ring-emerald-700 ring-offset-background'
+                : ''
+            }`}
+          >
             <AvatarImage src={comment.author.avatar || undefined} alt={comment.author.name} />
             <AvatarFallback>{comment.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
@@ -398,12 +398,12 @@ export default function PostDetailPage() {
                 {displayLocalTime(comment.createdAt, 'datetime')}
               </time>
               {comment.isAccepted && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-md">
-                  <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   最佳答案
-                </span>
+                </Badge>
               )}
             </div>
             
@@ -994,6 +994,7 @@ export default function PostDetailPage() {
       </div>
       {/* 全局图片预览弹窗 */}
       <ImagePreviewModal src={previewImage || ''} alt={previewAlt} open={!!previewImage} onClose={() => setPreviewImage(null)} />
+
     </div>
   );
 } 

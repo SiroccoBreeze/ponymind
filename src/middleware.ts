@@ -9,9 +9,16 @@ export default withAuth(
     const isAdminPage = pathname.startsWith('/admin');
     const isAdminApiRoute = pathname.startsWith('/api/admin/');
     const isRegisterPage = pathname === '/auth/register';
+    // 临时分享链接页面完全公开，无需登录
+    const isSharePage = pathname.startsWith('/share/');
 
     // 跳过对 API 认证路由的处理
     if (isApiAuthRoute) {
+      return NextResponse.next();
+    }
+
+    // 临时分享页面不需要登录
+    if (isSharePage) {
       return NextResponse.next();
     }
 

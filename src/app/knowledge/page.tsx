@@ -28,6 +28,7 @@ import {
   Calendar,
   Eye,
   Heart,
+  CircleAlert,
   Star
 } from 'lucide-react';
 import FloatingAddButton from '@/components/FloatingAddButton';
@@ -151,24 +152,28 @@ export default function KnowledgePage() {
               <CardContent className="p-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <TabsList className="grid w-full grid-cols-5 sm:grid-cols-5 lg:w-auto lg:grid-cols-5">
-                      <TabsTrigger value="all" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-6 sm:grid-cols-6 lg:w-auto lg:grid-cols-6">
+                      <TabsTrigger value="all" className="flex items-center gap-1.5">
                         <FileText className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">全部</span>
                       </TabsTrigger>
-                      <TabsTrigger value="questions" className="flex items-center gap-2">
+                      <TabsTrigger value="questions" className="flex items-center gap-1.5">
                         <Zap className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">问题</span>
                       </TabsTrigger>
-                      <TabsTrigger value="articles" className="flex items-center gap-2">
+                      <TabsTrigger value="articles" className="flex items-center gap-1.5">
                         <Edit3 className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">文章</span>
                       </TabsTrigger>
-                      <TabsTrigger value="unanswered" className="flex items-center gap-2">
+                      <TabsTrigger value="unanswered" className="flex items-center gap-1.5">
                         <MessageSquare className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">待答</span>
                       </TabsTrigger>
-                      <TabsTrigger value="trending" className="flex items-center gap-2">
+                      <TabsTrigger value="unresolved" className="flex items-center gap-1.5">
+                        <CircleAlert className="w-4 h-4 text-muted-foreground data-[state=active]:text-amber-500 transition-colors" />
+                        <span className="hidden sm:inline">待解决</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="trending" className="flex items-center gap-1.5">
                         <TrendingUp className="w-4 h-4 text-muted-foreground data-[state=active]:text-primary transition-colors" />
                         <span className="hidden sm:inline">热门</span>
                       </TabsTrigger>
@@ -243,6 +248,14 @@ export default function KnowledgePage() {
                     <PostList 
                       refreshTrigger={refreshTrigger}
                       activeTab="unanswered"
+                      sortBy={sortBy}
+                      searchFilters={searchFilters}
+                    />
+                  </TabsContent>
+                  <TabsContent value="unresolved" className="mt-0">
+                    <PostList 
+                      refreshTrigger={refreshTrigger}
+                      activeTab="unresolved"
                       sortBy={sortBy}
                       searchFilters={searchFilters}
                     />
@@ -556,6 +569,7 @@ export default function KnowledgePage() {
                             {user.weekActivity}
                           </Badge>
                         </div>
+
                       </div>
                       <div className="text-2xl group-hover:scale-110 transition-transform">
                         {user.badge}

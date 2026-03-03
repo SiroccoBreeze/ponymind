@@ -368,356 +368,409 @@ export default function Navbar() {
     return pathname?.startsWith(href);
   };
 
+  // ── MASTER §8.5 nav link 樣式 helper ──────────────────────────────────────
+  // active:   bg-primary/5 text-primary font-semibold
+  // inactive: text-muted-foreground hover:text-foreground hover:bg-accent
+  const navLinkCls = (href: string) =>
+    [
+      "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium",
+      "transition-colors duration-150 cursor-pointer",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+      isActiveLink(href)
+        ? "bg-primary/5 text-primary font-semibold"
+        : "text-muted-foreground hover:text-foreground hover:bg-accent",
+    ].join(" ");
+
+  // ── Mobile Sheet link 樣式 (padding 更大) ──────────────────────────────────
+  const mobileLinkCls = (href: string) =>
+    [
+      "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium",
+      "transition-colors duration-150 cursor-pointer",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+      isActiveLink(href)
+        ? "bg-primary/5 text-primary font-semibold"
+        : "text-muted-foreground hover:text-foreground hover:bg-accent",
+    ].join(" ");
+
   return (
     <>
-      {/* 固定导航栏 */}
-      <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-md border-b z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            {/* 左侧 Logo 和导航链接 */}
-            <div className="flex items-center space-x-8">
-              <div className="flex-shrink-0">
-                <Link href="/" className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center shadow-sm">
-                    <FileText className="w-5 h-5 text-primary-foreground" />
-                  </div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                    PonyMind
-                  </span>
-                </Link>
-              </div>
+      {/*
+        ── Navbar ────────────────────────────────────────────────────────────
+        glass-navbar  → MASTER §8.5 + globals.css .glass-navbar
+        fixed top-0   → 固定頂部
+        z-50          → 高於所有內容
+        h-16          → 64px 固定高度 (MASTER §8.5)
+        無佔位 div    → layout.tsx 的 <main pt-16> 負責偏移
+      */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 glass-navbar h-16"
+        role="navigation"
+        aria-label="主导航"
+      >
+        {/* MASTER §4: max-w-7xl 居中，h-full 撐滿 64px */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
 
-              {/* 桌面端导航链接 */}
-              <div className="hidden md:flex items-center space-x-1">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isActiveLink(link.href)
-                          ? 'bg-accent text-accent-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{link.label}</span>
-                    </Link>
-                  );
-                })}
-                
-                {/* 服务下拉菜单 */}
-                <DropdownMenu>
+          {/* ── 左側：Logo + 桌面導航 ─────────────────────────────────── */}
+          <div className="flex items-center gap-8">
+
+            {/* Logo — MASTER §8.5: font-heading font-bold text-xl text-primary */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 cursor-pointer flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
+            >
+              {/* 品牌圖示 — bg-primary 實色方塊，非漸變（MASTER §1：禁止 AI purple 漸變） */}
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+                <MessageSquare className="w-5 h-5 text-primary-foreground" strokeWidth={1.5} />
+              </div>
+              {/* MASTER §8.5 Logo: font-heading */}
+              <span className="font-heading font-bold text-xl text-primary">
+                PonyMind
+              </span>
+            </Link>
+
+            {/* 桌面導航連結 — MASTER §8.5 */}
+            <nav className="hidden md:flex items-center gap-1" aria-label="主菜单">
+              {navLinks.map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href} className={navLinkCls(href)}>
+                  {/* MASTER §13: strokeWidth={1.5} */}
+                  <Icon className="w-4 h-4" strokeWidth={1.5} />
+                  <span>{label}</span>
+                </Link>
+              ))}
+
+              {/* 服務下拉 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={[
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium h-auto",
+                      "transition-colors duration-150 cursor-pointer",
+                      "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                      isActiveLink('/resources') || isActiveLink('/reports')
+                        ? "bg-primary/5 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                    ].join(" ")}
+                  >
+                    <Settings className="w-4 h-4" strokeWidth={1.5} />
+                    <span>服务</span>
+                    <ChevronDown className="w-3 h-3" strokeWidth={1.5} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  {serviceLinks.map(({ href, label, icon: Icon }) => (
+                    <DropdownMenuItem key={href} asChild>
+                      <Link href={href} className="flex items-center gap-2 w-full cursor-pointer">
+                        <Icon className="w-4 h-4" strokeWidth={1.5} />
+                        <span>{label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </nav>
+          </div>
+
+          {/* ── 右側：主題切換 + 移動選單 + 用戶區 ──────────────────── */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+
+            {/* 移動端 Hamburger + Sheet — MASTER §8.5 */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  aria-label="打开移动菜单"
+                >
+                  <Menu className="h-5 w-5" strokeWidth={1.5} />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[360px]">
+                <div className="flex flex-col h-full">
+                  {/* Sheet Logo */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="w-5 h-5 text-primary-foreground" strokeWidth={1.5} />
+                    </div>
+                    <span className="font-heading font-bold text-xl text-primary">PonyMind</span>
+                  </div>
+
+                  <nav className="space-y-1" aria-label="移动端菜单">
+                    {navLinks.map(({ href, label, icon: Icon }) => (
+                      <Link key={href} href={href} className={mobileLinkCls(href)}>
+                        <Icon className="w-4 h-4" strokeWidth={1.5} />
+                        <span>{label}</span>
+                      </Link>
+                    ))}
+
+                    <div className="pt-2">
+                      <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        服务
+                      </p>
+                      {serviceLinks.map(({ href, label, icon: Icon }) => (
+                        <Link key={href} href={href} className={mobileLinkCls(href)}>
+                          <Icon className="w-4 h-4" strokeWidth={1.5} />
+                          <span>{label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </nav>
+
+                  <Separator className="my-4" />
+
+                  {!session?.user && (
+                    <div className="space-y-2">
+                      <Link href="/auth/signin" className="w-full">
+                        <Button
+                          variant="outline"
+                          className="w-full cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          登录
+                        </Button>
+                      </Link>
+                      {registrationEnabled && (
+                        <Link href="/auth/register" className="w-full">
+                          <Button className="w-full cursor-pointer focus-visible:ring-2 focus-visible:ring-primary">
+                            注册
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* ── 已登入：通知 + 用戶選單 ─────────────────────────── */}
+            {session?.user ? (
+              <div className="flex items-center gap-2">
+
+                {/* 通知鈴 */}
+                <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isActiveLink('/resources') || isActiveLink('/reports')
-                          ? 'bg-accent text-accent-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                      }`}
+                      size="icon"
+                      className="relative cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      aria-label={`通知${unreadCount > 0 ? `，${unreadCount} 条未读` : ''}`}
+                      onClick={fetchNotifications}
                     >
-                      <Settings className="w-4 h-4" />
-                      <span>服务</span>
-                      <ChevronDown className="w-3 h-3" />
+                      <Bell className="h-5 w-5" strokeWidth={1.5} />
+                      {unreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-48">
-                    {serviceLinks.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <DropdownMenuItem key={link.href} asChild>
-                          <Link
-                            href={link.href}
-                            className="flex items-center space-x-2 w-full"
+                  <DropdownMenuContent align="end" className="w-80">
+                    {/* 通知頭部 */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b">
+                      <h3 className="text-base font-semibold">消息通知</h3>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={markAllMessagesAsRead}
+                            className="text-xs text-muted-foreground hover:text-foreground cursor-pointer h-7 px-2"
                           >
-                            <Icon className="w-4 h-4" />
-                            <span>{link.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
+                            全部已读
+                          </Button>
+                        )}
+                        <Link
+                          href="/user-center?section=messages"
+                          onClick={() => setShowNotifications(false)}
+                          className="text-sm text-primary hover:text-primary/80 transition-colors duration-150 cursor-pointer"
+                        >
+                          查看全部
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* 通知列表 */}
+                    <div className="max-h-72 overflow-y-auto">
+                      {loadingNotifications ? (
+                        <div className="p-6 text-center">
+                          {/* MASTER §7.4: 只在 loading 用 animate-spin */}
+                          <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
+                          <p className="text-sm text-muted-foreground mt-2">加载中...</p>
+                        </div>
+                      ) : notifications.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <MessageSquare
+                            className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2"
+                            strokeWidth={1.5}
+                          />
+                          <p className="text-sm text-muted-foreground">暂无新消息</p>
+                        </div>
+                      ) : (
+                        <>
+                          {notifications.filter((m) => !m.isRead).length === 0 && (
+                            <div className="px-4 py-2 text-center border-b">
+                              <p className="text-xs text-muted-foreground">所有消息已读</p>
+                            </div>
+                          )}
+                          {notifications.map((notification) => (
+                            <div
+                              key={notification._id}
+                              role="button"
+                              tabIndex={0}
+                              className={[
+                                "px-4 py-3 border-b last:border-0 cursor-pointer",
+                                "transition-colors duration-150",
+                                "focus-visible:outline-none focus-visible:bg-accent",
+                                !notification.isRead
+                                  ? "bg-primary/5 hover:bg-primary/10"
+                                  : "hover:bg-accent",
+                              ].join(" ")}
+                              onClick={async () => {
+                                if (!notification.isRead) {
+                                  await markMessageAsRead(notification._id);
+                                }
+                                if (notification.relatedId && notification.relatedType === 'post') {
+                                  setShowNotifications(false);
+                                  window.open(`/posts/${notification.relatedId}`, '_blank');
+                                } else {
+                                  setShowNotifications(false);
+                                  window.location.href = '/user-center?section=messages';
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click();
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* 已讀/未讀指示點 */}
+                                <div
+                                  className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                    !notification.isRead ? 'bg-primary' : 'bg-muted-foreground/30'
+                                  }`}
+                                  aria-hidden="true"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{notification.title}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                    {notification.content}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground/60 mt-1">
+                                    {displayLocalTime(notification.createdAt, 'datetime')}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* 用戶頭像選單 */}
+                <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="flex items-center gap-2 px-2 py-1.5 h-auto cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      aria-label="用户菜单"
+                    >
+                      <UserAvatar
+                        avatar={userProfile?.avatar}
+                        userName={
+                          userProfile?.name ||
+                          session.user.name ||
+                          session.user.email ||
+                          '用户'
+                        }
+                        size="sm"
+                      />
+                      <span className="hidden sm:block font-medium text-sm">
+                        {userProfile?.name ||
+                          session.user.name ||
+                          session.user.email?.split('@')[0]}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {/* 用戶資訊頭 */}
+                    <div className="px-4 py-3 border-b">
+                      <p className="text-sm font-semibold">
+                        {userProfile?.name || session.user.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {userProfile?.email || session.user.email}
+                      </p>
+                    </div>
+
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/user-center"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="cursor-pointer"
+                      >
+                        <User className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                        用户中心
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsMenuOpen(false)}
+                          className="cursor-pointer"
+                        >
+                          <Shield className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                          管理后台
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        signOut({ callbackUrl: '/auth/signin' });
+                      }}
+                      className="text-destructive focus:text-destructive cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                      退出登录
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-            </div>
 
-            {/* 右侧用户菜单 */}
-            <div className="flex items-center space-x-4">
-              {/* 主题切换 */}
-              <ThemeToggle />
-
-              {/* 移动端菜单按钮 */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
-                    <Menu className="h-5 w-5" />
+            ) : (
+              /* 未登入 — 桌面登入/注冊按鈕 */
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/auth/signin">
+                  <Button
+                    variant="ghost"
+                    className="cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  >
+                    登录
                   </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center space-x-2 mb-6">
-                      <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-primary-foreground" />
-                      </div>
-                      <span className="text-xl font-bold">PonyMind</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {navLinks.map((link) => {
-                        const Icon = link.icon;
-                        return (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                              isActiveLink(link.href)
-                                ? 'bg-accent text-accent-foreground'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                            <span>{link.label}</span>
-                          </Link>
-                        );
-                      })}
-                      
-                      {/* 移动端服务菜单 */}
-                      <div className="space-y-1">
-                        <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          服务
-                        </div>
-                        {serviceLinks.map((link) => {
-                          const Icon = link.icon;
-                          return (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                                isActiveLink(link.href)
-                                  ? 'bg-accent text-accent-foreground'
-                                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                              }`}
-                            >
-                              <Icon className="w-4 h-4" />
-                              <span>{link.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    
-                    <Separator className="my-4" />
-                    
-                    {/* 移动端登录注册按钮 */}
-                    {!session?.user && (
-                      <div className="space-y-2">
-                        <Link href="/auth/signin" className="w-full">
-                          <Button variant="outline" className="w-full">
-                            登录
-                          </Button>
-                        </Link>
-                        {/* 注册功能关闭时，不显示任何内容，让用户感觉没有注册功能 */}
-                        {registrationEnabled ? (
-                          <Link href="/auth/register" className="w-full">
-                            <Button className="w-full">
-                              注册
-                            </Button>
-                          </Link>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              {session?.user ? (
-                <div className="flex items-center space-x-3">
-                  {/* 消息通知按钮 */}
-                  <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="relative"
-                        onClick={() => {
-                          // 每次打开通知时都刷新消息
-                          fetchNotifications();
-                        }}
-                      >
-                        <Bell className="h-5 w-5" />
-                        {unreadCount > 0 && (
-                          <Badge 
-                            variant="destructive" 
-                            className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                          >
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80">
-                      <div className="flex items-center justify-between p-4 border-b">
-                        <h3 className="text-lg font-semibold">消息通知</h3>
-                        <div className="flex items-center space-x-2">
-                          {unreadCount > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={markAllMessagesAsRead}
-                              className="text-xs text-muted-foreground hover:text-foreground"
-                            >
-                              全部已读
-                            </Button>
-                          )}
-                          <Link
-                            href="/user-center?section=messages"
-                            onClick={() => setShowNotifications(false)}
-                            className="text-sm text-primary hover:text-primary/80"
-                          >
-                            查看全部
-                          </Link>
-                        </div>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        {loadingNotifications ? (
-                          <div className="p-4 text-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                            <p className="text-sm text-muted-foreground mt-2">加载中...</p>
-                          </div>
-                        ) : notifications.length === 0 ? (
-                          <div className="p-4 text-center">
-                            <MessageSquare className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">暂无新消息</p>
-                          </div>
-                        ) : (
-                          <>
-                            {notifications.filter(msg => !msg.isRead).length === 0 && (
-                              <div className="p-3 text-center border-b">
-                                <p className="text-xs text-muted-foreground">所有消息已读</p>
-                              </div>
-                            )}
-                            {notifications.map((notification) => (
-                              <div 
-                                key={notification._id} 
-                                className={`p-4 border-b hover:bg-accent cursor-pointer transition-colors ${!notification.isRead ? 'bg-accent/50' : ''}`}
-                                onClick={async () => {
-                                  // 如果消息未读，标记为已读
-                                  if (!notification.isRead) {
-                                    await markMessageAsRead(notification._id);
-                                  }
-                                  
-                                  // 如果消息有关联的内容，跳转到相关内容
-                                  if (notification.relatedId && notification.relatedType === 'post') {
-                                    // 关闭消息通知下拉菜单
-                                    setShowNotifications(false);
-                                    // 跳转到相关内容
-                                    window.open(`/posts/${notification.relatedId}`, '_blank');
-                                  } else {
-                                    // 如果没有关联内容，跳转到用户中心的消息页面
-                                    setShowNotifications(false);
-                                    window.location.href = '/user-center?section=messages';
-                                  }
-                                }}
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${!notification.isRead ? 'bg-primary' : 'bg-muted-foreground/30'}`}></div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">
-                                      {notification.title}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                      {notification.content}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground/70 mt-1">
-                                      {displayLocalTime(notification.createdAt, 'datetime')}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* 用户菜单 */}
-                  <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="flex items-center space-x-3 p-2">
-                        <UserAvatar 
-                          avatar={userProfile?.avatar}
-                          userName={userProfile?.name || session.user.name || session.user.email || '用户'}
-                          size="sm"
-                        />
-                        <span className="hidden sm:block font-medium text-sm">
-                          {userProfile?.name || session.user.name || session.user.email?.split('@')[0]}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <div className="px-4 py-3 border-b">
-                        <p className="text-sm font-medium">{userProfile?.name || session.user.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{userProfile?.email || session.user.email}</p>
-                      </div>
-                      
-                      <DropdownMenuItem asChild>
-                        <Link href="/user-center" onClick={() => setIsMenuOpen(false)}>
-                          <User className="mr-2 h-4 w-4" />
-                          用户中心
-                        </Link>
-                      </DropdownMenuItem>
-                      
-                      {/* 管理员入口 */}
-                      {isAdmin && (
-                        <DropdownMenuItem asChild>
-                          <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
-                            <Shield className="mr-2 h-4 w-4" />
-                            管理后台
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          signOut({ callbackUrl: '/auth/signin' });
-                        }}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        退出登录
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ) : (
-                <div className="hidden md:flex items-center space-x-3">
-                  <Link href="/auth/signin">
-                    <Button variant="ghost">
-                      登录
+                </Link>
+                {registrationEnabled && (
+                  <Link href="/auth/register">
+                    <Button className="cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                      注册
                     </Button>
                   </Link>
-                  {/* 注册功能关闭时，不显示任何内容，让用户感觉没有注册功能 */}
-                  {registrationEnabled ? (
-                    <Link href="/auth/register">
-                      <Button>
-                        注册
-                      </Button>
-                    </Link>
-                  ) : null}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </nav>
-
-      {/* 顶部占位空间 */}
-      <div className="h-16"></div>
+      {/* 注意：移除了舊的 <div className="h-16"> 佔位 div
+          現在由 layout.tsx 的 <main className="pt-16"> 負責偏移 */}
     </>
   );
 } 

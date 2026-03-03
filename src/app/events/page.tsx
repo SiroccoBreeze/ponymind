@@ -78,8 +78,9 @@ export default function EventsPage() {
     }
   }
   
-  // 创建事件弹框状态 - 完全匹配管理端
+  // 创建/编辑事件弹框状态
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
@@ -210,21 +211,49 @@ export default function EventsPage() {
 
   // 打开创建对话框 - 匹配管理端逻辑
   const openCreateDialog = () => {
+    setEditingEventId(null);
     resetForm();
     setIsCreateDialogOpen(true);
   };
 
-  // 关闭对话框时的处理 - 完全匹配管理端逻辑
+  // 打开编辑对话框，预填充现有事件数据
+  const openEditDialog = (event: EventItem) => {
+    setEditingEventId(event._id);
+    setFormData({
+      title: event.title,
+      description: event.description || '',
+      tags: event.tags || [],
+      occurredAt: event.occurredAt
+        ? new Date(event.occurredAt).toISOString().slice(0, 16)
+        : '',
+      attachmentIds: (event.attachments || []).map(a => a._id),
+    });
+    // 把现有附件填入已上传列表，以便界面显示
+    setUploadedAttachments(
+      (event.attachments || []).map(a => ({
+        id: a._id,
+        filename: a.originalName,
+        originalName: a.originalName,
+        url: a.url,
+        size: a.size,
+        isConfirmed: true,
+      }))
+    );
+    setIsCreateDialogOpen(true);
+  };
+
+  // 关闭对话框时的处理
   const handleDialogClose = async () => {
-    // 如果有已上传的附件，需要清理
-    if (uploadedAttachments.length > 0) {
+    // 编辑模式下不删除已有附件，只清理本次新上传的未确认附件
+    if (!editingEventId && uploadedAttachments.length > 0) {
       await cleanupAttachments();
     }
     setIsCreateDialogOpen(false);
+    setEditingEventId(null);
     resetForm();
   };
 
-  // 保存事件 - 完全匹配管理端逻辑
+  // 保存事件（创建 / 编辑复用同一 Dialog）
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.occurredAt) {
       toast.error('请填写标题和发生时间');
@@ -233,28 +262,26 @@ export default function EventsPage() {
 
     try {
       setSaving(true);
-      
-      // 处理时间：将本地时间转换为UTC时间
-      const requestBodyWithUTCTime = {
-        ...formData,
-        occurredAt: formData.occurredAt // 后端会自动转换为UTC时间
-      };
-      
-      const response = await fetch('/api/events', {
-        method: 'POST',
+
+      const isEditing = !!editingEventId;
+      const url = isEditing ? `/api/events/${editingEventId}` : '/api/events';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBodyWithUTCTime)
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        toast.success('事件创建成功');
+        toast.success(isEditing ? '事件更新成功' : '事件创建成功');
         setIsCreateDialogOpen(false);
+        setEditingEventId(null);
         resetForm();
-        // 创建成功后刷新事件列表
         fetchEvents();
       } else {
         const error = await response.json();
-        toast.error(error.error || '创建失败');
+        toast.error(error.error || (isEditing ? '更新失败' : '创建失败'));
       }
     } catch (error) {
       console.error('保存事件失败:', error);
@@ -376,7 +403,7 @@ export default function EventsPage() {
         </TabsList>
 
         <TabsContent value="table" className="mt-4">
-          <EventsDataTable events={events} loading={loading} />
+          <EventsDataTable events={events} loading={loading} onEdit={openEditDialog} />
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
@@ -401,6 +428,7 @@ export default function EventsPage() {
                     tags: event.tags,
                     creator: event.creator,
                     attachments: event.attachments,
+                    onEdit: () => openEditDialog(event),
                     onClick: () => window.open(`/events/${event._id}`, '_blank')
                   }))}
                 mode={timelineMode}
@@ -421,7 +449,7 @@ export default function EventsPage() {
       }}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>新建事件</DialogTitle>
+            <DialogTitle>{editingEventId ? '编辑事件' : '新建事件'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             {/* 基本信息 */}

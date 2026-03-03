@@ -1,14 +1,15 @@
 "use client"
 
 import { DataTable } from "@/components/ui/data-table"
-import { columns, EventItem } from "./columns"
+import { createColumns, EventItem } from "./columns"
 
 interface EventsDataTableProps {
   events: EventItem[]
   loading?: boolean
+  onEdit?: (event: EventItem) => void
 }
 
-export function EventsDataTable({ events, loading = false }: EventsDataTableProps) {
+export function EventsDataTable({ events, loading = false, onEdit }: EventsDataTableProps) {
   console.log('EventsDataTable 渲染:', { events, loading, eventsLength: events?.length })
   
   if (loading) {
@@ -44,7 +45,7 @@ export function EventsDataTable({ events, loading = false }: EventsDataTableProp
 
   return (
     <DataTable
-      columns={columns}
+      columns={createColumns(onEdit)}
       data={events}
       searchKey="title"
       searchPlaceholder="搜索事件标题..."

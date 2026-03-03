@@ -52,7 +52,8 @@ import {
   FolderOpen,
   AlertCircle,
   CheckCircle,
-  BarChart3
+  BarChart3,
+  Link2,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -285,6 +286,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/posts', 
       label: '内容管理', 
       icon: FileText,
+      description: ''
+    },
+    { 
+      href: '/admin/share-links', 
+      label: '分享链接', 
+      icon: Link2,
       description: ''
     },
     { 
