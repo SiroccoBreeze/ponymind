@@ -77,6 +77,9 @@ export default function Navbar() {
   // 临时分享页面不需要显示导航栏
   if (pathname?.startsWith('/share/')) return null;
 
+  // 管理端（含仪表盘）不显示前台导航栏，由 admin layout 提供侧栏
+  if (pathname?.startsWith('/admin')) return null;
+
   // UI state
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);

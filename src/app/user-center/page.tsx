@@ -8,14 +8,7 @@ import CreatePost from '@/components/CreatePost';
 import CreateQuestion from '@/components/CreateQuestion';
 import AvatarUpload from '@/components/AvatarUpload';
 import FloatingAddButton from '@/components/FloatingAddButton';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationPrevious,
-  PaginationNext,
-} from '@/components/ui/pagination';
+import { PaginationBar } from '@/components/PaginationBar';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -29,6 +22,25 @@ import {
 
 import UserAvatar from '@/components/UserAvatar';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import {
+  User,
+  FileText,
+  MessageSquare,
+  Eye,
+  Heart,
+  ExternalLink,
+  Pencil,
+  Trash2,
+  Search,
+  X,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  FileEdit,
+  XCircle,
+  AlertTriangle,
+  Info,
+} from 'lucide-react';
 
 interface UserStats {
   totalPosts: number;
@@ -275,16 +287,16 @@ export default function UserCenterPage() {
   };
 
   const getStatusBadge = (reviewStatus: string) => {
-    const config = {
-      'draft': { label: '草稿', color: 'bg-gray-100 text-gray-800' },
-      'pending': { label: '待审核', color: 'bg-yellow-100 text-yellow-800' },
-      'published': { label: '已发布', color: 'bg-green-100 text-green-800' },
-      'rejected': { label: '已拒绝', color: 'bg-red-100 text-red-800' }
+    const config: Record<string, { label: string; cls: string }> = {
+      draft: { label: '草稿', cls: 'bg-muted text-muted-foreground border-border' },
+      pending: { label: '待审核', cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30' },
+      published: { label: '已发布', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' },
+      rejected: { label: '已拒绝', cls: 'bg-destructive/10 text-destructive border-destructive/20' },
     };
-    const statusConfig = config[reviewStatus as keyof typeof config] || config.draft;
+    const item = config[reviewStatus] || config.draft;
     return (
-      <span className={`px-2 py-1 text-xs rounded-full font-medium ${statusConfig.color}`}>
-        {statusConfig.label}
+      <span className={`px-2 py-1 text-xs rounded-full font-medium border ${item.cls}`}>
+        {item.label}
       </span>
     );
   };
@@ -356,7 +368,10 @@ export default function UserCenterPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" strokeWidth={1.5} />
+          <p className="text-sm">加载中…</p>
+        </div>
       </div>
     );
   }
@@ -378,60 +393,57 @@ export default function UserCenterPage() {
                   userName={session?.user?.name || session?.user?.email || '用户'}
                   size="lg"
                 />
-                <div>
-                  <h1 className="text-lg font-bold text-foreground">{session?.user?.name}</h1>
-                  <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
+                <div className="min-w-0">
+                  <h1 className="font-heading text-lg font-bold text-foreground truncate">{session?.user?.name}</h1>
+                  <p className="text-sm text-muted-foreground truncate">{session?.user?.email}</p>
                 </div>
               </div>
               
-              <nav className="space-y-2">
+              <nav className="space-y-2" aria-label="用户中心导航">
                 <button
+                  type="button"
                   onClick={() => setActiveSection('profile')}
-                  className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-left rounded-lg transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     activeSection === 'profile'
                       ? 'bg-primary/10 text-primary border border-primary/20'
                       : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <User className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
                   <span>个人资料</span>
                 </button>
-                
+
                 <button
+                  type="button"
                   onClick={() => setActiveSection('content')}
-                  className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-left rounded-lg transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     activeSection === 'content'
                       ? 'bg-primary/10 text-primary border border-primary/20'
                       : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                  <FileText className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
                   <span>内容管理</span>
                   {stats.pending > 0 && (
-                    <span className="ml-auto bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span className="ml-auto bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full tabular-nums font-medium">
                       {stats.pending}
                     </span>
                   )}
                 </button>
-                
+
                 <button
+                  type="button"
                   onClick={() => setActiveSection('messages')}
-                  className={`w-full flex items-center space-x-3 px-4 py-2 text-left rounded-lg transition-colors ${
+                  className={`w-full flex items-center gap-3 px-4 py-2 text-left rounded-lg transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     activeSection === 'messages'
                       ? 'bg-primary/10 text-primary border border-primary/20'
                       : 'text-muted-foreground hover:bg-accent'
                   }`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+                  <MessageSquare className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
                   <span>消息</span>
                   {unreadCount > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                    <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full tabular-nums font-medium">
                       {unreadCount}
                     </span>
                   )}
@@ -445,8 +457,8 @@ export default function UserCenterPage() {
             {/* 个人资料 */}
             {activeSection === 'profile' && (
               <div className="space-y-6">
-                <div className="bg-card rounded-lg shadow-sm border border-border p-6">
-                  <h2 className="text-xl font-bold text-foreground mb-6">个人资料</h2>
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                  <h2 className="font-heading text-xl font-bold text-foreground mb-6">个人资料</h2>
                   
                   {/* 头像上传区域 */}
                   <div className="mb-8">
@@ -543,24 +555,23 @@ export default function UserCenterPage() {
                   </div>
                 </div>
                 
-                {/* 统计数据 */}
-                <div className="bg-card rounded-lg shadow-sm border border-border p-6">
-                  <h3 className="text-lg font-bold text-foreground mb-4">我的统计</h3>
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                  <h3 className="font-heading text-lg font-bold text-foreground mb-4">我的统计</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 border border-border rounded-lg bg-background">
-                      <div className="text-2xl font-bold text-blue-600">{stats.totalPosts}</div>
+                    <div className="text-center p-4 border border-border rounded-xl bg-muted/30">
+                      <div className="font-heading text-2xl font-bold text-primary tabular-nums">{stats.totalPosts}</div>
                       <div className="text-sm text-muted-foreground">总发布</div>
                     </div>
-                    <div className="text-center p-4 border border-border rounded-lg bg-background">
-                      <div className="text-2xl font-bold text-green-600">{stats.totalArticles}</div>
+                    <div className="text-center p-4 border border-border rounded-xl bg-muted/30">
+                      <div className="font-heading text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.totalArticles}</div>
                       <div className="text-sm text-muted-foreground">文章</div>
                     </div>
-                    <div className="text-center p-4 border border-border rounded-lg bg-background">
-                      <div className="text-2xl font-bold text-orange-600">{stats.totalQuestions}</div>
+                    <div className="text-center p-4 border border-border rounded-xl bg-muted/30">
+                      <div className="font-heading text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{stats.totalQuestions}</div>
                       <div className="text-sm text-muted-foreground">问题</div>
                     </div>
-                    <div className="text-center p-4 border border-border rounded-lg bg-background">
-                      <div className="text-2xl font-bold text-purple-600">{stats.totalViews}</div>
+                    <div className="text-center p-4 border border-border rounded-xl bg-muted/30">
+                      <div className="font-heading text-2xl font-bold text-primary tabular-nums">{stats.totalViews}</div>
                       <div className="text-sm text-muted-foreground">浏览量</div>
                     </div>
                   </div>
@@ -571,70 +582,45 @@ export default function UserCenterPage() {
             {/* 内容管理 */}
             {activeSection === 'content' && (
               <div className="space-y-6">
-                {/* 统计卡片 */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{stats.totalPosts}</div>
-                    <div className="text-sm text-muted-foreground">总发布</div>
-                  </div>
-                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600">{stats.totalArticles}</div>
-                    <div className="text-sm text-muted-foreground">文章</div>
-                  </div>
-                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
-                    <div className="text-2xl font-bold text-orange-600">{stats.totalQuestions}</div>
-                    <div className="text-sm text-muted-foreground">问题</div>
-                  </div>
-                  <div className="bg-card rounded-lg shadow-sm border border-border p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-                    <div className="text-sm text-muted-foreground">待审核</div>
-                  </div>
-                </div>
-
                 {/* 内容管理 */}
                 <div className="bg-card rounded-xl shadow-sm border border-border">
                   {/* 头部 */}
                   <div className="px-6 py-4 border-b border-border">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-xl font-semibold text-foreground">内容管理</h2>
-                      <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="font-heading text-xl font-semibold text-foreground">内容管理</h2>
+                      <div className="flex items-center gap-3">
                         <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" strokeWidth={1.5} />
                           <input
                             type="text"
-                            placeholder="搜索内容..."
+                            placeholder="搜索内容…"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                executeSearch();
-                              }
-                            }}
-                            className="pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm bg-background text-foreground"
+                            onKeyDown={(e) => e.key === 'Enter' && executeSearch()}
+                            className="pl-10 pr-10 py-2 border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-background text-foreground placeholder:text-muted-foreground transition-colors duration-150 w-48 sm:w-56 focus-visible:outline-none"
+                            aria-label="搜索内容"
                           />
-                          <svg className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
                           {searchInput && (
                             <button
+                              type="button"
                               onClick={() => setSearchInput('')}
-                              className="absolute right-3 top-2.5 p-1 text-muted-foreground hover:text-foreground transition-colors"
-                              title="清空搜索"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                              aria-label="清空搜索"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
+                              <X className="w-4 h-4" strokeWidth={1.5} />
                             </button>
                           )}
                         </div>
                         <button
+                          type="button"
                           onClick={executeSearch}
                           disabled={!searchInput.trim() || searchLoading}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed transition-colors text-sm flex items-center space-x-2"
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium flex items-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         >
                           {searchLoading ? (
                             <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              <span>搜索中...</span>
+                              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+                              <span>搜索中…</span>
                             </>
                           ) : (
                             <span>搜索</span>
@@ -647,26 +633,20 @@ export default function UserCenterPage() {
                   {/* 搜索状态和结果统计 */}
                   {searchQuery && (
                     <div className="px-6 py-3 bg-muted/30 border-b border-border">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
                           <span className="text-sm text-muted-foreground">
                             搜索: <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>
+                            {totalCount > 0 && (
+                              <span className="text-muted-foreground"> · 找到 {totalCount} 个结果</span>
+                            )}
                           </span>
-                          {totalCount > 0 && (
-                            <span className="text-sm text-muted-foreground">
-                              • 找到 {totalCount} 个结果
-                            </span>
-                          )}
                         </div>
                         <button
-                          onClick={() => {
-                            setSearchInput('');
-                            setSearchQuery('');
-                          }}
-                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          type="button"
+                          onClick={() => { setSearchInput(''); setSearchQuery(''); }}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
                         >
                           清除搜索
                         </button>
@@ -674,31 +654,29 @@ export default function UserCenterPage() {
                     </div>
                   )}
 
-                  {/* 标签页 */}
+                  {/* 标签页 — 无 emoji，MASTER 色 */}
                   <div className="border-b border-border">
-                    <nav className="flex space-x-8 px-6" aria-label="Tabs">
+                    <nav className="flex gap-6 px-6 overflow-x-auto" aria-label="内容状态筛选">
                       {[
-                        { id: 'overview', label: '全部内容', count: stats.totalPosts, icon: '📄' },
-                        { id: 'published', label: '已发布', count: stats.published, icon: '✅' },
-                        { id: 'pending', label: '待审核', count: stats.pending, icon: '⏳' },
-                        { id: 'drafts', label: '草稿', count: stats.drafts, icon: '📝' },
-                        { id: 'rejected', label: '已拒绝', count: stats.rejected, icon: '❌' }
+                        { id: 'overview', label: '全部内容', count: stats.totalPosts },
+                        { id: 'published', label: '已发布', count: stats.published },
+                        { id: 'pending', label: '待审核', count: stats.pending },
+                        { id: 'drafts', label: '草稿', count: stats.drafts },
+                        { id: 'rejected', label: '已拒绝', count: stats.rejected },
                       ].map((tab) => (
                         <button
                           key={tab.id}
+                          type="button"
                           onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                          className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 whitespace-nowrap cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded ${
                             activeTab === tab.id
                               ? 'border-primary text-primary'
                               : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                           }`}
                         >
-                          <span>{tab.icon}</span>
                           <span>{tab.label}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            activeTab === tab.id
-                              ? 'bg-primary/10 text-primary'
-                              : 'bg-muted text-muted-foreground'
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium tabular-nums ${
+                            activeTab === tab.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                           }`}>
                             {tab.count}
                           </span>
@@ -716,10 +694,12 @@ export default function UserCenterPage() {
                       </div>
                     ) : posts.length === 0 ? (
                       <div className="text-center py-12">
-                        <svg className="w-16 h-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d={searchQuery.trim() ? "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" : "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"} />
-                        </svg>
-                        <h3 className="text-lg font-medium text-foreground mb-2">
+                        {searchQuery.trim() ? (
+                          <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" strokeWidth={1.5} />
+                        ) : (
+                          <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" strokeWidth={1.5} />
+                        )}
+                        <h3 className="font-heading text-lg font-semibold text-foreground mb-2">
                           {searchQuery.trim() ? '未找到匹配的内容' : '暂无内容'}
                         </h3>
                         <p className="text-muted-foreground mb-4">
@@ -763,84 +743,71 @@ export default function UserCenterPage() {
                     ) : (
                       <div className="space-y-3">
                         {posts.map((post) => (
-                          <div key={post._id} className="group border border-border rounded-lg p-5 hover:shadow-md hover:border-border/50 transition-all duration-200 bg-gradient-to-r from-card to-background/50">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-3 mb-3">
-                                  <span className={`inline-flex items-center px-2.5 py-1 text-xs rounded-full font-medium ${
-                                    post.type === 'question' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+                          <article key={post._id} className="group border border-border rounded-xl p-5 bg-card hover:shadow-md hover:border-primary/20 transition-all duration-200">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center flex-wrap gap-2 mb-3">
+                                  <span className={`inline-flex items-center px-2.5 py-1 text-xs rounded-md font-medium border ${
+                                    post.type === 'question' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30' : 'bg-primary/15 text-primary border-primary/30'
                                   }`}>
-                                    {post.type === 'question' ? '🤔 问题' : '📝 文章'}
+                                    {post.type === 'question' ? '问题' : '文章'}
                                   </span>
                                   {getStatusBadge(post.reviewStatus)}
-                                  <span className="text-xs text-muted-foreground">
-                                    {displayLocalTime(post.createdAt, 'datetime')}
-                                  </span>
+                                  <time className="text-xs text-muted-foreground">{displayLocalTime(post.createdAt, 'datetime')}</time>
                                 </div>
-                                <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary cursor-pointer group-hover:text-primary transition-colors">
+                                <h3
+                                  className="font-heading text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors line-clamp-1"
+                                  title={post.title}
+                                >
                                   {post.title}
                                 </h3>
-                                <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                                  {post.reviewStatus === 'published' && (
-                                    <>
-                                      <div className="flex items-center space-x-1">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                        <span>{post.views}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-1">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                        </svg>
-                                        <span>{post.likes}</span>
-                                      </div>
-                                      {post.type === 'question' && (
-                                        <div className="flex items-center space-x-1">
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                          </svg>
-                                          <span>{post.answers}</span>
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
+                                {post.reviewStatus === 'published' && (
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Eye className="w-4 h-4" strokeWidth={1.5} />
+                                      {post.views}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Heart className="w-4 h-4" strokeWidth={1.5} />
+                                      {post.likes}
+                                    </span>
+                                    {post.type === 'question' && post.answers != null && (
+                                      <span className="flex items-center gap-1">
+                                        <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
+                                        {post.answers}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex items-center ml-4 space-x-2">
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 <Link
                                   href={`/posts/${post._id}`}
                                   target="_blank"
-                                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                  title="查看"
+                                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                                  aria-label="在新标签页查看"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
+                                  <Eye className="w-4 h-4" strokeWidth={1.5} />
                                 </Link>
-                                <button 
+                                <button
+                                  type="button"
                                   onClick={() => handleEditPost(post._id)}
-                                  className="p-2 text-muted-foreground hover:text-green-600 hover:bg-green-500/10 rounded-lg transition-colors"
-                                  title="编辑"
+                                  className="p-2 text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                                  aria-label="编辑"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
+                                  <Pencil className="w-4 h-4" strokeWidth={1.5} />
                                 </button>
-                                <button 
+                                <button
+                                  type="button"
                                   onClick={() => handleDeletePost(post._id)}
-                                  className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
-                                  title="删除"
+                                  className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
+                                  aria-label="删除"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
+                                  <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                                 </button>
                               </div>
                             </div>
-                          </div>
+                          </article>
                         ))}
                       </div>
                     )}
@@ -848,44 +815,14 @@ export default function UserCenterPage() {
                     {/* 分页 */}
                     {totalPages > 1 && (
                       <div className="flex items-center justify-center mt-6 pt-4 border-t border-border">
-                        <Pagination>
-                          <PaginationContent>
-                            <PaginationItem>
-                              <PaginationPrevious
-                                href="#"
-                                onClick={e => {
-                                  e.preventDefault();
-                                  setCurrentPage(prev => Math.max(prev - 1, 1));
-                                }}
-                                aria-disabled={currentPage === 1}
-                              />
-                            </PaginationItem>
-                            {Array.from({ length: totalPages }).map((_, i) => (
-                              <PaginationItem key={i + 1}>
-                                <PaginationLink
-                                  href="#"
-                                  isActive={currentPage === i + 1}
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    setCurrentPage(i + 1);
-                                  }}
-                                >
-                                  {i + 1}
-                                </PaginationLink>
-                              </PaginationItem>
-                            ))}
-                            <PaginationItem>
-                              <PaginationNext
-                                href="#"
-                                onClick={e => {
-                                  e.preventDefault();
-                                  setCurrentPage(prev => Math.min(prev + 1, totalPages));
-                                }}
-                                aria-disabled={currentPage === totalPages}
-                              />
-                            </PaginationItem>
-                          </PaginationContent>
-                        </Pagination>
+                        <PaginationBar
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={setCurrentPage}
+                          totalCount={totalCount}
+                          pageSize={itemsPerPage}
+                          ariaLabel="内容列表分页"
+                        />
                       </div>
                     )}
                   </div>
@@ -898,7 +835,7 @@ export default function UserCenterPage() {
               <div className="space-y-6">
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-foreground">消息中心</h2>
+                    <h2 className="font-heading text-xl font-semibold text-foreground">消息中心</h2>
                     {unreadCount > 0 && (
                                               <button 
                           onClick={async () => {
@@ -937,41 +874,31 @@ export default function UserCenterPage() {
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="text-center py-12">
-                      <svg className="w-16 h-16 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <h3 className="text-lg font-medium text-foreground mb-2">暂无消息</h3>
+                      <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" strokeWidth={1.5} />
+                      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">暂无消息</h3>
                       <p className="text-muted-foreground">您还没有收到任何消息</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {messages.map((message) => (
-                        <div key={message._id || message.id} className={`border rounded-lg p-4 transition-all duration-200 ${
+                        <div key={message._id || message.id} className={`border rounded-xl p-4 transition-all duration-200 ${
                           message.isRead ? 'border-border bg-muted/50' : 'border-primary/20 bg-primary/5'
                         }`}>
-                          <div className="flex items-start space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              message.type === 'rejection' ? 'bg-red-500' :
-                              message.type === 'success' ? 'bg-green-500' :
-                              message.type === 'warning' ? 'bg-yellow-500' :
-                              'bg-blue-500'
+                          <div className="flex items-start gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              message.type === 'rejection' ? 'bg-destructive text-destructive-foreground' :
+                              message.type === 'success' ? 'bg-emerald-500 text-white' :
+                              message.type === 'warning' ? 'bg-amber-500 text-white' :
+                              'bg-primary text-primary-foreground'
                             }`}>
                               {message.type === 'rejection' ? (
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <XCircle className="w-4 h-4" strokeWidth={1.5} />
                               ) : message.type === 'success' ? (
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
+                                <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
                               ) : message.type === 'warning' ? (
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                                </svg>
+                                <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
                               ) : (
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <Info className="w-4 h-4" strokeWidth={1.5} />
                               )}
                             </div>
                             <div className="flex-1">
@@ -1042,66 +969,14 @@ export default function UserCenterPage() {
                   {/* 消息分页 */}
                   {messagesTotalPages > 1 && (
                     <div className="flex items-center justify-center mt-6 pt-4 border-t border-border">
-                      <Pagination>
-                        <PaginationContent>
-                          <PaginationItem>
-                            <PaginationPrevious
-                              href="#"
-                              onClick={e => {
-                                e.preventDefault();
-                                setMessagesCurrentPage(prev => Math.max(prev - 1, 1));
-                              }}
-                              aria-disabled={messagesCurrentPage === 1}
-                            />
-                          </PaginationItem>
-                          {Array.from({ length: Math.min(messagesTotalPages, 5) }).map((_, i) => {
-                            // 计算要显示的页码，优先显示当前页附近的页码
-                            let pageNum;
-                            if (messagesTotalPages <= 5) {
-                              pageNum = i + 1;
-                            } else if (messagesCurrentPage <= 3) {
-                              pageNum = i + 1;
-                            } else if (messagesCurrentPage >= messagesTotalPages - 2) {
-                              pageNum = messagesTotalPages - 4 + i;
-                            } else {
-                              pageNum = messagesCurrentPage - 2 + i;
-                            }
-                            
-                            return (
-                              <PaginationItem key={pageNum}>
-                                <PaginationLink
-                                  href="#"
-                                  isActive={messagesCurrentPage === pageNum}
-                                  onClick={e => {
-                                    e.preventDefault();
-                                    setMessagesCurrentPage(pageNum);
-                                  }}
-                                >
-                                  {pageNum}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          })}
-                          <PaginationItem>
-                            <PaginationNext
-                              href="#"
-                              onClick={e => {
-                                e.preventDefault();
-                                setMessagesCurrentPage(prev => Math.min(prev + 1, messagesTotalPages));
-                              }}
-                              aria-disabled={messagesCurrentPage === messagesTotalPages}
-                            />
-                          </PaginationItem>
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  )}
-                  
-                  {/* 分页信息 */}
-                  {messagesTotalPages > 1 && (
-                    <div className="text-center text-sm text-muted-foreground mt-2">
-                      第 {messagesCurrentPage} 页，共 {messagesTotalPages} 页
-                      {messagesTotalCount > 0 && ` (共 ${messagesTotalCount} 条消息)`}
+                      <PaginationBar
+                        currentPage={messagesCurrentPage}
+                        totalPages={messagesTotalPages}
+                        onPageChange={setMessagesCurrentPage}
+                        totalCount={messagesTotalCount}
+                        pageSize={messagesPerPage}
+                        ariaLabel="消息列表分页"
+                      />
                     </div>
                   )}
                 </div>

@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface ShareLinkItem {
   _id: string;
@@ -274,33 +275,18 @@ export default function ShareLinksManagement() {
 
             {/* 分页 */}
             {data.pagination.pages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
-                <span className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border bg-muted/20">
+                <span className="text-sm text-muted-foreground text-center sm:text-left">
                   共 {data.pagination.total} 条
                 </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="rounded-lg"
-                  >
-                    上一页
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {page} / {data.pagination.pages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
-                    disabled={page >= data.pagination.pages}
-                    className="rounded-lg"
-                  >
-                    下一页
-                  </Button>
-                </div>
+                <PaginationBar
+                  currentPage={page}
+                  totalPages={data.pagination.pages}
+                  onPageChange={setPage}
+                  totalCount={data.pagination.total}
+                  pageSize={data.pagination.limit ?? 20}
+                  ariaLabel="分享链接分页"
+                />
               </div>
             )}
           </>

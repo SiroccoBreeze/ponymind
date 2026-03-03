@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PaginationBar } from '@/components/PaginationBar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -533,30 +534,17 @@ export default function LogsPage() {
 
           {/* 分页 */}
           {pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-muted-foreground">
-                显示第 {pagination.page} 页，共 {pagination.pages} 页
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page <= 1}
-                >
-                  上一页
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  disabled={pagination.page >= pagination.pages}
-                >
-                  下一页
-                </Button>
-              </div>
+            <div className="flex justify-center mt-6">
+              <PaginationBar
+                currentPage={pagination.page}
+                totalPages={pagination.pages}
+                onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+                totalCount={pagination.total}
+                pageSize={pagination.limit}
+                ariaLabel="日志分页"
+              />
             </div>
-                     )}
+          )}
          </CardContent>
        </Card>
 

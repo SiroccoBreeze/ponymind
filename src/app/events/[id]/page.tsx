@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
-import { ArrowLeft, Calendar, FileText } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, AlertTriangle } from 'lucide-react'
 import { displayLocalTime } from '@/lib/frontend-time-utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -57,10 +57,10 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">加载中...</p>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden />
+          <p className="text-sm text-muted-foreground">加载中...</p>
         </div>
       </div>
     )
@@ -68,12 +68,20 @@ export default function EventDetailPage() {
 
   if (error || !event) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold mb-2">加载失败</h2>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+        <div className="text-center py-16 bg-card rounded-xl border border-border shadow-sm p-8">
+          <div className="flex justify-center mb-4">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive" aria-hidden>
+              <AlertTriangle className="h-7 w-7" strokeWidth={1.5} />
+            </span>
+          </div>
+          <h2 className="font-heading text-2xl font-semibold text-foreground mb-2">加载失败</h2>
           <p className="text-muted-foreground mb-6">{error || '事件不存在或已被删除'}</p>
-          <Button onClick={() => router.push('/events')}>
+          <Button
+            onClick={() => router.push('/events')}
+            variant="outline"
+            className="rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
+          >
             返回事件列表
           </Button>
         </div>
@@ -90,44 +98,42 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      {/* 返回按钮 */}
-      <div className="mb-4">
-        <Button 
-          variant="ghost" 
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
           onClick={() => router.push('/events')}
-          className="gap-2"
+          className="gap-2 rounded-lg text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer transition-colors duration-200"
+          aria-label="返回事件列表"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           返回事件列表
         </Button>
       </div>
 
-      {/* 事件详情卡片 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">{event.title}</CardTitle>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      <Card className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <CardHeader className="p-6 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3 min-w-0">
+              <CardTitle className="font-heading text-2xl font-semibold text-foreground">{event.title}</CardTitle>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                   {displayLocalTime(event.occurredAt, 'full')}
                 </div>
                 <div className="flex items-center gap-2">
-                  <UserAvatar 
-                    avatar={event.creator?.avatar} 
-                    userName={event.creator?.name || event.creator?.email || '未知用户'} 
-                    size="sm" 
+                  <UserAvatar
+                    avatar={event.creator?.avatar}
+                    userName={event.creator?.name || event.creator?.email || '未知用户'}
+                    size="sm"
                   />
                   <span>{event.creator?.name || event.creator?.email || '未知用户'}</span>
                 </div>
               </div>
-              {/* 标签显示 */}
               {event.tags && event.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {event.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="capitalize">
+                    <Badge key={tag} variant="secondary" className="capitalize rounded-full bg-muted text-muted-foreground text-xs px-2.5 py-0.5 font-medium">
                       {tag}
                     </Badge>
                   ))}
@@ -136,16 +142,13 @@ export default function EventDetailPage() {
             </div>
           </div>
         </CardHeader>
-        
-        <CardContent className="space-y-4">
 
-
-          {/* 描述 */}
+        <CardContent className="p-6 pt-4 space-y-6">
           {event.description && (
             <>
-              <Separator />
+              <Separator className="bg-border" />
               <div>
-                <h3 className="text-lg font-semibold mb-2">事件描述</h3>
+                <h3 className="font-heading text-lg font-semibold text-foreground mb-2">事件描述</h3>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </p>
@@ -153,18 +156,17 @@ export default function EventDetailPage() {
             </>
           )}
 
-          {/* 附件 */}
           {event.attachments && event.attachments.length > 0 && (
             <>
-              <Separator />
+              <Separator className="bg-border" />
               <div>
-                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
+                <h3 className="font-heading text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5" strokeWidth={1.5} />
                   附件 ({event.attachments.length})
                 </h3>
                 <div className="flex flex-wrap gap-3">
                   {event.attachments.map((att) => (
-                    <div key={att._id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors bg-card">
+                    <div key={att._id} className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors duration-200 bg-card">
                       {att.mimetype?.startsWith('image/') ? (
                         <ImagePreview 
                           src={att.url} 
@@ -173,10 +175,8 @@ export default function EventDetailPage() {
                           className="cursor-pointer flex-shrink-0"
                         />
                       ) : (
-                        <a href={att.url} target="_blank" rel="noreferrer" title={att.originalName} className="flex-shrink-0">
-                          <span className="inline-flex items-center rounded-full border px-2 py-1 text-xs hover:bg-accent bg-muted">
-                            {att.originalName}
-                          </span>
+                        <a href={att.url} target="_blank" rel="noreferrer" title={att.originalName} className="flex-shrink-0 rounded-full border border-border px-2 py-1 text-xs hover:bg-accent bg-muted transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                          {att.originalName}
                         </a>
                       )}
                       <div className="min-w-0 flex-1">

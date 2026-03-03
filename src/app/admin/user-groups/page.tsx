@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 import { toast } from 'sonner';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface UserGroup {
   _id: string;
@@ -763,34 +764,20 @@ export default function UserGroupsManagement() {
       </div>
 
       {/* 分页 */}
-      {data.pagination && data.pagination.total > 0 && (
-        <div className="flex items-center justify-between py-4">
-            <div className="text-sm text-muted-foreground">
-            显示 {((currentPage - 1) * 10) + 1} 到 {Math.min(currentPage * 10, data.pagination?.total || 0)} 条，
-            共 {data.pagination?.total || 0} 条记录
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                上一页
-              </Button>
-              <span className="text-sm text-muted-foreground px-4 py-2 bg-muted rounded-md">
-              第 {currentPage} 页，共 {data.pagination?.pages || 1} 页
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-              onClick={() => setCurrentPage(Math.min(data.pagination?.pages || 1, currentPage + 1))}
-              disabled={currentPage === (data.pagination?.pages || 1)}
-              >
-                下一页
-              </Button>
-            </div>
+      {data.pagination && data.pagination.total > 0 && data.pagination.pages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-4">
+          <div className="text-sm text-muted-foreground text-center sm:text-left">
+            共 {data.pagination.total} 条记录
           </div>
+          <PaginationBar
+            currentPage={currentPage}
+            totalPages={data.pagination.pages}
+            onPageChange={setCurrentPage}
+            totalCount={data.pagination.total}
+            pageSize={10}
+            ariaLabel="用户组分页"
+          />
+        </div>
       )}
 
       {/* 编辑用户组对话框 */}

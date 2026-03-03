@@ -277,21 +277,20 @@ export default function KnowledgePage() {
           {/* 右侧边栏 - 添加 Sticky 效果 */}
           <div className="lg:col-span-1 space-y-4 lg:space-y-6">
             <div className="lg:sticky lg:top-6 space-y-4 lg:space-y-6">
-              {/* 今日热点 */}
-              <Card>
+              {/* 今日热点 — MASTER 语义色 primary/amber */}
+              <Card className="bg-card border-border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary transition-colors animate-pulse" />
+                  <CardTitle className="font-heading text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" strokeWidth={1.5} />
                     今日热点
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {isLoading ? (
-                      // 加载骨架屏
                       Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className="flex items-start space-x-3 p-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
+                        <div key={index} className="flex items-start gap-3 p-3">
+                          <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
                           <div className="flex-1 space-y-2">
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-3 w-2/3" />
@@ -299,74 +298,61 @@ export default function KnowledgePage() {
                         </div>
                       ))
                     ) : realTimeStats.hotPosts.length > 0 ? realTimeStats.hotPosts.map((item, index) => (
-                      <Link 
-                        key={index} 
+                      <Link
+                        key={item._id}
                         href={`/posts/${item._id}`}
-                        className="block hover:bg-accent transition-all duration-200 rounded-lg group relative overflow-hidden"
+                        className="block rounded-lg p-3 hover:bg-accent transition-colors duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
-                        {/* 热度趋势指示器 */}
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 via-orange-500 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" 
-                             style={{ 
-                               height: `${Math.min(100, (item.views + item.likes) / 10)}%`,
-                               background: index === 0 
-                                 ? 'linear-gradient(to bottom, #ef4444, #f97316)' 
-                                 : index === 1 
-                                 ? 'linear-gradient(to bottom, #f97316, #fb923c)' 
-                                 : 'linear-gradient(to bottom, #fb923c, #fbbf24)'
-                             }}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-primary/80"
+                          style={{ height: `${Math.min(100, (item.views + item.likes) / 10)}%` }}
                         />
-                        <div className="flex items-start space-x-3 p-3 relative">
-                          {/* 热度排名 */}
-                          <div className={`w-8 h-8 rounded-full p-0 flex items-center justify-center text-xs font-bold relative ${
-                            index === 0 
-                              ? 'bg-gradient-to-br from-red-500 to-orange-500' 
-                              : index === 1 
-                              ? 'bg-gradient-to-br from-orange-500 to-amber-500' 
-                              : index === 2
-                              ? 'bg-gradient-to-br from-amber-500 to-yellow-500'
-                              : 'bg-primary'
-                          }`}>
+                        <div className="flex items-start gap-3 relative">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                              index === 0
+                                ? 'bg-primary text-primary-foreground'
+                                : index === 1
+                                ? 'bg-primary/80 text-primary-foreground'
+                                : index === 2
+                                ? 'bg-primary/60 text-primary-foreground'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
                             {index < 3 ? (
-                              <span className="text-white font-bold text-sm">{index + 1}</span>
+                              <span className="tabular-nums">{index + 1}</span>
                             ) : item.type === 'question' ? (
-                              <Zap className="w-4 h-4 text-primary-foreground" />
+                              <Zap className="w-4 h-4" strokeWidth={1.5} />
                             ) : (
-                              <FileText className="w-4 h-4 text-primary-foreground" />
-                            )}
-                            {/* 火焰效果 */}
-                            {index === 0 && (
-                              <span className="absolute -top-1 -right-1 text-xs">🔥</span>
+                              <FileText className="w-4 h-4" strokeWidth={1.5} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
+                            <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors duration-200">
                               {item.title}
                             </p>
                             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Eye className="w-3 h-3" />
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" strokeWidth={1.5} />
                                 {item.views}
-                              </div>
+                              </span>
                               {item.likes > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <Heart className="w-3 h-3 fill-red-500/20 text-red-500" />
+                                <span className="flex items-center gap-1">
+                                  <Heart className="w-3 h-3" strokeWidth={1.5} />
                                   {item.likes}
-                                </div>
-                              )}
-                              {/* 热度指示 */}
-                              <div className="flex items-center gap-1 ml-auto">
-                                <TrendingUp className="w-3 h-3 text-orange-500" />
-                                <span className="text-orange-500 font-semibold">
-                                  {(item.views + item.likes * 2).toLocaleString()}
                                 </span>
-                              </div>
+                              )}
+                              <span className="flex items-center gap-1 ml-auto text-primary font-medium tabular-nums">
+                                <TrendingUp className="w-3 h-3" strokeWidth={1.5} />
+                                {(item.views + item.likes * 2).toLocaleString()}
+                              </span>
                             </div>
                           </div>
                         </div>
                       </Link>
                     )) : (
                       <div className="text-center py-8 text-muted-foreground">
-                        <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-30" strokeWidth={1.5} />
                         <p className="text-sm">暂无热点内容</p>
                       </div>
                     )}
@@ -375,10 +361,10 @@ export default function KnowledgePage() {
               </Card>
 
               {/* 热门标签 */}
-              <Card>
+              <Card className="bg-card border-border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary transition-colors" />
+                  <CardTitle className="font-heading text-lg flex items-center gap-2">
+                    <Tag className="h-5 w-5 text-primary" strokeWidth={1.5} />
                     热门标签
                   </CardTitle>
                 </CardHeader>
@@ -447,10 +433,10 @@ export default function KnowledgePage() {
               </Card>
 
               {/* 社区统计 */}
-              <Card>
+              <Card className="bg-card border-border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary transition-colors" />
+                  <CardTitle className="font-heading text-lg flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" strokeWidth={1.5} />
                     社区统计
                   </CardTitle>
                 </CardHeader>
@@ -523,10 +509,10 @@ export default function KnowledgePage() {
               </Card>
 
               {/* 活跃用户 */}
-              <Card>
+              <Card className="bg-card border-border shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-4 text-primary transition-colors" />
+                  <CardTitle className="font-heading text-lg flex items-center gap-2">
+                    <Users className="h-5 w-4 text-primary" strokeWidth={1.5} />
                     本周活跃用户
                   </CardTitle>
                 </CardHeader>
@@ -571,7 +557,7 @@ export default function KnowledgePage() {
                         </div>
 
                       </div>
-                      <div className="text-2xl group-hover:scale-110 transition-transform">
+                      <div className="text-2xl leading-none group-hover:-translate-y-0.5 transition-transform duration-200">
                         {user.badge}
                       </div>
                     </div>

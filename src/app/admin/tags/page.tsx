@@ -29,6 +29,7 @@ import {
   Calendar,
   Activity
 } from "lucide-react";
+import { PaginationBar } from "@/components/PaginationBar";
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 
 interface Tag {
@@ -449,32 +450,18 @@ export default function TagsManagement() {
       {/* 分页 */}
       <Card className="border-primary/20">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              显示 {((currentPage - 1) * 20) + 1} 到 {Math.min(currentPage * 20, data.pagination.total)} 条，
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground text-center sm:text-left">
               共 {data.pagination.total} 条记录
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                上一页
-              </Button>
-              <span className="text-sm text-muted-foreground px-4 py-2 bg-muted rounded-md">
-                第 {currentPage} 页，共 {data.pagination.pages} 页
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
-                disabled={currentPage === data.pagination.pages}
-              >
-                下一页
-              </Button>
-            </div>
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={data.pagination.pages}
+              onPageChange={setCurrentPage}
+              totalCount={data.pagination.total}
+              pageSize={20}
+              ariaLabel="标签管理分页"
+            />
           </div>
         </CardContent>
       </Card>

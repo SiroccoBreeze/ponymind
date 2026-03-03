@@ -125,16 +125,10 @@ export default function EventsPage() {
     try {
       if (!isMounted) return
       setLoading(true)
-      console.log('开始获取事件列表...')
       const res = await fetch('/api/events', { signal })
-      console.log('API响应状态:', res.status, res.statusText)
       const json = await res.json()
-      console.log('API响应数据:', json)
       if (json?.success && isMounted) {
-        console.log('设置事件数据:', json.data)
         setEvents(json.data)
-      } else {
-        console.log('API响应失败或组件已卸载:', { success: json?.success, isMounted })
       }
     } catch (error) {
       // 忽略 AbortError，这是正常的组件卸载行为
@@ -146,7 +140,7 @@ export default function EventsPage() {
         return
       }
       if (isMounted) {
-        console.error('获取事件列表失败:', error)
+        toast.error('获取事件列表失败')
       }
     } finally {
       if (isMounted) {
@@ -203,7 +197,6 @@ export default function EventsPage() {
       });
       
       await Promise.all(deletePromises);
-      console.log('已清理所有临时附件');
     } catch (error) {
       console.error('清理附件时出错:', error);
     }
@@ -385,37 +378,40 @@ export default function EventsPage() {
 
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 bg-background">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">事件中心</h1>
-        <Button 
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-background">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="font-heading text-3xl font-bold text-foreground">事件中心</h1>
+        <Button
           onClick={openCreateDialog}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-2.5 font-semibold text-sm transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 shrink-0"
+          aria-label="创建事件"
         >
           创建事件
         </Button>
       </div>
 
-      <Tabs defaultValue="table">
-        <TabsList>
-          <TabsTrigger value="table">二维表</TabsTrigger>
-          <TabsTrigger value="timeline">时间轴</TabsTrigger>
+      <Tabs defaultValue="table" className="space-y-6">
+        <TabsList className="rounded-lg bg-muted/50 p-1 border border-border">
+          <TabsTrigger value="table" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm transition-colors duration-200">二维表</TabsTrigger>
+          <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm transition-colors duration-200">时间轴</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="table" className="mt-4">
-          <EventsDataTable events={events} loading={loading} onEdit={openEditDialog} />
+        <TabsContent value="table" className="mt-6">
+          <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+            <EventsDataTable events={events} loading={loading} onEdit={openEditDialog} />
+          </div>
         </TabsContent>
 
         <TabsContent value="timeline" className="mt-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" aria-hidden />
                 <p className="text-sm text-muted-foreground">加载中...</p>
               </div>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto bg-card rounded-xl border border-border shadow-sm p-6">
               <CustomTimeline 
                 items={events
                   .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
@@ -447,32 +443,33 @@ export default function EventsPage() {
           handleDialogClose();
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto rounded-xl border-border shadow-lg">
           <DialogHeader>
-            <DialogTitle>{editingEventId ? '编辑事件' : '新建事件'}</DialogTitle>
+            <DialogTitle className="font-heading text-xl font-semibold text-foreground">{editingEventId ? '编辑事件' : '新建事件'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            {/* 基本信息 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="title">事件标题 *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium text-foreground">事件标题 *</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="请输入事件标题"
+                  className="rounded-lg border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-150"
+                  aria-required
                 />
               </div>
-              <div>
-                <Label>标签</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground">标签</Label>
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsTagModalOpen(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-lg border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors duration-200 cursor-pointer"
                   >
-                    <Tag className="h-4 w-4" />
+                    <Tag className="h-4 w-4" strokeWidth={1.5} />
                     {formData.tags.length > 0 ? `${formData.tags.length} 个标签` : '选择标签'}
                   </Button>
                   {formData.tags.length > 0 && (
@@ -481,6 +478,7 @@ export default function EventsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setFormData(prev => ({ ...prev, tags: [] }))}
+                      className="rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
                     >
                       清空
                     </Button>
@@ -489,7 +487,7 @@ export default function EventsPage() {
                 {formData.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="capitalize">
+                      <Badge key={tag} variant="secondary" className="capitalize rounded-full bg-muted text-muted-foreground text-xs px-2.5 py-0.5 font-medium">
                         {tag}
                       </Badge>
                     ))}
@@ -498,30 +496,32 @@ export default function EventsPage() {
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="occurredAt">发生时间 *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="occurredAt" className="text-sm font-medium text-foreground">发生时间 *</Label>
               <Input
                 id="occurredAt"
                 type="datetime-local"
                 value={formData.occurredAt}
                 onChange={(e) => setFormData(prev => ({ ...prev, occurredAt: e.target.value }))}
+                className="rounded-lg border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-150"
+                aria-required
               />
             </div>
 
-            <div>
-              <Label htmlFor="description">事件描述</Label>
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium text-foreground">事件描述</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="请输入事件描述"
                 rows={4}
+                className="rounded-lg border-input bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors duration-150 resize-none"
               />
             </div>
 
-            {/* 附件管理 */}
             <div className="space-y-4">
-              <Label>附件管理</Label>
+              <Label className="text-sm font-medium text-foreground">附件管理</Label>
               
               {/* 选择文件 */}
               <div className="space-y-2">
@@ -533,15 +533,16 @@ export default function EventsPage() {
                     accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
                     className="flex-1"
                   />
-                  <Button 
+                  <Button
+                    type="button"
                     onClick={handleUploadAttachments}
                     disabled={selectedFiles.length === 0 || uploading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200 cursor-pointer"
                   >
                     {uploading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={1.5} aria-hidden />
                     ) : (
-                      <Upload className="h-4 w-4" />
+                      <Upload className="h-4 w-4" strokeWidth={1.5} />
                     )}
                     上传
                   </Button>
@@ -569,10 +570,11 @@ export default function EventsPage() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg cursor-pointer focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
                           onClick={() => removeSelectedFile(index)}
+                          aria-label={`移除 ${file.name}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" strokeWidth={1.5} />
                         </Button>
                       </div>
                     ))}
@@ -602,14 +604,15 @@ export default function EventsPage() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg cursor-pointer focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2"
                           onClick={() => handleDeleteAttachment(attachment.id)}
                           disabled={deletingAttachment === attachment.id}
+                          aria-label={`删除附件 ${attachment.originalName}`}
                         >
                           {deletingAttachment === attachment.id ? (
-                            <RefreshCw className="h-3 w-3 animate-spin" />
+                            <RefreshCw className="h-3 w-3 animate-spin" strokeWidth={1.5} aria-hidden />
                           ) : (
-                            <X className="h-3 w-3" />
+                            <X className="h-3 w-3" strokeWidth={1.5} />
                           )}
                         </Button>
                       </div>
@@ -619,11 +622,11 @@ export default function EventsPage() {
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleDialogClose}>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleDialogClose} className="rounded-lg focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer">
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving || !formData.title.trim() || !formData.occurredAt}>
+            <Button onClick={handleSave} disabled={saving || !formData.title.trim() || !formData.occurredAt} className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer transition-all duration-200">
               {saving ? '保存中...' : '保存'}
             </Button>
           </DialogFooter>

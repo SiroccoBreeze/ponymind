@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PaginationBar } from '@/components/PaginationBar';
 
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -710,37 +711,18 @@ export default function AdminEventsPage() {
       {/* 分页 */}
       {totalPages > 1 && (
         <Card className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950/20 dark:to-gray-950/20 border-slate-200/50 dark:border-slate-800/50 shadow-lg">
-          <CardContent className="flex items-center justify-between py-6">
-            <div className="text-sm text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
-              <span className="font-medium">共 {totalEvents} 个事件</span>
-              <span className="mx-2">•</span>
-              <span>第 {currentPage} 页，共 {totalPages} 页</span>
+          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-3 py-6">
+            <div className="text-sm text-slate-600 dark:text-slate-400 text-center sm:text-left">
+              共 {totalEvents} 个事件
             </div>
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                上一页
-              </Button>
-              <div className="px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm">
-                {currentPage}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                下一页
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalCount={totalEvents}
+              pageSize={20}
+              ariaLabel="事件管理分页"
+            />
           </CardContent>
         </Card>
       )}

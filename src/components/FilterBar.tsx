@@ -157,16 +157,14 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
   const hasActiveFilters = search.trim() || selectedTag || selectedAuthor;
 
   return (
-    <Card>
+    <Card className="bg-card border-border shadow-sm rounded-xl">
       <CardContent className="p-4">
         <div className="space-y-3">
-          {/* 搜索与筛选合并为一行 */}
           <div className="flex flex-col lg:flex-row gap-3">
-            {/* 搜索输入框 */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" strokeWidth={1.5} />
               <Input
-                placeholder="搜索问题、文章、标签..."
+                placeholder="搜索问题、文章、标签…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
@@ -175,16 +173,19 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
                     handleSearch();
                   }
                 }}
-                className="pl-10 pr-4 h-10"
+                className="pl-10 pr-10 h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg transition-colors duration-150"
+                aria-label="搜索内容"
               />
               {search && (
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => setSearch('')}
+                  aria-label="清空搜索"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </Button>
               )}
             </div>
@@ -218,36 +219,36 @@ export default function FilterBar({ onSearch }: FilterBarProps) {
             </div>
           </div>
 
-          {/* 当前筛选标签 */}
           {hasActiveFilters && (
-            <div className="flex items-center justify-between gap-2 pt-2 border-t">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-muted-foreground">筛选:</span>
+                <span className="font-heading text-xs font-medium text-muted-foreground">筛选:</span>
                 {search.trim() && (
-                  <Badge variant="secondary" className="text-xs h-6">
+                  <Badge variant="secondary" className="text-xs h-6 bg-muted text-muted-foreground border-border">
                     {search.trim()}
                   </Badge>
                 )}
                 {selectedTag && (
-                  <Badge variant="secondary" className="text-xs h-6">
-                    <Tag className="h-3 w-3 mr-1" />
+                  <Badge variant="secondary" className="text-xs h-6 bg-primary/10 text-primary border-primary/20">
+                    <Tag className="h-3 w-3 mr-1" strokeWidth={1.5} />
                     {selectedTag}
                   </Badge>
                 )}
                 {selectedAuthor && (
-                  <Badge variant="secondary" className="text-xs h-6">
-                    <User className="h-3 w-3 mr-1" />
+                  <Badge variant="secondary" className="text-xs h-6 bg-muted text-muted-foreground border-border">
+                    <User className="h-3 w-3 mr-1" strokeWidth={1.5} />
                     {availableAuthors.find(a => a.value === selectedAuthor)?.label || selectedAuthor}
                   </Badge>
                 )}
               </div>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleClearAll}
-                className="text-xs h-6 px-2 text-muted-foreground hover:text-foreground"
+                className="text-xs h-6 px-2 text-muted-foreground hover:text-foreground cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
-                <X className="h-3 w-3 mr-1" />
+                <X className="h-3 w-3 mr-1" strokeWidth={1.5} />
                 清除
               </Button>
             </div>

@@ -23,6 +23,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface AdminMessage {
   _id: string;
@@ -540,32 +541,15 @@ export default function AdminMessagesPage() {
               
               {/* 分页 */}
               {data.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-6 border-t">
-                  <div className="text-sm text-muted-foreground">
-                    显示第 {((data.pagination.page - 1) * data.pagination.limit) + 1} - {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} 条，
-                    共 {data.pagination.total} 条消息
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={!data.pagination.hasPrev}
-                    >
-                      上一页
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {data.pagination.page} / {data.pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(data.pagination.totalPages, prev + 1))}
-                      disabled={!data.pagination.hasNext}
-                    >
-                      下一页
-                    </Button>
-                  </div>
+                <div className="flex justify-center mt-6 pt-6 border-t">
+                  <PaginationBar
+                    currentPage={currentPage}
+                    totalPages={data.pagination.totalPages}
+                    onPageChange={setCurrentPage}
+                    totalCount={data.pagination.total}
+                    pageSize={data.pagination.limit}
+                    ariaLabel="消息管理分页"
+                  />
                 </div>
               )}
             </TabsContent>

@@ -9,24 +9,37 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
+import {
+  ChevronRight,
+  Eye,
+  Heart,
+  MessageSquare,
+  Share2,
+  ArrowUp,
+  ChevronDown,
+  CheckCircle2,
+  X,
+} from 'lucide-react';
 
-// 动态导入组件，避免SSR问题
-const MarkdownPreview = dynamic(() => import('@/components/MarkdownPreview'), { 
+// 动态导入组件，避免 SSR 问题
+const MarkdownPreview = dynamic(() => import('@/components/MarkdownPreview'), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>
+  loading: () => <div className="animate-pulse bg-muted h-64 rounded-lg" />,
 });
-const TableOfContents = dynamic(() => import('@/components/TableOfContents'), { 
+const TableOfContents = dynamic(() => import('@/components/TableOfContents'), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg"></div>
+  loading: () => <div className="animate-pulse bg-muted h-32 rounded-lg" />,
 });
-const CommentInput = dynamic(() => import('@/components/CommentInput'), { 
+const CommentInput = dynamic(() => import('@/components/CommentInput'), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg"></div>
+  loading: () => <div className="animate-pulse bg-muted h-32 rounded-lg" />,
 });
-const ReplyInput = dynamic(() => import('@/components/ReplyInput'), { 
+const ReplyInput = dynamic(() => import('@/components/ReplyInput'), {
   ssr: false,
-  loading: () => <div className="animate-pulse bg-gray-200 h-20 rounded-lg"></div>
+  loading: () => <div className="animate-pulse bg-muted h-20 rounded-lg" />,
 });
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Post {
   _id: string;
@@ -69,38 +82,55 @@ interface Comment {
   createdAt: string;
 }
 
-// 通用图片弹窗组件
-function ImagePreviewModal({ src, alt, open, onClose }: { src: string; alt?: string; open: boolean; onClose: () => void }) {
+// ── 图片弹窗 ─────────────────────────────────────────────────────────────────
+
+function ImagePreviewModal({
+  src,
+  alt,
+  open,
+  onClose,
+}: {
+  src: string;
+  alt?: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [open, onClose]);
+
   if (!open) return null;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
-      style={{ minHeight: '100vh', minWidth: '100vw' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="图片预览"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={onClose}
     >
-      {/* 关闭按钮，固定在右上角 */}
       <button
         onClick={onClose}
-        className="absolute top-6 right-8 text-white hover:text-gray-300 z-60 bg-black bg-opacity-50 rounded-full p-2 transition-colors"
-        title="关闭"
-        style={{ zIndex: 60 }}
+        aria-label="关闭预览"
+        className="absolute top-5 right-6 z-[81] text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
       >
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <X className="w-6 h-6" strokeWidth={1.5} />
       </button>
-      {/* 图片内容 */}
       <div
         className="flex flex-col items-center justify-center"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={src}
           alt={alt || '图片'}
-          className="rounded-lg transition-opacity duration-300 max-w-[80vw] max-h-[80vh] object-contain bg-background"
+          className="rounded-xl max-w-[85vw] max-h-[82vh] object-contain shadow-2xl"
         />
         {alt && (
-          <span className="mt-4 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded max-w-md text-center">
+          <span className="mt-4 text-white/80 text-sm bg-black/50 px-4 py-1.5 rounded-full max-w-md text-center">
             {alt}
           </span>
         )}
@@ -109,11 +139,41 @@ function ImagePreviewModal({ src, alt, open, onClose }: { src: string; alt?: str
   );
 }
 
+// ── 状态徽章 ─────────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; cls: string }> = {
+    open: {
+      label: '待解决',
+      cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    },
+    answered: {
+      label: '已解决',
+      cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+    },
+    closed: {
+      label: '已关闭',
+      cls: 'bg-muted text-muted-foreground border-border',
+    },
+  };
+  const item = config[status];
+  if (!item) return null;
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${item.cls}`}
+    >
+      {item.label}
+    </span>
+  );
+}
+
+// ── 主页面 ────────────────────────────────────────────────────────────────────
+
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  
+
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,242 +190,163 @@ export default function PostDetailPage() {
   const [isTocFixed, setIsTocFixed] = useState(true);
   const [commentSortBy, setCommentSortBy] = useState<'newest' | 'hottest'>('newest');
   const [replyToAuthor, setReplyToAuthor] = useState<string>('');
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
 
-  
   const postId = params?.id as string;
 
-  // 监听滚动，更新阅读进度
+  // 监听滚动 → 阅读进度 + 返回顶部显隐
   useEffect(() => {
-    const handleScroll = () => {
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const maxScroll = documentHeight - windowHeight;
-      
-      if (maxScroll > 0) {
-        const progress = (scrollTop / maxScroll) * 100;
-        setReadProgress(Math.min(progress, 100));
-      }
-      
-      // 控制返回顶部按钮显示
-      setShowScrollTop(scrollTop > 300);
+    const handle = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setReadProgress(max > 0 ? Math.min((window.scrollY / max) * 100, 100) : 0);
+      setShowScrollTop(window.scrollY > 300);
     };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // 初始执行一次
-    
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handle);
+    handle();
+    return () => window.removeEventListener('scroll', handle);
   }, []);
 
-  // 使用 Intersection Observer 监听评论区，控制目录固定
+  // 评论区进入视口 → 取消目录固定
   useEffect(() => {
-    const commentsSection = document.getElementById('comments-section');
-    if (!commentsSection) return;
-
+    const el = document.getElementById('comments-section');
+    if (!el) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          // 当评论区进入视口时，取消目录固定
-          setIsTocFixed(!entry.isIntersecting);
-        });
-      },
-      {
-        rootMargin: '-100px 0px 0px 0px', // 提前100px触发
-        threshold: 0
-      }
+      (entries) => entries.forEach((e) => setIsTocFixed(!e.isIntersecting)),
+      { rootMargin: '-100px 0px 0px 0px', threshold: 0 }
     );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [post]);
 
-    observer.observe(commentsSection);
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scrollToComments = () =>
+    document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    return () => {
-      observer.disconnect();
-    };
-  }, [post]); // 依赖 post，确保评论区已渲染
-
-  // 返回顶部
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
-
-  // 滚动到评论区
-  const scrollToComments = () => {
-    const commentsSection = document.getElementById('comments-section');
-    if (commentsSection) {
-      commentsSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
-  };
-
-  // 缓存和优化渲染
-  const hasTableOfContents = useMemo(() => {
-    if (!post?.content) return false;
-    return /^#{1,6}\s/m.test(post.content);
-  }, [post?.content]);
-
-  // 稳定的内容引用，避免不必要的重渲染
+  // Memoized
+  const hasTableOfContents = useMemo(() => /^#{1,6}\s/m.test(post?.content || ''), [post?.content]);
   const stableContent = useMemo(() => post?.content || '', [post?.content]);
-
-  // 检查是否为问题作者
-  const isQuestionAuthor = useMemo(() => {
-    return post?.type === 'question' && 
-           session?.user?.email && 
-           post?.author?.email === session.user.email;
-  }, [post, session]);
+  const isQuestionAuthor = useMemo(
+    () =>
+      post?.type === 'question' &&
+      !!session?.user?.email &&
+      post?.author?.email === session.user.email,
+    [post, session]
+  );
 
   const fetchPost = useCallback(async () => {
     if (!postId) return;
-    
     try {
-      const response = await fetch(`/api/posts/${postId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPost(data);
-      } else if (response.status === 404) {
-        router.push('/404');
-      }
-    } catch (error) {
-      console.error('获取文章失败:', error);
+      const res = await fetch(`/api/posts/${postId}`);
+      if (res.ok) setPost(await res.json());
+      else if (res.status === 404) router.push('/404');
+    } catch (e) {
+      console.error('获取文章失败:', e);
     }
   }, [postId, router]);
 
   const fetchComments = useCallback(async () => {
     if (!postId) return;
-    
     try {
-      const response = await fetch(`/api/posts/${postId}/comments`);
-      if (response.ok) {
-        const data = await response.json();
-        let sortedComments = data.comments || [];
-        
-        // 排序逻辑
-        sortedComments = sortedComments.sort((a: Comment, b: Comment) => {
-          // 最佳答案始终置顶
-          if (a.isAccepted && !b.isAccepted) return -1;
-          if (!a.isAccepted && b.isAccepted) return 1;
-          
-          // 根据选择的排序方式排序
-          if (commentSortBy === 'newest') {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          } else {
-            // 最热 = 点赞数 + 回复数
-            const hotA = (a.likes || 0) + (a.replies?.length || 0);
-            const hotB = (b.likes || 0) + (b.replies?.length || 0);
-            return hotB - hotA;
-          }
-        });
-        
-        setComments(sortedComments);
-      }
-    } catch (error) {
-      console.error('获取评论失败:', error);
+      const res = await fetch(`/api/posts/${postId}/comments`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const sorted = (data.comments || []).sort((a: Comment, b: Comment) => {
+        if (a.isAccepted && !b.isAccepted) return -1;
+        if (!a.isAccepted && b.isAccepted) return 1;
+        if (commentSortBy === 'newest')
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const hotA = (a.likes || 0) + (a.replies?.length || 0);
+        const hotB = (b.likes || 0) + (b.replies?.length || 0);
+        return hotB - hotA;
+      });
+      setComments(sorted);
+    } catch (e) {
+      console.error('获取评论失败:', e);
     }
   }, [postId, commentSortBy]);
 
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       setLoading(true);
       await Promise.all([fetchPost(), fetchComments()]);
       setLoading(false);
     };
-    
-    loadData();
+    load();
   }, [fetchPost, fetchComments]);
 
+  // 点赞
   const handleLike = async () => {
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
+    if (!session) { router.push('/auth/signin'); return; }
     try {
-      const response = await fetch(`/api/posts/${postId}/like`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
         setLiked(data.liked);
-        setPost(prev => prev ? { ...prev, likes: data.likes } : null);
+        setPost((prev) => prev ? { ...prev, likes: data.likes } : null);
       }
-    } catch (error) {
-      console.error('点赞失败:', error);
-    }
+    } catch (e) { console.error('点赞失败:', e); }
   };
 
-
-
   // 提交回复
-  const handleSubmitReply = async (parentCommentId: string, content: string, images: string[]) => {
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
+  const handleSubmitReply = async (parentId: string, content: string, images: string[]) => {
+    if (!session) { router.push('/auth/signin'); return; }
     if (!content.trim()) return;
-
     setSubmittingReply(true);
     try {
-      const response = await fetch(`/api/posts/${postId}/comments`, {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: content.trim(),
-          parentCommentId,
-          images,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content.trim(), parentCommentId: parentId, images }),
       });
-
-      if (response.ok) {
-        setReplyingTo(null);
-        await fetchComments(); // 重新获取评论
-      } else {
-        toast.error('回复失败，请重试');
-      }
-    } catch (error) {
-      console.error('回复失败:', error);
+      if (res.ok) { setReplyingTo(null); await fetchComments(); }
+      else toast.error('回复失败，请重试');
+    } catch (e) {
+      console.error('回复失败:', e);
       toast.error('回复失败，请重试');
     } finally {
       setSubmittingReply(false);
     }
   };
 
-  // 展开的回复状态
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
-
-  // 切换回复展开状态
-  const toggleReplies = (commentId: string) => {
-    const newExpanded = new Set(expandedReplies);
-    if (newExpanded.has(commentId)) {
-      newExpanded.delete(commentId);
-    } else {
-      newExpanded.add(commentId);
-    }
-    setExpandedReplies(newExpanded);
-  };
-
-  // 获取所有回复（扁平化）
-  const getAllReplies = (comment: Comment): Comment[] => {
-    let allReplies: Comment[] = [];
-    if (comment.replies && comment.replies.length > 0) {
-      comment.replies.forEach(reply => {
-        allReplies.push(reply);
-        allReplies = allReplies.concat(getAllReplies(reply));
+  // 最佳答案
+  const handleToggleBestAnswer = async (commentId: string, isAccepted: boolean) => {
+    if (!session || !isQuestionAuthor) return;
+    setProcessingAnswer(commentId);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId, action: isAccepted ? 'unaccept' : 'accept' }),
       });
+      if (res.ok) {
+        await Promise.all([fetchPost(), fetchComments()]);
+        toast.success((await res.json()).message);
+      } else toast.error((await res.json()).error || '操作失败');
+    } catch (e) {
+      console.error('标记最佳答案失败:', e);
+      toast.error('操作失败，请重试');
+    } finally {
+      setProcessingAnswer(null);
     }
-    return allReplies;
   };
 
-  // 渲染主评论
+  // 展开/收起回复
+  const toggleReplies = (id: string) => {
+    setExpandedReplies((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const getAllReplies = (comment: Comment): Comment[] => {
+    const all: Comment[] = [];
+    comment.replies?.forEach((r) => { all.push(r); all.push(...getAllReplies(r)); });
+    return all;
+  };
+
+  // ── 渲染主评论 ────────────────────────────────────────────────────────────
+
   const renderMainComment = (comment: Comment) => {
     const allReplies = getAllReplies(comment);
     const isExpanded = expandedReplies.has(comment._id);
@@ -379,9 +360,9 @@ export default function PostDetailPage() {
             : ''
         }`}
       >
-        <div className="flex items-start space-x-3">
+        <div className="flex items-start gap-3">
           <Avatar
-            className={`w-10 h-10 text-base shrink-0 ${
+            className={`w-10 h-10 shrink-0 ${
               comment.isAccepted
                 ? 'ring-2 ring-offset-2 ring-emerald-300 dark:ring-emerald-700 ring-offset-background'
                 : ''
@@ -392,99 +373,99 @@ export default function PostDetailPage() {
           </Avatar>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2 mb-1 flex-wrap">
-              <h3 className="text-sm font-medium text-foreground">{comment.author.name}</h3>
+            {/* 作者 + 时间 + 最佳答案徽章 */}
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="text-sm font-semibold text-foreground">{comment.author.name}</span>
               <time className="text-xs text-muted-foreground">
                 {displayLocalTime(comment.createdAt, 'datetime')}
               </time>
               {comment.isAccepted && (
                 <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   最佳答案
                 </Badge>
               )}
             </div>
-            
+
+            {/* 内容 */}
             <div className="mb-3">
               <MarkdownPreview content={comment.content} />
             </div>
-            
-            {/* 评论图片弹窗预览 */}
+
+            {/* 图片附件 */}
             {comment.images && comment.images.length > 0 && (
-              <div className="mb-3">
-                <div className="flex flex-wrap gap-2">
-                  {comment.images.map((imageUrl, index) => (
-                    <img
-                      key={index}
-                      src={imageUrl}
-                      alt={`评论图片 ${index + 1}`}
-                      className="w-16 h-16 object-cover rounded border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => {
-                        setPreviewImage(imageUrl);
-                        setPreviewAlt(`评论图片 ${index + 1}`);
-                      }}
-                    />
-                  ))}
-                </div>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {comment.images.map((url, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={url}
+                    alt={`评论图片 ${i + 1}`}
+                    className="w-16 h-16 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+                    onClick={() => { setPreviewImage(url); setPreviewAlt(`评论图片 ${i + 1}`); }}
+                  />
+                ))}
               </div>
             )}
-            
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-4">
-                <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
+
+            {/* 操作栏 */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* 点赞 */}
+                <button
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-500 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+                  aria-label={`点赞 ${comment.likes} 个`}
+                >
+                  <Heart className="w-3.5 h-3.5" strokeWidth={1.5} />
                   <span>{comment.likes}</span>
                 </button>
-                <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
-                  </svg>
-                </button>
-                <button 
-                  onClick={() => {
-                    setReplyingTo(comment._id);
-                    setReplyToAuthor(comment.author.name);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+
+                {/* 回复 */}
+                <button
+                  onClick={() => { setReplyingTo(comment._id); setReplyToAuthor(comment.author.name); }}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
                 >
                   回复
                 </button>
               </div>
-              
-              {/* 标记最佳答案按钮 - 只对问题作者显示 */}
+
+              {/* 标记最佳答案（仅问题作者可见） */}
               {isQuestionAuthor && (
                 <button
                   onClick={() => handleToggleBestAnswer(comment._id, comment.isAccepted || false)}
                   disabled={!!processingAnswer}
-                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
                     comment.isAccepted
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
-                      : 'bg-muted text-muted-foreground hover:bg-accent'
-                  } disabled:opacity-50`}
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                      : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
                 >
-                  {processingAnswer === comment._id ? '处理中...' : (comment.isAccepted ? '取消最佳答案' : '标记为最佳答案')}
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  {processingAnswer === comment._id
+                    ? '处理中…'
+                    : comment.isAccepted
+                    ? '取消最佳答案'
+                    : '标记为最佳答案'}
                 </button>
               )}
             </div>
 
-            {/* 回复数量和展开按钮 */}
+            {/* 展开回复按钮 */}
             {allReplies.length > 0 && (
               <button
                 onClick={() => toggleReplies(comment._id)}
-                className="flex items-center space-x-1 text-primary text-sm hover:text-primary/80 transition-colors mb-3"
+                className="mt-3 flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
               >
-                <svg 
-                  className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                  strokeWidth={1.5}
+                />
                 <span>{allReplies.length} 条回复</span>
               </button>
             )}
@@ -493,13 +474,8 @@ export default function PostDetailPage() {
             {replyingTo === comment._id && (
               <div className="mt-3">
                 <ReplyInput
-                  onSubmit={(content, images) => {
-                    handleSubmitReply(comment._id, content, images);
-                  }}
-                  onCancel={() => {
-                    setReplyingTo(null);
-                    setReplyToAuthor('');
-                  }}
+                  onSubmit={(c, imgs) => handleSubmitReply(comment._id, c, imgs)}
+                  onCancel={() => { setReplyingTo(null); setReplyToAuthor(''); }}
                   isSubmitting={submittingReply}
                   postId={postId}
                   initialContent={replyToAuthor ? `> @${replyToAuthor}：\n\n` : ''}
@@ -507,37 +483,32 @@ export default function PostDetailPage() {
               </div>
             )}
 
-            {/* 展开的回复列表 - 优化层级 */}
+            {/* 回复列表 */}
             {isExpanded && allReplies.length > 0 && (
-              <div className="mt-4 space-y-4 ml-4 pl-4 border-l-2 border-primary/20 relative">
-                {/* 渐变引导线 */}
+              <div className="mt-4 space-y-3 ml-4 pl-4 border-l-2 border-primary/20 relative">
                 <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/40 via-primary/20 to-transparent" />
-                
-                {allReplies.map((reply, index) => {
-                  // 找到这个回复是回复谁的
-                  const findParentAuthor = (): string | null => {
-                    if (reply.parentComment === comment._id) {
-                      return comment.author.name;
-                    }
-                    // 在所有回复中查找父回复
-                    const parentReply = allReplies.find(r => r._id === reply.parentComment);
-                    return parentReply ? parentReply.author.name : null;
+                {allReplies.map((reply) => {
+                  const findParent = (): string | null => {
+                    if (reply.parentComment === comment._id) return comment.author.name;
+                    return allReplies.find((r) => r._id === reply.parentComment)?.author.name ?? null;
                   };
-
-                  const parentAuthor = findParentAuthor();
+                  const parentAuthor = findParent();
 
                   return (
-                    <div key={reply._id} className="flex items-start space-x-3 bg-accent/30 rounded-lg p-3 hover:bg-accent/50 transition-colors relative">
-                      {/* 连接线 */}
+                    <div
+                      key={reply._id}
+                      className="relative flex items-start gap-3 bg-accent/30 rounded-xl p-3 hover:bg-accent/50 transition-colors duration-150"
+                    >
                       <div className="absolute left-[-18px] top-6 w-4 h-px bg-primary/30" />
-                      
-                      <Avatar className="w-8 h-8 text-sm ring-1 ring-border">
+                      <Avatar className="w-8 h-8 shrink-0 ring-1 ring-border">
                         <AvatarImage src={reply.author.avatar || undefined} alt={reply.author.name} />
-                        <AvatarFallback>{reply.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                        <AvatarFallback className="text-xs">
+                          {reply.author.name?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="text-sm font-medium text-foreground">{reply.author.name}</h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-foreground">{reply.author.name}</span>
                           <time className="text-xs text-muted-foreground">
                             {displayLocalTime(reply.createdAt, 'datetime')}
                           </time>
@@ -548,61 +519,44 @@ export default function PostDetailPage() {
                           )}
                           <MarkdownPreview content={reply.content} />
                         </div>
-                        
-                        {/* 渲染回复的图片弹窗预览 */}
+
+                        {/* 回复图片 */}
                         {reply.images && reply.images.length > 0 && (
-                          <div className="mt-2">
-                            <div className="flex flex-wrap gap-2">
-                              {reply.images.map((imageUrl, imgIndex) => (
-                                <img
-                                  key={imgIndex}
-                                  src={imageUrl}
-                                  alt={`回复图片 ${imgIndex + 1}`}
-                                  className="w-16 h-16 object-cover rounded border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => {
-                                    setPreviewImage(imageUrl);
-                                    setPreviewAlt(`回复图片 ${imgIndex + 1}`);
-                                  }}
-                                />
-                              ))}
-                            </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {reply.images.map((url, i) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                key={i}
+                                src={url}
+                                alt={`回复图片 ${i + 1}`}
+                                className="w-14 h-14 object-cover rounded-lg border border-border cursor-pointer hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+                                onClick={() => { setPreviewImage(url); setPreviewAlt(`回复图片 ${i + 1}`); }}
+                              />
+                            ))}
                           </div>
                         )}
 
-                        <div className="flex items-center space-x-3 mt-2">
-                          <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
+                        <div className="flex items-center gap-3 mt-2">
+                          <button
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-rose-500 transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+                            aria-label={`点赞 ${reply.likes || 0} 个`}
+                          >
+                            <Heart className="w-3 h-3" strokeWidth={1.5} />
                             <span>{reply.likes || 0}</span>
                           </button>
-                          <button className="inline-flex items-center space-x-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3 3 7-7" />
-                            </svg>
-                          </button>
-                          <button 
-                            onClick={() => {
-                              setReplyingTo(reply._id);
-                              setReplyToAuthor(reply.author.name);
-                            }}
-                            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          <button
+                            onClick={() => { setReplyingTo(reply._id); setReplyToAuthor(reply.author.name); }}
+                            className="text-xs text-muted-foreground hover:text-primary transition-colors duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
                           >
                             回复
                           </button>
                         </div>
 
-                        {/* 子回复的回复输入框 */}
                         {replyingTo === reply._id && (
                           <div className="mt-3">
                             <ReplyInput
-                              onSubmit={(content, images) => {
-                                handleSubmitReply(reply._id, content, images);
-                              }}
-                              onCancel={() => {
-                                setReplyingTo(null);
-                                setReplyToAuthor('');
-                              }}
+                              onSubmit={(c, imgs) => handleSubmitReply(reply._id, c, imgs)}
+                              onCancel={() => { setReplyingTo(null); setReplyToAuthor(''); }}
                               isSubmitting={submittingReply}
                               postId={postId}
                               initialContent={`> @${reply.author.name}：\n\n`}
@@ -621,227 +575,187 @@ export default function PostDetailPage() {
     );
   };
 
-  // 标记/取消最佳答案
-  const handleToggleBestAnswer = async (commentId: string, isAccepted: boolean) => {
-    if (!session || !isQuestionAuthor) return;
-
-    setProcessingAnswer(commentId);
-    try {
-      const response = await fetch(`/api/posts/${postId}/comments`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          commentId,
-          action: isAccepted ? 'unaccept' : 'accept'
-        }),
-      });
-
-      if (response.ok) {
-        // 重新获取数据以更新状态
-        await Promise.all([fetchPost(), fetchComments()]);
-        
-        const data = await response.json();
-        toast.success(data.message);
-      } else {
-        const error = await response.json();
-        toast.error(error.error || '操作失败');
-      }
-    } catch (error) {
-      console.error('标记最佳答案失败:', error);
-      toast.error('操作失败，请重试');
-    } finally {
-      setProcessingAnswer(null);
-    }
-  };
-
-
-
-
-
-  const getStatusBadge = (status: string) => {
-    const config = {
-      'open': { label: '待解决', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      'answered': { label: '已解决', color: 'bg-green-100 text-green-800 border-green-200' },
-      'closed': { label: '已关闭', color: 'bg-muted text-muted-foreground border-border' }
-    };
-    const statusConfig = config[status as keyof typeof config];
-    if (!statusConfig) return null;
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig.color}`}>
-        {statusConfig.label}
-      </span>
-    );
-  };
+  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">加载中...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+          {/* 面包屑 */}
+          <div className="h-4 bg-muted rounded w-48 mb-8" />
+          <div className="flex gap-8">
+            <div className="flex-1 space-y-4">
+              <div className="h-10 bg-muted rounded-xl w-3/4" />
+              <div className="h-4 bg-muted rounded w-1/3" />
+              <div className="h-4 bg-muted rounded w-1/4" />
+              <div className="h-64 bg-muted rounded-xl mt-6" />
+            </div>
+            <div className="hidden lg:block w-64 space-y-3">
+              <div className="h-4 bg-muted rounded w-24" />
+              {[...Array(6)].map((_, i) => <div key={i} className="h-3 bg-muted rounded" />)}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!post) {
-    return <div>文章不存在</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">文章不存在</p>
+      </div>
+    );
   }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background">
       {/* 阅读进度条 */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted">
-        <div 
-          className="h-full bg-gradient-to-r from-primary via-primary/80 to-primary transition-all duration-150 ease-out"
+      <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-primary/10">
+        <div
+          className="h-full bg-primary transition-all duration-150 ease-out"
           style={{ width: `${readProgress}%` }}
         />
       </div>
 
-      {/* 侧边悬浮工具栏 */}
-      <div className="fixed right-8 bottom-8 z-40 flex flex-col gap-3">
-        {/* 点赞按钮 */}
+      {/* 侧边浮动工具栏 */}
+      <div className="fixed right-6 bottom-8 z-40 flex flex-col gap-2.5">
+        {/* 点赞 */}
         {session && (
           <button
             onClick={handleLike}
-            className={`group relative w-12 h-12 rounded-full shadow-lg border-2 transition-all duration-300 hover:scale-110 ${
-              liked 
-                ? 'bg-red-500 border-red-500 text-white' 
-                : 'bg-background border-border hover:border-primary'
+            aria-label={liked ? '取消点赞' : '点赞'}
+            aria-pressed={liked}
+            title={liked ? '取消点赞' : '点赞'}
+            className={`group relative w-11 h-11 rounded-full border-2 shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              liked
+                ? 'bg-rose-500 border-rose-500 text-white shadow-[0_4px_12px_rgba(239,68,68,0.30)]'
+                : 'bg-card border-border hover:border-primary text-muted-foreground hover:text-rose-500'
             }`}
-            title="点赞"
           >
-            <svg 
-              className={`w-6 h-6 mx-auto transition-all ${liked ? 'fill-current' : 'fill-none'}`}
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <Heart className={`w-4 h-4 mx-auto ${liked ? 'fill-current' : ''}`} strokeWidth={1.5} />
+            <span className="sr-only">{liked ? '取消点赞' : '点赞'}</span>
+            <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-popover text-popover-foreground text-xs px-2.5 py-1.5 shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {liked ? '取消点赞' : '点赞'}
             </span>
           </button>
         )}
 
-        {/* 评论跳转按钮 */}
+        {/* 跳转评论 */}
         <button
           onClick={scrollToComments}
-          className="group relative w-12 h-12 rounded-full bg-background border-2 border-border hover:border-primary shadow-lg transition-all duration-300 hover:scale-110"
-          title="跳转到评论"
+          aria-label="跳转到评论区"
+          title="评论区"
+          className="group relative w-11 h-11 rounded-full bg-card border-2 border-border hover:border-primary text-muted-foreground hover:text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+          <MessageSquare className="w-4 h-4 mx-auto" strokeWidth={1.5} />
           {comments.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-semibold">
-              {comments.length > 99 ? '99+' : comments.length}
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-semibold rounded-full flex items-center justify-center leading-none">
+              {comments.length > 9 ? '9+' : comments.length}
             </span>
           )}
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-popover text-popover-foreground text-xs px-2.5 py-1.5 shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             评论区
           </span>
         </button>
 
-        {/* 返回顶部按钮 */}
+        {/* 返回顶部 */}
         {showScrollTop && (
           <button
             onClick={scrollToTop}
-            className="group relative w-12 h-12 rounded-full bg-background border-2 border-border hover:border-primary shadow-lg transition-all duration-300 hover:scale-110 animate-in fade-in slide-in-from-bottom-4"
+            aria-label="返回顶部"
             title="返回顶部"
+            className="group relative w-11 h-11 rounded-full bg-card border-2 border-border hover:border-primary text-muted-foreground hover:text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 animate-in fade-in slide-in-from-bottom-2"
           >
-            <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-            </svg>
-            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-foreground text-background text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <ArrowUp className="w-4 h-4 mx-auto" strokeWidth={1.5} />
+            <span className="pointer-events-none absolute right-full mr-2.5 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-popover text-popover-foreground text-xs px-2.5 py-1.5 shadow-md border border-border opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               返回顶部
             </span>
           </button>
         )}
       </div>
 
+      {/* 主体 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 面包屑导航 */}
-        <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-8">
-          <Link href="/" className="hover:text-foreground transition-colors">
+        {/* 面包屑 */}
+        <nav aria-label="面包屑" className="flex items-center gap-1.5 text-sm text-muted-foreground mb-8">
+          <Link href="/" className="hover:text-foreground transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded">
             首页
           </Link>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-foreground">{post.title}</span>
+          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+          <Link
+            href="/posts"
+            className="hover:text-foreground transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+          >
+            知识库
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+          <span className="text-foreground truncate max-w-[240px]" aria-current="page">
+            {post.title}
+          </span>
         </nav>
 
         <div className="flex gap-8">
-          {/* 主要内容区域 */}
+          {/* ── 主内容 ── */}
           <div className="flex-1 min-w-0">
             <header className="mb-8">
-              {/* 标题和状态标签 */}
-              <div className="flex items-start justify-between mb-4">
-                <h1 className="text-3xl font-bold text-foreground leading-tight flex-1 mr-4">
+              {/* 标题 + 状态 */}
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <h1 className="font-heading text-3xl sm:text-4xl font-bold text-foreground leading-tight flex-1">
                   {post.title}
                 </h1>
-                <div className="flex items-center space-x-2">
-                  {post.type === 'question' && post.status && getStatusBadge(post.status)}
-                </div>
+                {post.type === 'question' && post.status && (
+                  <div className="mt-1 flex-shrink-0">
+                    <StatusBadge status={post.status} />
+                  </div>
+                )}
               </div>
 
-              {/* 作者信息 */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="w-10 h-10 text-base">
+              {/* 作者 + 统计 */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
                     <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
                     <AvatarFallback>{post.author.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{post.author.name}</p>
+                    <p className="text-sm font-semibold text-foreground">{post.author.name}</p>
                     <p className="text-xs text-muted-foreground">
                       发布于 {displayLocalTime(post.createdAt, 'datetime')}
+                      {post.updatedAt !== post.createdAt && (
+                        <span className="ml-2">· 更新于 {displayLocalTime(post.updatedAt, 'datetime')}</span>
+                      )}
                     </p>
-                    {post.updatedAt !== post.createdAt && (
-                      <p className="text-xs text-muted-foreground">
-                        更新于 {displayLocalTime(post.updatedAt, 'datetime')}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                {/* 统计信息 */}
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <span>{post.views}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <span>{post.likes}</span>
-                  </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="w-4 h-4" strokeWidth={1.5} />
+                    {post.views}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Heart className="w-4 h-4" strokeWidth={1.5} />
+                    {post.likes}
+                  </span>
                   {post.type === 'question' && (
-                    <div className="flex items-center space-x-1">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span>{post.answers}</span>
-                    </div>
+                    <span className="flex items-center gap-1.5">
+                      <MessageSquare className="w-4 h-4" strokeWidth={1.5} />
+                      {post.answers}
+                    </span>
                   )}
                 </div>
               </div>
 
               {/* 标签 */}
               {post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap gap-2">
                   {post.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border"
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 transition-colors duration-150 cursor-default"
                     >
                       #{tag}
                     </span>
@@ -850,121 +764,104 @@ export default function PostDetailPage() {
               )}
             </header>
 
-            {/* 文章内容 */}
+            {/* ── 正文 ── */}
             <article className="prose prose-lg max-w-none mb-12">
               <MarkdownPreview content={stableContent} />
             </article>
 
-            {/* 操作按钮 */}
-            <div className="flex items-center space-x-3 mb-12 pb-6 border-b border-border">
+            {/* ── 操作栏 ── */}
+            <div className="flex items-center gap-3 mb-12 pb-8 border-b border-border">
               <button
                 onClick={handleLike}
-                className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${
-                  liked 
-                    ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
-                    : 'bg-background text-muted-foreground border-border hover:bg-accent'
+                aria-pressed={liked}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  liked
+                    ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-950/50'
+                    : 'bg-card text-muted-foreground border-border hover:bg-accent hover:text-foreground hover:-translate-y-0.5'
                 }`}
               >
-                <svg className="w-5 h-5" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                <span>{liked ? '已点赞' : '点赞'}</span>
+                <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} strokeWidth={1.5} />
+                {liked ? '已点赞' : '点赞'}
               </button>
 
-              <button className="inline-flex items-center space-x-2 px-4 py-2 rounded-lg border border-border bg-background text-muted-foreground hover:bg-accent transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                </svg>
-                <span>分享</span>
+              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-muted-foreground text-sm font-medium hover:bg-accent hover:text-foreground hover:-translate-y-0.5 transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                <Share2 className="w-4 h-4" strokeWidth={1.5} />
+                分享
               </button>
             </div>
 
-            {/* 评论区域 */}
-            <section id="comments-section">
+            {/* ── 评论区 ── */}
+            <section id="comments-section" aria-label="评论区">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">
+                <h2 className="font-heading text-xl font-bold text-foreground">
                   {post.type === 'question' ? `${comments.length} 个回答` : `${comments.length} 条评论`}
                 </h2>
-                
+
                 {/* 排序切换 */}
-                <div className="flex items-center gap-2 bg-muted rounded-lg p-1">
-                  <button
-                    onClick={() => setCommentSortBy('newest')}
-                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      commentSortBy === 'newest'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    最新
-                  </button>
-                  <button
-                    onClick={() => setCommentSortBy('hottest')}
-                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      commentSortBy === 'hottest'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    最热
-                  </button>
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1" role="group" aria-label="排序方式">
+                  {(['newest', 'hottest'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setCommentSortBy(s)}
+                      aria-pressed={commentSortBy === s}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                        commentSortBy === s
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {s === 'newest' ? '最新' : '最热'}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* 评论列表 */}
               <div className="space-y-6 mb-8">
-                {comments.map((comment) => renderMainComment(comment))}
+                {comments.length === 0 ? (
+                  <p className="text-center py-12 text-muted-foreground text-sm">
+                    暂无{post.type === 'question' ? '回答' : '评论'}，来抢沙发吧~
+                  </p>
+                ) : (
+                  comments.map((c) => renderMainComment(c))
+                )}
               </div>
 
               {/* 添加评论 */}
               <div className="mt-8">
-                <h3 className="text-lg font-medium text-foreground mb-4">
-                  {post.type === 'question' ? '你的回答' : '添加评论'}
+                <h3 className="font-heading text-base font-semibold text-foreground mb-4">
+                  {post.type === 'question' ? '发表你的回答' : '添加评论'}
                 </h3>
-                
+
                 {!showCommentInput ? (
                   <button
                     onClick={() => setShowCommentInput(true)}
-                    className="w-full px-4 py-3 text-left text-muted-foreground bg-muted border border-border rounded-lg hover:bg-accent hover:border-border transition-colors"
+                    className="w-full px-4 py-3 text-left text-sm text-muted-foreground bg-muted/60 border border-border rounded-xl hover:bg-accent hover:border-border/80 transition-all duration-150 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   >
-                    {post.type === 'question' ? '写下你的回答...' : '写下你的想法...'}
+                    {post.type === 'question' ? '写下你的回答…' : '写下你的想法…'}
                   </button>
                 ) : (
                   <CommentInput
                     onSubmit={async (content, images) => {
-                      if (!session) {
-                        router.push('/auth/signin');
-                        return;
-                      }
-                      
+                      if (!session) { router.push('/auth/signin'); return; }
                       setSubmittingComment(true);
                       try {
-                        const response = await fetch(`/api/posts/${postId}/comments`, {
+                        const res = await fetch(`/api/posts/${postId}/comments`, {
                           method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            content,
-                            images,
-                          }),
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ content, images }),
                         });
-
-                        if (response.ok) {
-                          setShowCommentInput(false);
-                          await fetchComments();
-                        } else {
-                          toast.error('发布失败，请重试');
-                        }
-                      } catch (error) {
-                        console.error('发布评论失败:', error);
+                        if (res.ok) { setShowCommentInput(false); await fetchComments(); }
+                        else toast.error('发布失败，请重试');
+                      } catch (e) {
+                        console.error('发布评论失败:', e);
                         toast.error('发布失败，请重试');
                       } finally {
                         setSubmittingComment(false);
                       }
                     }}
                     onCancel={() => setShowCommentInput(false)}
-                    placeholder={post.type === 'question' ? '请详细回答这个问题...' : '写下你的想法...'}
+                    placeholder={post.type === 'question' ? '请详细回答这个问题…' : '写下你的想法…'}
                     isSubmitting={submittingComment}
                     postId={postId}
                   />
@@ -973,28 +870,30 @@ export default function PostDetailPage() {
             </section>
           </div>
 
-          {/* 右侧目录 - 仅在有目录时显示 */}
+          {/* ── 右侧目录 ── */}
           {hasTableOfContents && (
-            <aside className="hidden lg:block lg:w-64 lg:flex-shrink-0">
-              <div 
+            <aside className="hidden lg:block lg:w-64 lg:flex-shrink-0" aria-label="文章目录">
+              <div
                 className={`top-24 max-h-[calc(100vh-6rem)] transition-all duration-300 ${
                   isTocFixed ? 'sticky' : 'relative'
                 }`}
               >
                 <div className="px-4">
-                  <TableOfContents 
-                    content={stableContent} 
-                    readProgress={readProgress}
-                  />
+                  <TableOfContents content={stableContent} readProgress={readProgress} />
                 </div>
               </div>
             </aside>
           )}
         </div>
       </div>
-      {/* 全局图片预览弹窗 */}
-      <ImagePreviewModal src={previewImage || ''} alt={previewAlt} open={!!previewImage} onClose={() => setPreviewImage(null)} />
 
+      {/* 图片预览弹窗 */}
+      <ImagePreviewModal
+        src={previewImage || ''}
+        alt={previewAlt}
+        open={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
     </div>
   );
-} 
+}

@@ -46,41 +46,43 @@ export default function FloatingAddButton({
 
   return (
     <div className={`fixed bottom-6 right-6 z-50 floating-add-button-container ${className}`}>
-      {/* 主按钮 */}
       <div className="relative group">
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-14 h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group-hover:scale-110"
+          aria-label="添加内容"
+          aria-expanded={dropdownOpen}
+          className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-[0_0_20px_rgba(58,127,245,0.35)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           title="添加内容"
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-6 h-6" strokeWidth={1.5} />
         </button>
 
-        {/* 下拉菜单 */}
         {dropdownOpen && (
-          <div className="absolute bottom-16 right-0 mb-2 w-48 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+          <div className="absolute bottom-16 right-0 mb-2 w-48 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
             <div className="py-1">
               <button
+                type="button"
                 onClick={handleCreateArticle}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-accent transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
               >
-                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                  <Edit3 className="w-4 h-4" />
+                <div className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Edit3 className="w-4 h-4" strokeWidth={1.5} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="font-medium text-foreground">写文章</div>
                   <div className="text-xs text-muted-foreground">分享技术文章和经验</div>
                 </div>
               </button>
-              
+
               <button
+                type="button"
                 onClick={handleCreateQuestion}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-accent transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
               >
-                <div className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center">
-                  <HelpCircle className="w-4 h-4" />
+                <div className="w-8 h-8 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="w-4 h-4" strokeWidth={1.5} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="font-medium text-foreground">提问题</div>
                   <div className="text-xs text-muted-foreground">寻求帮助和解答</div>
                 </div>

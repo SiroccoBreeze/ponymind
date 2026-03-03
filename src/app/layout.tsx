@@ -4,6 +4,7 @@ import { Space_Grotesk, DM_Sans } from "next/font/google";
 import { getServerSession } from "next-auth/next";
 import SessionProvider from "@/components/SessionProvider";
 import Navbar from "@/components/layout/Navbar";
+import MainContent from "@/components/MainContent";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -96,12 +97,7 @@ export default async function RootLayout({
               pt-[72px]          → 浮動膠囊：pt-4(16px)+h-14(56px)=72px (MASTER §14)
               min-h-[calc(100vh-4rem)] → 確保短內容頁面也填滿視窗
             */}
-            <main
-              id="main-content"
-              className="pt-[72px] min-h-[calc(100vh-4.5rem)]"
-            >
-              {children}
-            </main>
+            <MainContent>{children}</MainContent>
 
             <Toaster />
           </SessionProvider>

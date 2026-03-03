@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink, Search, Filter, Database, Copy, Check, Grid, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/utils';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Resource {
   _id: string;
@@ -377,95 +378,18 @@ export default function ResourcesPage() {
 
             {/* 分页 */}
             {(pagination.pages > 1 || pagination.total > pagination.limit) && (
-              <div className="flex justify-between items-center mt-8">
-                <div className="text-sm text-muted-foreground">
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-8 gap-3">
+                <div className="text-sm text-muted-foreground text-center sm:text-left">
                   共 {pagination.total} 条记录
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                  >
-                    上一页
-                  </Button>
-                  
-                  {/* 页码显示 */}
-                  <div className="flex items-center space-x-1">
-                    {(() => {
-                      const currentPage = pagination.page;
-                      const totalPages = pagination.pages;
-                      const pages: (number | string)[] = [];
-                      
-                      if (totalPages <= 7) {
-                        // 如果总页数少于等于7页，显示所有页码
-                        for (let i = 1; i <= totalPages; i++) {
-                          pages.push(i);
-                        }
-                      } else {
-                        // 如果总页数大于7页，显示智能分页
-                        if (currentPage <= 4) {
-                          // 当前页在前4页
-                          for (let i = 1; i <= 5; i++) {
-                            pages.push(i);
-                          }
-                          pages.push('...');
-                          pages.push(totalPages);
-                        } else if (currentPage >= totalPages - 3) {
-                          // 当前页在后4页
-                          pages.push(1);
-                          pages.push('...');
-                          for (let i = totalPages - 4; i <= totalPages; i++) {
-                            pages.push(i);
-                          }
-                        } else {
-                          // 当前页在中间
-                          pages.push(1);
-                          pages.push('...');
-                          for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                            pages.push(i);
-                          }
-                          pages.push('...');
-                          pages.push(totalPages);
-                        }
-                      }
-                      
-                      return pages.map((page, index) => {
-                        if (page === '...') {
-                          return (
-                            <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
-                              ...
-                            </span>
-                          );
-                        }
-                        
-                        const pageNumber = page as number;
-                        const isCurrentPage = pageNumber === currentPage;
-                        
-                        return (
-                          <Button
-                            key={pageNumber}
-                            variant={isCurrentPage ? "default" : "outline"}
-                            size="sm"
-                            className="w-8 h-8 p-0"
-                            onClick={() => setPagination(prev => ({ ...prev, page: pageNumber }))}
-                          >
-                            {pageNumber}
-                          </Button>
-                        );
-                      });
-                    })()}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page === pagination.pages}
-                  >
-                    下一页
-                  </Button>
-                </div>
+                <PaginationBar
+                  currentPage={pagination.page}
+                  totalPages={pagination.pages}
+                  onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+                  totalCount={pagination.total}
+                  pageSize={pagination.limit}
+                  ariaLabel="资源中心分页"
+                />
               </div>
             )}
           </>

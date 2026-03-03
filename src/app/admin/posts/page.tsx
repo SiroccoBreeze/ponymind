@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, Heart, MessageCircle, Trash2, Check, X, Link2 } from 'lucide-react';
 import { displayLocalTime } from '@/lib/frontend-time-utils';
 import ShareLinkDialog from '@/components/ShareLinkDialog';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Post {
   _id: string;
@@ -561,31 +562,15 @@ export default function PostsManagement() {
 
           {/* 分页 */}
           {data.pagination.pages > 1 && (
-            <div className="px-4 md:px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0">
-                <div className="text-sm text-gray-700 text-center sm:text-left">
-                  显示第 {(data.pagination.page - 1) * data.pagination.limit + 1} - {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} 条，共 {data.pagination.total} 条记录
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    上一页
-                  </button>
-                  <span className="px-3 py-1 text-sm text-gray-700">
-                    第 {currentPage} 页，共 {data.pagination.pages} 页
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
-                    disabled={currentPage === data.pagination.pages}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    下一页
-                  </button>
-                </div>
-              </div>
+            <div className="px-4 md:px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-center">
+              <PaginationBar
+                currentPage={currentPage}
+                totalPages={data.pagination.pages}
+                onPageChange={setCurrentPage}
+                totalCount={data.pagination.total}
+                pageSize={data.pagination.limit}
+                ariaLabel="内容管理分页"
+              />
             </div>
           )}
         </div>

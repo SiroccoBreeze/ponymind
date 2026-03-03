@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserDetailDialog from '@/components/UserDetailDialog';
+import { PaginationBar } from '@/components/PaginationBar';
 
 import { useEffect, useState } from 'react';
 import { 
@@ -627,32 +628,18 @@ export default function UsersManagement() {
         {/* 分页 */}
         <Card className="border-primary/20">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              显示 {((currentPage - 1) * 10) + 1} 到 {Math.min(currentPage * 10, data.pagination.total)} 条，
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground text-center sm:text-left">
               共 {data.pagination.total} 条记录
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                上一页
-              </Button>
-              <span className="text-sm text-muted-foreground px-4 py-2 bg-muted rounded-md">
-                第 {currentPage} 页，共 {data.pagination.pages} 页
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(Math.min(data.pagination.pages, currentPage + 1))}
-                disabled={currentPage === data.pagination.pages}
-              >
-                下一页
-              </Button>
-            </div>
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={data.pagination.pages}
+              onPageChange={setCurrentPage}
+              totalCount={data.pagination.total}
+              pageSize={data.pagination.limit}
+              ariaLabel="用户列表分页"
+            />
           </div>
         </CardContent>
         </Card>

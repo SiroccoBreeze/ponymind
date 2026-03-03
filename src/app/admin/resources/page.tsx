@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Plus, Search, Filter, Edit, Trash2, ExternalLink, Database, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { PaginationBar } from '@/components/PaginationBar';
 
 interface Resource {
   _id: string;
@@ -555,27 +556,14 @@ export default function AdminResourcesPage() {
           {/* 分页 */}
           {pagination.pages > 1 && (
             <div className="flex justify-center mt-6">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page === 1}
-                >
-                  上一页
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  第 {pagination.page} 页，共 {pagination.pages} 页
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  disabled={pagination.page === pagination.pages}
-                >
-                  下一页
-                </Button>
-              </div>
+              <PaginationBar
+                currentPage={pagination.page}
+                totalPages={pagination.pages}
+                onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+                totalCount={pagination.total}
+                pageSize={pagination.limit}
+                ariaLabel="资源管理分页"
+              />
             </div>
           )}
         </CardContent>
